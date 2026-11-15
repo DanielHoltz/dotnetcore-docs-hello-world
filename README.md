@@ -1,3 +1,36 @@
+# EnfCalc — Calculadora de Enfermagem
+
+App para profissionais de enfermagem (PWA: funciona offline e instala na tela inicial do celular), em `wwwroot/enfermagem/`. A raiz do site redireciona para ele.
+
+## Funcionalidades
+
+- **Infusão e gotejamento:** gotas/min e microgotas/min, tempo de infusão, vazão em bomba (mL/h).
+- **Infusão contínua / drogas vasoativas:** dose ↔ mL/h (mcg/kg/min, mcg/min, mg/kg/h, UI/min, UI/kg/h, mUI/min…) com 15 soluções padrão (noradrenalina, adrenalina, dobutamina, dopamina, nitroprussiato, nitroglicerina, vasopressina, amiodarona, midazolam, fentanil, propofol, dexmedetomidina, insulina, heparina, ocitocina), aviso de dose fora da faixa e tabela de titulação.
+- **Preparo de medicação:** regra de três com conversão de unidades, reconstituição de pó (com volume do pó, diluição e gotejamento), penicilina cristalina.
+- **Diluições:** ficha de 40 medicamentos (apresentação, reconstituição, diluição, tempo de administração, estabilidade, cuidados, alerta de alta vigilância) com calculadora de volume.
+- **Soluções:** transformação de soro (adicionar ou desprezar e repor), eletrólitos mEq ↔ mL, solução percentual.
+- **Pediatria:** dose mg/kg (por dose ou por dia, com dose máxima), Holliday-Segar.
+- **Avaliação clínica:** IMC/SC, PAM, clearance de creatinina, balanço hídrico, Parkland, IG/DPP, autonomia do cilindro de O₂.
+- **Escalas:** Glasgow (com GCS-P), Braden, Morse, RASS, Ramsay, Apgar, qSOFA, dor numérica.
+- Busca global, favoritos, tema escuro automático, funcionamento offline.
+
+> ⚠️ Ferramenta de apoio. Não substitui prescrição, bula, protocolos institucionais ou julgamento clínico. Os dados de diluição precisam de revisão periódica por farmacêutico/enfermeiro responsável.
+
+## Rodar localmente
+
+- Só o app (sem .NET): `npm start` e abra http://localhost:8080/enfermagem/
+- Com ASP.NET: `dotnet run` e abra a raiz do site.
+- Testes dos cálculos: `npm test`
+
+## Estrutura
+
+- `js/calc.js` — fórmulas (funções puras, testadas em `tests/enfermagem/`)
+- `js/data.js` — medicamentos, soluções de infusão, eletrólitos e escalas
+- `js/app.js` — interface e calculadoras
+- `sw.js`, `manifest.webmanifest` — PWA/offline
+
+---
+
 # .NET 7 Hello World
 
 This sample demonstrates a tiny Hello World .NET Core app for [App Service Web App](https://docs.microsoft.com/azure/app-service-web). This sample can be used in a .NET Azure App Service app as well as in a Custom Container Azure App Service app.

@@ -16,7 +16,9 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public void OnGet()
-    {        
+    // A página inicial abre o EnfCalc (PWA estático em wwwroot/enfermagem)
+    public IActionResult OnGet()
+    {
+        return Redirect("~/enfermagem/");
     }
 }
