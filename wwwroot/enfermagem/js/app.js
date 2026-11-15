@@ -1118,16 +1118,23 @@
   // ---- Referências e revisão ----
   function revisaoBadge(id) {
     var r = R.revisao(id);
-    return r ? '<span class="badge ok">✅ Revisado</span>' : '<span class="badge warn">⏳ Aguardando revisão</span>';
+    if (r) return '<span class="badge ok">✅ Revisado</span>';
+    return R.verificacao(id) ? '<span class="badge info">🔎 Conferido com fontes</span>' : '<span class="badge warn">⏳ Aguardando revisão</span>';
   }
   function refsHtml(d, it) {
     if (!d.id && !(it && it.conferido)) return '';
     var h = '<div class="sec refs"><h3>📚 Referências e revisão</h3>';
     if (d.id) {
       var r = R.revisao(d.id);
+      var v = R.verificacao(d.id);
       h += r
         ? '<p>✅ <b>Revisado por ' + esc(r.por) + (r.registro ? ' (' + esc(r.registro) + ')' : '') + '</b> em ' + esc(r.data.split('-').reverse().join('/')) + '.<br><small>Fonte: ' + esc(r.fonte || '') + (r.nota ? ' — ' + esc(r.nota) : '') + '</small></p>'
-        : '<p>⏳ <b>Ficha ainda não revisada por farmacêutico.</b><br><small>' + esc(R.FONTE_PADRAO) + '</small></p>';
+        : '<p>⏳ <b>Ainda não revisada por farmacêutico.</b></p>';
+      h += v
+        ? '<p>🔎 <b>Conferida com fontes publicadas</b> em ' + esc(v.data.split('-').reverse().join('/')) + ':</p><ul class="fontes">' +
+            v.fontes.map(function (f) { return '<li><a target="_blank" rel="noopener" href="' + esc(f.url) + '">' + esc(f.t) + '</a></li>'; }).join('') +
+          '</ul><p class="note">Fontes podem divergir entre si e entre fabricantes; quando divergem, a ficha cita a mais conservadora ou as duas.</p>'
+        : '<p><small>' + esc(R.FONTE_PADRAO) + '</small></p>';
       h += '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(R.urlAnvisa(d)) + '">📄 Ver bula na Anvisa</a>' +
         (isHV(d) ? '<a class="btn sm ghost" target="_blank" rel="noopener" href="https://www.ismp-brasil.org/">⚠️ ISMP Brasil</a>' : '') + '</div>' +
         '<p class="note">No Bulário, busque por “' + esc(R.termoAnvisa(d)) + '” e abra a bula profissional do fabricante que você usa.</p>';
@@ -1143,13 +1150,14 @@
     var lista = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
     if (m) lista = lista.filter(function (d) { return M.temDroga(m, d.id); });
     var nRev = lista.filter(function (d) { return R.revisao(d.id); }).length;
+    var nVer = lista.filter(function (d) { return R.verificacao(d.id); }).length;
     var pct = lista.length ? Math.round(nRev / lista.length * 100) : 0;
     function dd(t, v) { return v ? '<dt>' + t + '</dt><dd>' + esc(v) + '</dd>' : ''; }
     $app.innerHTML =
       '<div class="no-print">' +
       '<p class="lead">Para o app ser confiável, cada ficha deve ser conferida por farmacêutico (ou enfermeiro responsável) com a <b>bula profissional da Anvisa</b> do fabricante usado no seu serviço.</p>' +
-      '<div class="progress"><div class="bar" style="width:' + pct + '%"></div></div>' +
-      '<p class="note"><b>' + nRev + ' de ' + lista.length + '</b> fichas revisadas' + (m ? ' na maleta “' + esc(m.nome) + '”' : '') + '.</p>' +
+      '<div class="progress"><div class="bar" style="width:' + pct + '%"></div><div class="bar ver" style="width:' + Math.max(0, Math.round(nVer / Math.max(lista.length, 1) * 100) - pct) + '%"></div></div>' +
+      '<p class="note">' + (m ? 'Maleta “' + esc(m.nome) + '”: ' : '') + '<b>✅ ' + nRev + '</b> revisadas por profissional · <b>🔎 ' + nVer + '</b> conferidas com fontes publicadas · <b>⏳ ' + (lista.length - nVer) + '</b> sem conferência (de ' + lista.length + ').</p>' +
       '<div class="field"><label for="rv-f">Mostrar</label><select id="rv-f"><option value="">Todos os medicamentos (' + D.DRUGS.length + ')</option>' +
         ms.map(function (x) { return '<option value="' + esc(x.id) + '"' + (m && m.id === x.id ? ' selected' : '') + '>' + esc(x.icon + ' ' + x.nome) + '</option>'; }).join('') + '</select></div>' +
       '<div class="sec"><h3>Como funciona</h3><ol class="howto">' +

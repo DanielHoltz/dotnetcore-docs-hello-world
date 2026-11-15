@@ -30,3 +30,17 @@ test('conferência do item: sanitização e exportação/importação', () => {
   const r = M.importar(JSON.parse(JSON.stringify(M.exportar(m))), D.DRUGS.map(d => d.id));
   assert.deepEqual(r.maleta.itens[0].conferido, { por: 'Ana COREN 123', data: '2026-11-15' });
 });
+
+test('conferências com fontes: ids válidos e URLs https', () => {
+  for (const [id, fontes] of Object.entries(R.VERIFICACOES)) {
+    assert.ok(D.DRUGS.some(d => d.id === id), id);
+    assert.ok(fontes.length > 0, id);
+    for (const f of fontes) assert.match(f.url, /^https:\/\/[^\s]+$/, id + ': ' + f.url);
+  }
+  assert.equal(R.verificacao('omeprazol'), null);
+});
+
+test('piperacilina+tazobactam usa volume final de ~23 mL', () => {
+  const pt = D.DRUGS.find(d => d.id === 'pipe-tazo');
+  assert.equal(pt.conc.vol, 23);
+});

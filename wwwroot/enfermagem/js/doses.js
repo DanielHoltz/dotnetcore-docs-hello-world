@@ -73,8 +73,8 @@
       via: 'infusao', diluente: 'SF 0,9%', volDil: 100, volDilPed: 50, concMax: 18, tempo: 20, vmax: 30 },
     'cloreto-potassio': { freq: 'conforme potássio sérico', adulto: { txt: 'Conforme prescrição e potássio sérico' },
       ped: { txt: '0,5–1 mEq/kg/dose em infusão lenta, conforme protocolo' },
-      via: 'infusao', diluente: 'SF 0,9%', volDil: 250, volDilPed: 100, concMax: 0.04, tempo: 60, vmax: 10 / 60, vmaxKgPed: 0.5 / 60,
-      obs: 'concMax = 40 mEq/L (acesso periférico). Em acesso central com monitorização o protocolo pode permitir mais.' },
+      via: 'infusao', diluente: 'SF 0,9%', volDil: 100, volDilPed: 100, concMax: 0.1, tempo: 60, vmax: 10 / 60, vmaxKgPed: 0.5 / 60,
+      obs: 'Limites de acesso periférico: 10 mEq/100 mL e 10 mEq/h (HSL/São Camilo). Em CVC com monitorização o protocolo pode permitir mais.' },
     'dexametasona': { freq: 'conforme indicação', adulto: { txt: '4–10 mg conforme indicação' },
       ped: { porKg: 0.15, max: 10, txt: '0,15–0,6 mg/kg (máx. 10–16 mg) conforme indicação' }, via: 'bolus', tempo: 3 },
     'diazepam': { freq: 'repetir conforme protocolo de crise', adulto: { valor: 10, txt: '5–10 mg EV lento' },
@@ -102,8 +102,8 @@
       via: 'infusao', diluente: 'SF 0,9%', volDil: 100, volDilPed: 50, tempo: 30,
       renal: { clcr: 60, txt: 'ClCr < 60 mL/min: ajustar intervalo e dosar nível sérico.' }, obs: 'Em obesos, usar peso ajustado.' },
     'gluconato-calcio': { freq: 'conforme cálcio sérico', adulto: { valor: 1000, txt: '1–2 g (10–20 mL) EV lento' },
-      ped: { porKg: 60, max: 2000, txt: '50–100 mg/kg (0,5–1 mL/kg; máx. 2 g)' },
-      via: 'infusao', diluente: 'SF 0,9% ou SG 5%', volDil: 100, volDilPed: 50, tempo: 20 },
+      ped: { porKg: 60, max: 2000, txt: '50–100 mg/kg (0,6–1 mL/kg; máx. 2 g)' },
+      via: 'infusao', diluente: 'SF 0,9% ou SG 5%', volDil: 100, volDilPed: 50, tempo: 20, vmax: 200 },
     'glicose-50': { freq: 'repetir conforme glicemia capilar', adulto: { valor: 25000, txt: '25 g (50 mL) EV lento' },
       ped: { txt: 'Em crianças preferir glicose 10%: 2–5 mL/kg (0,2–0,5 g/kg)' }, via: 'bolus', tempo: 3 },
     'heparina': { freq: 'conforme protocolo', adulto: { txt: 'Profilaxia: 5.000 UI SC a cada 8–12 h. Tratamento: bolus 80 UI/kg + 18 UI/kg/h (nomograma)' },
@@ -226,7 +226,9 @@
     { a: ['insulina-regular'], b: ['dexametasona', 'hidrocortisona'], sev: 'moderada', tipo: 'Interação', txt: 'Corticoides elevam a glicemia; pode ser necessário ajustar a insulina. Monitorar glicemia capilar.' },
     { a: ['fenitoina'], b: ['amiodarona'], sev: 'moderada', tipo: 'Interação', txt: 'Amiodarona aumenta o nível de fenitoína (toxicidade) e a fenitoína reduz o da amiodarona.' },
     { a: ['fenitoina'], b: ['dexametasona', 'hidrocortisona'], sev: 'moderada', tipo: 'Interação', txt: 'Fenitoína reduz o efeito dos corticoides (indução enzimática).' },
-    { a: ['nitroprussiato'], b: ['nitroglicerina'], sev: 'moderada', tipo: 'Interação', txt: 'Hipotensão aditiva. Monitorar PA continuamente.' }
+    { a: ['nitroprussiato'], b: ['nitroglicerina'], sev: 'moderada', tipo: 'Interação', txt: 'Hipotensão aditiva. Monitorar PA continuamente.' },
+    { a: ['tramadol'], b: ['midazolam', 'diazepam', 'nitroglicerina'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Incompatível quando misturado (bula do tramadol). Não misturar na mesma seringa/solução; usar via separada ou lavar o acesso.' },
+    { a: ['clindamicina'], b: ['aciclovir'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Não administrar na mesma linha (tabela de diluição Fiocruz/IFF). Usar via separada ou lavar o acesso.' }
   ];
 
   // Medicamentos que não devem ser misturados com nenhum outro (via/seringa exclusiva)
@@ -234,7 +236,8 @@
     fenitoina: 'Precipita com a maioria dos medicamentos e com soro glicosado: via exclusiva, lavar com SF antes e depois.',
     diazepam: 'Precipita quando misturado/diluído: não misturar com outros medicamentos.',
     ertapenem: 'Não misturar com outros medicamentos nem com soluções glicosadas.',
-    adenosina: 'Bolus rápido isolado, seguido de flush; não misturar.'
+    adenosina: 'Bolus rápido isolado, seguido de flush; não misturar.',
+    dipirona: 'A bula orienta não misturar com outros medicamentos injetáveis.'
   };
 
   var api = { DOSES: DOSES, GRUPOS: GRUPOS, ALERGIAS: ALERGIAS, ANTIDOTOS: ANTIDOTOS, INTERACOES: INTERACOES, VIA_EXCLUSIVA: VIA_EXCLUSIVA };

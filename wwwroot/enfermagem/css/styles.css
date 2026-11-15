@@ -351,3 +351,7 @@ button.card { width: 100%; border: 0; border-bottom: 1px solid var(--line); back
   .print-only { display: block; }
   .ficha-item .check { font-size: 10px; }
 }
+.progress { display: flex; }
+.progress .bar.ver { background: var(--primary); opacity: .55; }
+.fontes { margin: 0 0 6px; padding-left: 18px; font-size: .86rem; }
+.fontes li { margin-bottom: 4px; }
