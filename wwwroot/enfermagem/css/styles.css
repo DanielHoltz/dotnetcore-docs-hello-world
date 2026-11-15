@@ -402,3 +402,15 @@ button.card { width: 100%; border: 0; border-bottom: 1px solid var(--line); back
 .reg-box .row .btn { margin: 0; }
 .alert.ok-box { background: var(--ok-bg); border-left: 4px solid var(--ok); }
 .pcr-card[class*="adr-"] .pcr-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+
+/* ---------- PCR no topo, recentes, paciente na home ---------- */
+.topbar a.pcr-btn { font-size: 1.2rem; background: rgba(255,255,255,.14); }
+.topbar a.pcr-btn.on { background: var(--bad); animation: pisca 1s infinite; }
+@media (prefers-reduced-motion: reduce) { .topbar a.pcr-btn.on { animation: none; } }
+.pac-home { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px 14px; border-radius: var(--radius); text-decoration: none; color: var(--text); background: var(--surface); border: 2px solid var(--primary); box-shadow: var(--shadow); }
+.pac-home small { color: var(--muted); }
+.rec-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.rec-row::-webkit-scrollbar { display: none; }
+.rec { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: .85rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.field input[type=time] { width: 100%; padding: 10px 12px; font-size: 1.15rem; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); height: 46px; }
+.res.main .res-v { overflow-wrap: anywhere; }

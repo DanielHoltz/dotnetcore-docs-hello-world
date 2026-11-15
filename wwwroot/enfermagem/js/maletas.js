@@ -134,11 +134,26 @@
     return { maleta: m, ignorados: ignorados };
   }
 
+  // Backup completo (todas as maletas + favoritos)
+  function exportarBackup(maletas, favs) {
+    return { tipo: 'enfcalc-backup', versao: 1, exportadoEm: new Date().toISOString(), maletas: maletas || [], favs: favs || [] };
+  }
+  function importarBackup(obj, drugIds) {
+    if (!obj || obj.tipo !== 'enfcalc-backup' || !Array.isArray(obj.maletas)) throw new Error('Arquivo não é um backup do EnfCalc.');
+    var ms = [], ignorados = 0;
+    obj.maletas.slice(0, 100).forEach(function (m) {
+      try { var r = importar({ tipo: 'enfcalc-maleta', maleta: m }, drugIds); ms.push(r.maleta); ignorados += r.ignorados; } catch (e) { ignorados++; }
+    });
+    var favs = (Array.isArray(obj.favs) ? obj.favs : []).filter(function (f) { return typeof f === 'string' && f.length <= 80; }).slice(0, 300);
+    return { maletas: ms, favs: favs, ignorados: ignorados };
+  }
+
   var api = {
     ICONS: ICONS, CONC_UNITS: CONC_UNITS, TEXT_FIELDS: TEXT_FIELDS, DIAS_ALERTA: DIAS_ALERTA,
     novaMaleta: novaMaleta, novoItem: novoItem, daMaleta: daMaleta, temDroga: temDroga,
     adicionarDrogas: adicionarDrogas, resolver: resolver, statusValidade: statusValidade,
     alertas: alertas, deModelo: deModelo, exportar: exportar, importar: importar,
+    exportarBackup: exportarBackup, importarBackup: importarBackup,
     cleanConc: cleanConc, cleanCustom: cleanCustom, cleanConferido: cleanConferido
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

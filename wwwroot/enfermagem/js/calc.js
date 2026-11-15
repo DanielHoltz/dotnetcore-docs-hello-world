@@ -197,6 +197,26 @@
     return { litros: litros, minutos: litros / fluxoLmin };
   }
 
+  // Aprazamento: horários (min desde 00:00) das doses em 24 h a partir do início
+  function aprazamento(inicioMin, intervaloH) {
+    if (!(inicioMin >= 0) || inicioMin >= 1440 || !(intervaloH > 0) || intervaloH > 24) return null;
+    var out = [];
+    for (var t = 0; t < 24 * 60 - 1e-9; t += intervaloH * 60) {
+      var abs = inicioMin + t;
+      out.push({ min: Math.round(abs) % 1440, diaSeguinte: abs >= 1440 });
+    }
+    return out;
+  }
+  function hhmm(min) { var h = Math.floor(min / 60), m = min % 60; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+
+  // Déficit de ferro (Ganzoni): peso × (Hb alvo − Hb atual) × 2,4 + reservas (500 mg se ≥ 35 kg; 15 mg/kg se < 35 kg)
+  function ganzoni(pesoKg, hbAtual, hbAlvo) {
+    if (!(pesoKg > 0) || !(hbAtual > 0) || !(hbAlvo > 0)) return null;
+    var reservas = pesoKg >= 35 ? 500 : 15 * pesoKg;
+    var hb = Math.max(0, pesoKg * (hbAlvo - hbAtual) * 2.4);
+    return { hb: hb, reservas: reservas, total: hb + reservas };
+  }
+
   function celsiusParaF(c) { return c * 9 / 5 + 32; }
   function fParaCelsius(f) { return (f - 32) * 5 / 9; }
 
@@ -210,7 +230,7 @@
     transformacaoSoro: transformacaoSoro, holliday: holliday,
     imc: imc, classificaImc: classificaImc, superficieCorporal: superficieCorporal,
     pam: pam, cockcroftGault: cockcroftGault, parkland: parkland, naegele: naegele,
-    oxigenioCilindro: oxigenioCilindro, celsiusParaF: celsiusParaF, fParaCelsius: fParaCelsius
+    oxigenioCilindro: oxigenioCilindro, aprazamento: aprazamento, hhmm: hhmm, ganzoni: ganzoni, celsiusParaF: celsiusParaF, fParaCelsius: fParaCelsius
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

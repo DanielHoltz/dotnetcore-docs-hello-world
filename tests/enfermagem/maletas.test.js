@@ -75,3 +75,15 @@ test('exportar → importar preserva conteúdo, gera novos ids e higieniza', () 
   assert.equal(r.maleta.itens[1].custom.diluicao, 'SF 100 mL');
   assert.throws(() => M.importar({ tipo: 'outra' }, ids));
 });
+
+test('backup completo: exporta e restaura maletas e favoritos, higienizando', () => {
+  const a = M.novaMaleta('A'); M.adicionarDrogas(a, ['dipirona']);
+  const b = M.novaMaleta('B'); b.itens.push(M.novoItem({ custom: { nome: 'X' } }));
+  const bk = JSON.parse(JSON.stringify(M.exportarBackup([a, b], ['calc:dose', 'droga:dipirona'])));
+  bk.maletas.push('lixo'); bk.favs.push(42, 'x'.repeat(200));
+  const r = M.importarBackup(bk, ids);
+  assert.equal(r.maletas.length, 2);
+  assert.deepEqual(r.maletas.map(m => m.itens.length), [1, 1]);
+  assert.deepEqual(r.favs, ['calc:dose', 'droga:dipirona']);
+  assert.throws(() => M.importarBackup({ tipo: 'enfcalc-maleta' }, ids));
+});

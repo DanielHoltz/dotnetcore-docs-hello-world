@@ -115,3 +115,16 @@ test('dados: presets de infusão têm unidades compatíveis e faixa contendo a d
     if (d.infusao) assert.ok(ids.has(d.infusao), d.id + ' preset inexistente');
   }
 });
+
+test('aprazamento: 8/8 h a partir das 22:00 e 6/6 h a partir das 08:00', () => {
+  assert.deepEqual(C.aprazamento(22 * 60, 8).map(x => C.hhmm(x.min) + (x.diaSeguinte ? '*' : '')), ['22:00', '06:00*', '14:00*']);
+  assert.deepEqual(C.aprazamento(8 * 60, 6).map(x => C.hhmm(x.min)), ['08:00', '14:00', '20:00', '02:00']);
+  assert.equal(C.aprazamento(8 * 60, 24).length, 1);
+  assert.equal(C.aprazamento(8 * 60, 0), null);
+});
+
+test('Ganzoni: 70 kg, Hb 9 → 15 = 1508 mg; criança 20 kg usa 15 mg/kg de reserva', () => {
+  near(C.ganzoni(70, 9, 15).total, 70 * 6 * 2.4 + 500);
+  near(C.ganzoni(20, 8, 13).total, 20 * 5 * 2.4 + 300);
+  near(C.ganzoni(70, 16, 15).total, 500);
+});
