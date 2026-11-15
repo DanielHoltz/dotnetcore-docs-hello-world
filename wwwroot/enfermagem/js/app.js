@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA, M = window.Maletas;
+  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -711,14 +711,14 @@
   function concTxt(c) { return c ? fmt(c.qtd, 4) + ' ' + c.u + ' / ' + fmt(c.vol, 2) + ' mL' : ''; }
   function isHV(d) { return (d.classe || '').indexOf('ALTA VIGILÂNCIA') >= 0; }
 
-  function drugSheetHtml(d) {
+  function drugSheetHtml(d, noCalc) {
     function sec(t, v, ic) { return v ? '<div class="sec"><h3>' + ic + ' ' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
     return (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       (d.concBiblioteca ? '<div class="alert info">📦 Apresentação do seu local: <b>' + esc(concTxt(d.conc)) + '</b> (biblioteca: ' + esc(concTxt(d.concBiblioteca)) + '). Os cálculos usam a sua.</div>' : '') +
       sec('Apresentação', d.apresentacao, '📦') + sec('Reconstituição', d.reconstituicao, '🧴') + sec('Diluição', d.diluicao, '💧') +
       sec('Administração', d.administracao, '⏱️') + sec('Estabilidade', d.estabilidade, '🗓️') + sec('Observações', d.obs, '⚠️') +
       (d.infusao ? '<a class="btn" href="#/infusao/' + esc(d.infusao) + '">🫀 Calcular infusão contínua</a>' : '') +
-      (d.conc ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
+      (d.conc && !noCalc ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
       '<p class="disclaimer">' + (d.personalizado ? 'Ficha criada por você.' : 'Dados de referência; podem variar entre fabricantes.') + ' Confira a bula e o protocolo da instituição.</p>';
   }
 
@@ -908,6 +908,7 @@
     $app.innerHTML =
       '<div class="kit-head"><span class="kit-ic">' + esc(m.icon) + '</span><div><b>' + esc(m.nome) + '</b>' + (m.local ? '<small>' + esc(m.local) + '</small>' : '') +
         '<small>' + rows.length + ' medicamento' + (rows.length === 1 ? '' : 's') + '</small></div></div>' +
+      (rows.length ? '<a class="btn atender" href="#/maleta/' + esc(m.id) + '/atender">▶ Abrir maleta para um paciente<small>Peso e idade → dose, diluição, preparo e interações</small></a>' : '') +
       (a.vencidos ? '<div class="alert bad">⛔ ' + a.vencidos + ' item(ns) com validade vencida.</div>' : '') +
       (a.vencendo ? '<div class="alert warn">⏳ ' + a.vencendo + ' item(ns) vencem em até ' + M.DIAS_ALERTA + ' dias.</div>' : '') +
       (rows.length > 6 ? '<div class="search"><input id="kq" type="search" placeholder="Buscar nesta maleta…" aria-label="Buscar nesta maleta"></div>' : '') +
@@ -1094,6 +1095,220 @@
       '<p class="disclaimer">EnfCalc — material de apoio. Confira prescrição, bula e protocolos institucionais.</p></div>';
   }
 
+  // ---- Modo atendimento (maleta aberta para um paciente) ----
+  var NOMES = {};
+  D.DRUGS.forEach(function (x) { NOMES[x.id] = x.nome; });
+
+  function loadPaciente() { var p = store.get('paciente', null); return p && typeof p === 'object' ? p : { idadeU: 'anos', alergias: [] }; }
+  function pacienteResumo(pf) {
+    if (!pf.completo) return 'Informe o peso para calcular';
+    var idade = pf.idadeMeses == null ? '' : pf.idadeMeses < 24 ? ' · ' + fmt(pf.idadeMeses, 0) + ' meses' : ' · ' + fmt(Math.floor(pf.idadeAnos), 0) + ' anos';
+    return fmt(pf.peso, 1) + ' kg' + idade + (pf.altura ? ' · ' + fmt(pf.altura, 0) + ' cm' : '') + ' · ' + (pf.ped ? 'Pediátrico' : 'Adulto');
+  }
+  function sevIcon(s) { return s === 'grave' ? '⛔' : s === 'moderada' ? '⚠️' : 'ℹ️'; }
+  function sevClass(s) { return s === 'grave' ? 'bad' : s === 'moderada' ? 'warn' : 'info'; }
+  function alertList(list) { return list.map(function (a) { return '<div class="alert ' + sevClass(a.sev) + '">' + sevIcon(a.sev) + ' ' + esc(a.txt) + '</div>'; }).join(''); }
+  function nm(id) { return NOMES[id] || id; }
+  function kitDrugIds(m) { return m.itens.filter(function (i) { return i.drugId; }).map(function (i) { return i.drugId; }); }
+
+  function viewAtender(id) {
+    var m = getMaleta(id);
+    if (!m) return viewNotFound();
+    setHeader('Atendimento', true);
+    var pac = loadPaciente();
+    var pf0 = P.perfil(pac);
+    $app.innerHTML =
+      '<a class="crumb" href="#/maleta/' + esc(m.id) + '">' + esc(m.icon + ' ' + m.nome) + '</a>' +
+      '<details class="pac-box" id="pacbox"' + (pf0.completo ? '' : ' open') + '><summary><span class="pac-ic">👤</span><span class="card-t"><b>Paciente</b><small id="pacsum">' + esc(pacienteResumo(pf0)) + '</small></span><span class="pac-edit">editar</span></summary>' +
+      '<form class="pac-form" id="pf" onsubmit="return false" autocomplete="off">' +
+        '<div class="field two"><div><label for="p-peso">Peso *</label><div class="input-wrap"><input id="p-peso" type="text" inputmode="decimal" value="' + esc(pac.peso != null ? String(pac.peso).replace('.', ',') : '') + '"><span class="unit">kg</span></div></div>' +
+        '<div><label for="p-alt">Altura</label><div class="input-wrap"><input id="p-alt" type="text" inputmode="decimal" placeholder="opcional" value="' + esc(pac.altura != null ? String(pac.altura).replace('.', ',') : '') + '"><span class="unit">cm</span></div></div></div>' +
+        '<div class="field"><label for="p-idade">Idade</label><div class="input-wrap"><input id="p-idade" type="text" inputmode="decimal" value="' + esc(pac.idade != null ? String(pac.idade).replace('.', ',') : '') + '">' +
+          '<select class="unit" id="p-idu" aria-label="Unidade da idade"><option value="anos"' + (pac.idadeU !== 'meses' ? ' selected' : '') + '>anos</option><option value="meses"' + (pac.idadeU === 'meses' ? ' selected' : '') + '>meses</option></select></div></div>' +
+        '<div class="field"><span class="lbl">Sexo</span><div class="seg">' + [['m', 'Masculino'], ['f', 'Feminino'], ['', 'Não informar']].map(function (o) {
+          return '<label class="seg-opt"><input type="radio" name="p-sexo" value="' + o[0] + '"' + ((pac.sexo || '') === o[0] ? ' checked' : '') + '><span>' + o[1] + '</span></label>';
+        }).join('') + '</div></div>' +
+        '<div class="field"><label for="p-cr">Creatinina sérica (opcional)</label><div class="input-wrap"><input id="p-cr" type="text" inputmode="decimal" placeholder="para ajuste renal" value="' + esc(pac.creat != null ? String(pac.creat).replace('.', ',') : '') + '"><span class="unit">mg/dL</span></div></div>' +
+        '<div class="field"><span class="lbl">Alergias</span><div class="chips">' + DB.ALERGIAS.map(function (a) {
+          return '<label class="chip"><input type="checkbox" name="p-al" value="' + a.id + '"' + ((pac.alergias || []).indexOf(a.id) >= 0 ? ' checked' : '') + '><span>' + esc(a.nome) + '</span></label>';
+        }).join('') + '</div></div>' +
+      '</form><button class="btn ghost" id="pac-new" type="button">Novo paciente (limpar dados)</button></details>' +
+      '<div id="pac-resumo"></div><div id="kit-int"></div><div id="atl"></div>' +
+      '<p class="disclaimer">Doses sugeridas são referências para conferência. Siga sempre a prescrição médica e os protocolos da instituição. Os dados do paciente ficam só neste aparelho; não registre nome.</p>';
+
+    var form = document.getElementById('pf');
+    function readPac() {
+      var sx = form.querySelector('input[name=p-sexo]:checked');
+      return {
+        peso: num(document.getElementById('p-peso').value) || null,
+        altura: num(document.getElementById('p-alt').value) || null,
+        idade: isFinite(num(document.getElementById('p-idade').value)) ? num(document.getElementById('p-idade').value) : null,
+        idadeU: document.getElementById('p-idu').value,
+        sexo: sx ? sx.value : '',
+        creat: num(document.getElementById('p-cr').value) || null,
+        alergias: [].map.call(form.querySelectorAll('input[name=p-al]:checked'), function (i) { return i.value; }),
+        inicio: pac.inicio || new Date().toISOString()
+      };
+    }
+    function render() {
+      var pf = P.perfil(pac);
+      document.getElementById('pacsum').textContent = pacienteResumo(pf);
+      var chips = [];
+      if (pf.completo) {
+        chips.push(pf.ped ? '👶 Pediátrico' : '🧑 Adulto');
+        if (pf.neonato) chips.push('Neonato');
+        if (pf.imc) chips.push('IMC ' + fmt(pf.imc, 1));
+        if (pf.sc) chips.push('SC ' + fmt(pf.sc, 2) + ' m²');
+        if (pf.clcr != null) chips.push('ClCr ' + fmt(pf.clcr, 0) + ' mL/min');
+        if (pf.pesoAjustado) chips.push('Peso ajustado ' + fmt(pf.pesoAjustado, 0) + ' kg');
+        if (pf.holliday) chips.push('Manutenção ' + fmt(pf.holliday.mlH, 0) + ' mL/h');
+        pf.alergias.forEach(function (a) { var x = DB.ALERGIAS.filter(function (y) { return y.id === a; })[0]; if (x) chips.push('⚠️ Alérgico: ' + x.nome); });
+      }
+      document.getElementById('pac-resumo').innerHTML = chips.length ? '<div class="pchips">' + chips.map(function (c) { return '<span class="pchip' + (c.indexOf('Alérgico') >= 0 ? ' bad' : '') + '">' + esc(c) + '</span>'; }).join('') + '</div>' : '';
+
+      var ids = kitDrugIds(m);
+      var geral = P.interacoesMaleta(ids, DB);
+      document.getElementById('kit-int').innerHTML = geral.length ?
+        '<details class="int-box"><summary>⚠️ ' + geral.length + (geral.length > 1 ? ' alertas' : ' alerta') + ' de interação/incompatibilidade nesta maleta' +
+        (geral.some(function (g) { return g.sev === 'grave'; }) ? ' <span class="badge bad">grave</span>' : '') + '</summary>' +
+        geral.map(function (g) { return '<div class="int-item ' + sevClass(g.sev) + '"><b>' + esc(g.mesmoGrupo ? g.a.map(nm).join(' + ') : g.a.map(nm).join(', ') + ' + ' + g.b.map(nm).join(', ')) + '</b> <span class="badge ' + sevClass(g.sev) + '">' + esc(g.tipo) + '</span><p>' + esc(g.txt) + '</p></div>'; }).join('') + '</details>' : '';
+
+      var rows = itemRows(m);
+      document.getElementById('atl').innerHTML = !pf.completo ? '<div class="empty-box">⚖️<p>Informe o peso do paciente para ver doses e preparos.</p></div>' :
+        '<h2>Abra a medicação</h2><div class="list">' + rows.map(function (x) {
+          var it = x.it, d = x.d, sub = '', bs = '';
+          if (it.drugId) {
+            var dd = DB.DOSES[it.drugId];
+            var al = P.alertasPaciente(it.drugId, pf, DB);
+            var nInt = P.interacoes(it.drugId, ids, DB, NOMES).filter(function (i) { return i.sev !== 'info'; }).length;
+            if (dd && dd.via === 'continua') sub = 'Infusão contínua em bomba';
+            else if (d.conc) {
+              var s = P.doseSugerida(it.drugId, pf, DB, d.conc.u);
+              sub = s && s.valor != null ? 'Sugestão: ' + fmt(s.valor, 3) + ' ' + d.conc.u + (s.calculo && s.calculo.indexOf('/kg') > 0 ? ' (' + s.calculo.split(' × ')[0] + ')' : '') : 'Dose conforme prescrição';
+            }
+            var graves = al.filter(function (a) { return a.sev === 'grave'; });
+            if (graves.length) bs += '<span class="badge bad">' + esc(/ALÉRGICO/.test(graves[0].txt) ? 'Alergia' : 'Contraindicado') + '</span>';
+            if (al.some(function (a) { return a.sev === 'moderada'; })) bs += '<span class="badge warn">Atenção</span>';
+            if (nInt) bs += '<span class="badge warn">' + nInt + (nInt > 1 ? ' interações' : ' interação') + '</span>';
+          } else sub = 'Personalizado · dose conforme prescrição';
+          bs += validadeBadge(it).replace(/<span class="badge">Val\. [^<]*<\/span>/, '');
+          var ic = /class="badge bad"/.test(bs) ? '⛔' : d.personalizado ? '✏️' : isHV(d) ? '🔴' : '💊';
+          return '<a class="card" href="#/maleta/' + esc(m.id) + '/atender/' + esc(it.id) + '"><span class="card-ic">' + ic + '</span><span class="card-t"><b>' + esc(d.nome) + '</b><small>' + esc(sub) + '</small>' +
+            (bs ? '<span class="badges">' + bs + '</span>' : '') + '</span><span class="chev">›</span></a>';
+        }).join('') + '</div>';
+    }
+    var timer;
+    form.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(save, 250); });
+    form.addEventListener('change', save);
+    function save() {
+      pac = readPac();
+      store.set('paciente', pac);
+      if (pac.peso) store.set('peso', pac.peso);
+      render();
+    }
+    document.getElementById('pac-new').onclick = function () {
+      if (!confirm('Limpar os dados do paciente atual?')) return;
+      store.set('paciente', null);
+      viewAtender(id);
+      document.getElementById('p-peso').focus();
+    };
+    render();
+    if (!pf0.completo) document.getElementById('p-peso').focus();
+  }
+
+  function viewAtenderItem(id, itemId) {
+    var m = getMaleta(id);
+    var it = m && M.daMaleta(m, itemId);
+    var d = it && M.resolver(it, D.DRUGS);
+    if (!d) return viewNotFound();
+    var pf = P.perfil(loadPaciente());
+    if (!pf.completo) { location.replace('#/maleta/' + id + '/atender'); return; }
+    setHeader(d.nome, true);
+    var did = it.drugId, dd = did ? DB.DOSES[did] : null, ids = kitDrugIds(m);
+    var sug = did && d.conc ? P.doseSugerida(did, pf, DB, d.conc.u) : null;
+    var alertas = did ? P.alertasPaciente(did, pf, DB) : [];
+    var st = M.statusValidade(it.validade);
+    if (st === 'vencido') alertas.unshift({ sev: 'grave', txt: 'Item desta maleta com validade VENCIDA — não utilizar.' });
+    else if (st === 'vencendo') alertas.push({ sev: 'moderada', txt: 'Vence em breve (' + it.validade.split('-').reverse().join('/') + ').' });
+    if (it.qtd === 0) alertas.push({ sev: 'moderada', txt: 'Sem estoque nesta maleta.' });
+    if (isHV(d)) alertas.unshift({ sev: 'grave', txt: 'Alta vigilância: dupla checagem obrigatória.' });
+    var peso = { grave: 0, moderada: 1, info: 2 };
+    alertas.sort(function (a, b) { return peso[a.sev] - peso[b.sev]; });
+
+    function itemLink(drugId) {
+      var x = m.itens.filter(function (i) { return i.drugId === drugId; })[0];
+      return x ? '<a href="#/maleta/' + esc(m.id) + '/atender/' + esc(x.id) + '">' + esc(NOMES[drugId]) + '</a>' : esc(NOMES[drugId] || drugId);
+    }
+    var ints = did ? P.interacoes(did, ids, DB, NOMES) : [];
+    var cont = dd && dd.via === 'continua';
+    var pronto = dd && dd.via === 'pronto';
+
+    $app.innerHTML =
+      '<a class="crumb" href="#/maleta/' + esc(m.id) + '/atender">‹ ' + esc(m.icon + ' ' + m.nome) + ' · atendimento</a>' +
+      '<a class="pac-chip" href="#/maleta/' + esc(m.id) + '/atender">👤 ' + esc(pacienteResumo(pf)) + (pf.alergias.length ? ' · ⚠️ alergias' : '') + '</a>' +
+      (it.nota ? '<div class="alert info">📌 <b>Protocolo local:</b> ' + esc(it.nota) + '</div>' : '') +
+      alertList(alertas) +
+      '<div class="sec"><h3>💊 Dose de referência (' + (pf.ped ? 'pediátrica' : 'adulto') + ')</h3>' +
+        (sug || dd ? '<p>' + esc((sug && sug.ref) || (dd && (pf.ped ? (dd.ped && dd.ped.txt) || 'Sem dose pediátrica de referência.' : dd.adulto && dd.adulto.txt)) || '') + '</p>' +
+          ((sug && sug.freq) ? '<p><b>Intervalo:</b> ' + esc(sug.freq) + '</p>' : '') +
+          (sug && sug.valor != null ? '<p class="sug">Sugestão para este paciente: <b>' + esc(fmt(sug.valor, 3) + ' ' + sug.u) + '</b> <small>(' + esc(sug.calculo + (sug.limitado ? '; limitado à ' + sug.limitado : '')) + ')</small></p>' : '')
+        : '<p>Sem dose de referência cadastrada' + (d.personalizado ? ' (medicamento personalizado)' : '') + '. Use a dose prescrita.</p>') +
+      '</div>' +
+      (cont ? '<a class="btn" href="#/infusao/' + esc(dd.infusao) + '">🫀 Calcular infusão contínua (' + esc(fmt(pf.peso, 1)) + ' kg)</a>' :
+        !d.conc ? '<div class="alert warn">Cadastre a apresentação (quantidade em mL) deste medicamento na maleta para calcular o preparo.</div>' :
+        '<h2>🧪 Preparo para este paciente</h2><form class="form" id="prf" onsubmit="return false" autocomplete="off">' +
+          '<div class="field"><label for="pr-dose">Dose prescrita</label><div class="input-wrap"><input id="pr-dose" type="text" inputmode="decimal" value="' + (sug && sug.valor != null ? esc(String(sug.valor).replace('.', ',')) : '') + '" placeholder="informe a dose"><span class="unit">' + esc(d.conc.u) + '</span></div>' +
+          '<small>Apresentação: ' + esc(concTxt(d.conc)) + (it.conc ? ' (da sua maleta)' : '') + '</small></div>' +
+          (pronto ? '' : '<div class="field"><label for="pr-dil">Diluir em' + (dd && dd.diluente ? ' (' + esc(dd.diluente) + ')' : '') + '</label><div class="input-wrap"><input id="pr-dil" type="text" inputmode="decimal"><span class="unit">mL</span></div><small>0 = sem diluição em bolsa (EV direto)</small></div>') +
+          '<div class="field"><label for="pr-t">Tempo de administração</label><div class="input-wrap"><input id="pr-t" type="text" inputmode="decimal"><span class="unit">min</span></div><small>0 = bolus</small></div>' +
+        '</form><div id="prep" aria-live="polite"></div>') +
+      '<h2>🔗 Interações com esta maleta</h2>' +
+      (ints.length ? ints.map(function (i) {
+        return '<div class="int-item ' + sevClass(i.sev) + '"><b>' + sevIcon(i.sev) + ' ' + esc(i.tipo) + '</b>' + (i.com.length ? ' — ' + i.com.map(itemLink).join(', ') : '') + '<p>' + esc(i.txt) + '</p></div>';
+      }).join('') : '<p class="note">' + (did ? 'Nenhuma interação cadastrada com os outros medicamentos desta maleta.' : 'Medicamento personalizado: interações não verificadas.') + '</p>') +
+      '<p class="note">A checagem cobre interações e incompatibilidades importantes e frequentes; não é exaustiva. Em caso de dúvida, consulte a farmácia.</p>' +
+      '<details class="sheet-box"><summary>📄 Ficha completa do medicamento</summary>' + drugSheetHtml(d, true) + '</details>';
+
+    if (cont || !d.conc) return;
+    var $d = document.getElementById('pr-dose'), $dil = document.getElementById('pr-dil'), $t = document.getElementById('pr-t');
+    var dirtyDil = false, dirtyT = false;
+    function defaults() {
+      var pad = P.preparoPadrao(did, num($d.value), d.conc, pf, DB);
+      if ($dil && !dirtyDil) $dil.value = pad.diluenteMl;
+      if (!dirtyT) $t.value = String(pad.tempo).replace('.', ',');
+    }
+    function run() {
+      var dose = num($d.value), out = document.getElementById('prep');
+      var r = P.preparo(did, dose, d.conc, pf, DB, $dil ? num($dil.value) || 0 : 0, num($t.value) || 0);
+      if (!r) { out.innerHTML = resultsHtml(null); return; }
+      var steps = [];
+      var rec = d.reconstituicao && !/^(Solução pronta|Não necessita)/.test(d.reconstituicao) ? d.reconstituicao : '';
+      if (rec) steps.push('<b>Reconstituir:</b> ' + esc(rec));
+      steps.push(r.via === 'pronto' ? '<b>Separar</b> <span class="big">' + fmt(r.aspirar, 1) + ' mL</span> da bolsa pronta (' + esc(concTxt(d.conc)) + ')'
+        : '<b>Aspirar</b> <span class="big">' + fmt(r.aspirar, 2) + ' mL</span>' + (r.unidades > 1.0001 ? ' (' + fmt(r.unidades, 2) + ' unidades)' : ''));
+      if (r.diluenteMl > 0) steps.push('<b>Diluir</b> em ' + fmt(r.diluenteMl, 0) + ' mL de ' + esc((dd && dd.diluente) || 'diluente') + ' → volume final <b>' + fmt(r.total, 1) + ' mL</b> (' + fmt(r.concFinal, 3) + ' ' + esc(d.conc.u) + '/mL)');
+      if (r.tempo > 0) {
+        steps.push((r.diluenteMl > 0 || r.via === 'pronto' ? '<b>Infundir</b> em ' : '<b>Administrar EV lento</b> em ') + fmtTempo(r.tempo) +
+          (r.diluenteMl > 0 || r.via === 'pronto' ? ': <span class="big">' + fmt(r.mlh, 1) + ' mL/h</span> na bomba · ' + fmt(Math.round(r.gts), 0) + ' gts/min · ' + fmt(Math.round(r.mcgts), 0) + ' mcgts/min' : ''));
+      } else steps.push('<b>Administrar</b> em bolus');
+      if (dd && dd.admTxt) steps.push(esc(dd.admTxt));
+      var av = r.avisos.slice();
+      if (sug && sug.max != null && dose > sug.max * 1.001) av.unshift('Dose acima da máxima de referência (' + fmt(sug.max, 3) + ' ' + d.conc.u + '). Confirme com o prescritor.');
+      if (sug && sug.valor != null && (dose > sug.valor * 2 || dose < sug.valor / 2)) av.push('Dose muito diferente da sugestão (' + fmt(sug.valor, 3) + ' ' + d.conc.u + '). Confira a prescrição e a unidade.');
+      out.innerHTML = '<ol class="steps">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+        av.map(function (a) { return '<div class="alert warn">⚠️ ' + esc(a) + '</div>'; }).join('');
+    }
+    $d.addEventListener('input', function () { defaults(); run(); });
+    if ($dil) $dil.addEventListener('input', function () { dirtyDil = true; run(); });
+    $t.addEventListener('input', function () { dirtyT = true; run(); });
+    defaults(); run();
+  }
+
+  function fmtTempo(min) {
+    if (min < 1) return Math.round(min * 60) + ' s';
+    return min >= 60 ? fmtHM(min) : fmt(min, 1) + ' min';
+  }
+
   // ---- Escalas ----
   function viewScales() {
     setHeader('Escalas', false);
@@ -1170,6 +1385,7 @@
         else if (parts[2] === 'editar') { if (parts[3]) viewCustomForm(parts[1], parts[3]); else viewMaletaForm(parts[1]); }
         else if (parts[2] === 'item') viewMaletaItem(parts[1], parts[3]);
         else if (parts[2] === 'ficha') viewMaletaFicha(parts[1]);
+        else if (parts[2] === 'atender') { if (parts[3]) viewAtenderItem(parts[1], parts[3]); else viewAtender(parts[1]); }
         else viewNotFound();
         break;
       default: viewNotFound();

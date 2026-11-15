@@ -8,6 +8,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - **Infusão contínua / drogas vasoativas:** dose ↔ mL/h (mcg/kg/min, mcg/min, mg/kg/h, UI/min, UI/kg/h, mUI/min…) com 15 soluções padrão (noradrenalina, adrenalina, dobutamina, dopamina, nitroprussiato, nitroglicerina, vasopressina, amiodarona, midazolam, fentanil, propofol, dexmedetomidina, insulina, heparina, ocitocina), aviso de dose fora da faixa e tabela de titulação.
 - **Preparo de medicação:** regra de três com conversão de unidades, reconstituição de pó (com volume do pó, diluição e gotejamento), penicilina cristalina.
 - **Maletas personalizadas:** monte maletas com os medicamentos do seu local de trabalho (do zero ou a partir de modelos: carrinho de emergência, atendimento domiciliar, UTI, obstetrícia). Por item: apresentação disponível no local (usada nos cálculos), estoque, validade com alertas (vencido / vence em 30 dias), protocolo local e medicamentos personalizados. Ficha de diluições da maleta para imprimir/PDF e compartilhamento por arquivo (WhatsApp, e-mail) com importação.
+- **Modo atendimento ("abrir a maleta"):** informe peso, idade, altura e, se quiser, sexo, creatinina e alergias. Cada medicamento da maleta mostra a dose de referência adulto/pediátrica e a sugestão para o paciente (mg/kg com dose mínima/máxima), o passo a passo do preparo (aspirar, diluir respeitando concentração máxima, tempo respeitando velocidade máxima, mL/h e gotas), alertas (alergia e reação cruzada, idade/peso mínimo, ajuste renal por Cockcroft-Gault/Schwartz, obesidade, validade, estoque) e interações/incompatibilidades com os demais medicamentos da mesma maleta, incluindo se o antídoto está na maleta.
 - **Diluições:** ficha de 48 medicamentos (apresentação, reconstituição, diluição, tempo de administração, estabilidade, cuidados, alerta de alta vigilância) com calculadora de volume.
 - **Soluções:** transformação de soro (adicionar ou desprezar e repor), eletrólitos mEq ↔ mL, solução percentual.
 - **Pediatria:** dose mg/kg (por dose ou por dia, com dose máxima), Holliday-Segar.
@@ -27,6 +28,8 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 
 - `js/calc.js` — fórmulas (funções puras, testadas em `tests/enfermagem/`)
 - `js/data.js` — medicamentos, soluções de infusão, eletrólitos, escalas e modelos de maleta
+- `js/doses.js` — doses de referência, grupos, alergias, antídotos e interações (revisar com farmácia clínica)
+- `js/paciente.js` — motor do modo atendimento (perfil, dose, preparo, alertas, interações), testado
 - `js/maletas.js` — modelo de dados das maletas (validade, importar/exportar), testado em `tests/enfermagem/`
 - `js/app.js` — interface e calculadoras
 - `sw.js`, `manifest.webmanifest` — PWA/offline
