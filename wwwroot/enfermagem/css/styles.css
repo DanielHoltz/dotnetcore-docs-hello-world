@@ -355,3 +355,50 @@ button.card { width: 100%; border: 0; border-bottom: 1px solid var(--line); back
 .progress .bar.ver { background: var(--primary); opacity: .55; }
 .fontes { margin: 0 0 6px; padding-left: 18px; font-size: .86rem; }
 .fontes li { margin-bottom: 4px; }
+
+/* ---------- Emergência / PCR / registro ---------- */
+.quick { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 640px) { .quick { grid-template-columns: repeat(9, 1fr); } }
+.qk-red { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.pcr-start { background: var(--bad); color: #fff; font-size: 1.3rem; padding: 18px; }
+.pcr-top { display: flex; justify-content: space-between; gap: 12px; background: #111827; color: #fff; border-radius: var(--radius); padding: 12px 16px; position: sticky; top: 62px; z-index: 5; }
+.pcr-top small { display: block; opacity: .7; font-size: .75rem; }
+.pcr-top b { font-size: 2rem; font-variant-numeric: tabular-nums; }
+.pcr-top div:last-child { text-align: right; }
+.pcr-top div:last-child b { font-size: 1.2rem; }
+.pcr-card { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-top: 10px; }
+.pcr-card > summary { cursor: pointer; font-weight: 600; }
+.pcr-card small { display: block; color: var(--muted); margin-top: 4px; }
+.pcr-card .btn { margin-top: 10px; }
+.pcr-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 600; }
+.pcr-row b { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.pcr-card .progress { margin-top: 8px; }
+.pcr-card.alarm { border-color: var(--bad); background: var(--bad-bg); animation: pisca 1s infinite; }
+@keyframes pisca { 50% { box-shadow: 0 0 0 4px var(--bad); } }
+@media (prefers-reduced-motion: reduce) { .pcr-card.alarm { animation: none; } }
+.pcr-card.adr-janela { border-color: var(--warn); background: var(--warn-bg); }
+.pcr-card.adr-atrasada { border-color: var(--bad); background: var(--bad-bg); }
+.pcr-card.adr-aguardar .pcr-row b, .pcr-card.adr-nenhuma .pcr-row b, .pcr-card[class*="adr-"] .pcr-row b { font-size: .95rem; }
+.pcr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.pcr-grid .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 64px; }
+.pcr-grid .btn small { font-weight: 400; font-size: .75rem; opacity: .9; }
+.btn.warnb { background: #f59e0b; color: #1f1300; }
+.btn.okb { background: var(--ok); color: #fff; }
+.pcr-log { list-style: none; padding: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.pcr-log li { padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.pcr-log li:last-child { border-bottom: 0; }
+.pcr-log li b { font-variant-numeric: tabular-nums; margin-right: 6px; }
+.pcr-log li small { color: var(--muted); margin-right: 6px; }
+.causas { margin-top: 10px; }
+.tbl-wrap { overflow-x: auto; }
+.tbl.ep td small, .tbl.ep th small { display: block; color: var(--muted); font-weight: 400; font-size: .75rem; }
+.tbl.ep td { vertical-align: top; }
+.tbl.ep td.num { white-space: nowrap; }
+.reg-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin: 8px 0; }
+.reg-box > summary { cursor: pointer; font-weight: 600; }
+.reg-list { margin: 8px 0; padding-left: 18px; font-size: .9rem; }
+.reg-list li { margin-bottom: 6px; }
+.reg-list small { display: block; color: var(--muted); }
+.reg-box .row .btn { margin: 0; }
+.alert.ok-box { background: var(--ok-bg); border-left: 4px solid var(--ok); }
+.pcr-card[class*="adr-"] .pcr-row { flex-direction: column; align-items: flex-start; gap: 2px; }

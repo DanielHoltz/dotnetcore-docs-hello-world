@@ -833,6 +833,69 @@
                       : { score: s, txt: 'Baixo risco pelo qSOFA (não exclui sepse)', level: 'ok' };
       } },
 
+    { id: 'news2', nome: 'NEWS2', desc: 'Escore de alerta precoce de deterioração clínica (adultos)',
+      fonte: 'Royal College of Physicians (2017); adaptação brasileira: Rev Gaúcha Enferm 2020',
+      items: [
+        { label: 'Frequência respiratória (irpm)', opts: [[3, '≤ 8'], [1, '9–11'], [0, '12–20'], [2, '21–24'], [3, '≥ 25']] },
+        { label: 'SpO₂ — escala 1 (%)', opts: [[3, '≤ 91'], [2, '92–93'], [1, '94–95'], [0, '≥ 96']] },
+        { label: 'Oxigênio suplementar', opts: [[0, 'Ar ambiente'], [2, 'Em uso de O₂']] },
+        { label: 'PA sistólica (mmHg)', opts: [[3, '≤ 90'], [2, '91–100'], [1, '101–110'], [0, '111–219'], [3, '≥ 220']] },
+        { label: 'Frequência cardíaca (bpm)', opts: [[3, '≤ 40'], [1, '41–50'], [0, '51–90'], [1, '91–110'], [2, '111–130'], [3, '≥ 131']] },
+        { label: 'Nível de consciência', opts: [[0, 'Alerta'], [3, 'Confusão nova, responde à voz, à dor ou não responde (CVPU)']] },
+        { label: 'Temperatura (°C)', opts: [[3, '≤ 35,0'], [1, '35,1–36,0'], [0, '36,1–38,0'], [1, '38,1–39,0'], [2, '≥ 39,1']] }
+      ],
+      interp: function (s, v) {
+        var tres = v.some(function (x) { return x === 3; });
+        if (s >= 7) return { score: s, txt: 'Risco ALTO — resposta de emergência (equipe de resposta rápida/médico imediatamente); monitorização contínua', level: 'bad' };
+        if (s >= 5) return { score: s, txt: 'Risco MÉDIO — resposta urgente: avaliação médica imediata; sinais vitais no mínimo de 1/1 h', level: 'bad' };
+        if (tres) return { score: s, txt: 'Risco baixo-médio (3 pontos em um parâmetro) — avaliação médica urgente; sinais vitais no mínimo de 1/1 h', level: 'warn' };
+        if (s >= 1) return { score: s, txt: 'Risco baixo — avaliação pelo enfermeiro; sinais vitais no mínimo de 4/4 h', level: 'ok' };
+        return { score: s, txt: 'Escore 0 — monitorização no mínimo de 12/12 h', level: 'ok' };
+      } },
+
+    { id: 'flacc', nome: 'Escala FLACC', desc: 'Dor em crianças (2 meses a 7 anos) ou pacientes que não verbalizam',
+      fonte: 'Merkel et al. (1997); versões brasileiras validadas',
+      items: [
+        { label: 'Face', opts: [[0, 'Nenhuma expressão particular ou sorriso'], [1, 'Careta ou testa franzida ocasional; retraído, desinteressado'], [2, 'Queixo trêmulo frequente/constante; mandíbula cerrada']] },
+        { label: 'Pernas', opts: [[0, 'Posição normal ou relaxadas'], [1, 'Inquietas, agitadas, tensas'], [2, 'Chutando ou encolhidas']] },
+        { label: 'Atividade', opts: [[0, 'Deitado quieto, posição normal, move-se facilmente'], [1, 'Contorcendo-se, mudando de posição, tenso'], [2, 'Arqueado, rígido ou com movimentos bruscos']] },
+        { label: 'Choro', opts: [[0, 'Sem choro'], [1, 'Gemidos ou choramingos; queixa ocasional'], [2, 'Choro contínuo, grito ou soluço; queixas frequentes']] },
+        { label: 'Consolabilidade', opts: [[0, 'Contente, relaxado'], [1, 'Tranquilizado por toque, abraço ou conversa; distraível'], [2, 'Difícil de consolar ou confortar']] }
+      ],
+      interp: function (s) {
+        if (s === 0) return { score: s, txt: 'Relaxado e confortável', level: 'ok' };
+        if (s <= 3) return { score: s, txt: 'Desconforto leve', level: 'ok' };
+        if (s <= 6) return { score: s, txt: 'Dor moderada', level: 'warn' };
+        return { score: s, txt: 'Dor intensa', level: 'bad' };
+      } },
+
+    { id: 'cpot', nome: 'CPOT', desc: 'Dor em paciente crítico que não verbaliza (intubado ou não)',
+      fonte: 'Gélinas et al. (2006); versão brasileira validada (Rev Bras Ter Intensiva)',
+      items: [
+        { label: 'Expressão facial', opts: [[0, 'Relaxada, neutra'], [1, 'Tensa (testa franzida, sobrancelhas abaixadas)'], [2, 'Careta (todos os anteriores + pálpebras fortemente fechadas)']] },
+        { label: 'Movimentos corporais', opts: [[0, 'Ausência de movimentos ou posição normal'], [1, 'Proteção (movimentos lentos e cautelosos, toca o local da dor)'], [2, 'Inquietação/agitação (puxa o tubo, tenta sentar, debate-se)']] },
+        { label: 'Ventilador (intubado) OU vocalização (extubado)', opts: [[0, 'Tolera o ventilador / fala em tom normal ou não emite sons'], [1, 'Tosse mas tolera / suspira, geme'], [2, 'Briga com o ventilador / grita, soluça']] },
+        { label: 'Tensão muscular (flexão/extensão passiva dos membros superiores)', opts: [[0, 'Relaxado, sem resistência'], [1, 'Tenso, rígido (resistência)'], [2, 'Muito tenso ou rígido (forte resistência)']] }
+      ],
+      interp: function (s) {
+        return s > 2 ? { score: s, txt: 'Dor provável (> 2) — tratar e reavaliar', level: s >= 5 ? 'bad' : 'warn' }
+                     : { score: s, txt: 'Dor improvável (≤ 2)', level: 'ok' };
+      } },
+
+    { id: 'aldrete', nome: 'Aldrete e Kroulik', desc: 'Recuperação pós-anestésica (alta da SRPA)',
+      fonte: 'Aldrete & Kroulik (1970), versão modificada com SpO₂ (1995)',
+      items: [
+        { label: 'Atividade motora', opts: [[2, 'Move os 4 membros (voluntariamente ou sob comando)'], [1, 'Move 2 membros'], [0, 'Não move os membros']] },
+        { label: 'Respiração', opts: [[2, 'Respira profundamente e tosse livremente'], [1, 'Dispneia ou respiração limitada'], [0, 'Apneia']] },
+        { label: 'Circulação (PA em relação ao pré-anestésico)', opts: [[2, 'Variação até 20%'], [1, 'Variação de 20–49%'], [0, 'Variação ≥ 50%']] },
+        { label: 'Consciência', opts: [[2, 'Completamente acordado'], [1, 'Desperta ao ser chamado'], [0, 'Não responde']] },
+        { label: 'Saturação de O₂', opts: [[2, '> 92% em ar ambiente'], [1, 'Necessita de O₂ para manter > 90%'], [0, '< 90% mesmo com O₂']] }
+      ],
+      interp: function (s) {
+        return s >= 8 ? { score: s, txt: 'Critério de alta da SRPA atingido (8–10) — avaliar também dor, náuseas, temperatura e sangramento', level: 'ok' }
+                      : { score: s, txt: 'Manter na SRPA e reavaliar', level: s >= 5 ? 'warn' : 'bad' };
+      } },
+
     { id: 'dor', nome: 'Escala Numérica de Dor', desc: 'Intensidade da dor (0–10)',
       items: [
         { label: 'Intensidade referida', opts: [[0, '0 — Sem dor'], [1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9'], [10, '10 — Pior dor imaginável']] }

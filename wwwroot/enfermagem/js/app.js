@@ -499,6 +499,9 @@
 
   function allEntries() {
     var e = [];
+    e.push({ key: 'view:pcr', href: '#/pcr', icon: '🚨', title: 'Modo PCR', desc: 'Parada cardiorrespiratória: cronômetro e registro', search: 'pcr parada reanimacao rcp adrenalina choque' });
+    e.push({ key: 'view:emergped', href: '#/emergencia-ped', icon: '👶', title: 'Emergência pediátrica', desc: 'Doses e materiais por peso/idade', search: 'pediatria pals crianca tubo canula desfibrilacao peso estimado' });
+    e.push({ key: 'view:compat', href: '#/compatibilidade', icon: '🔗', title: 'Interações e compatibilidade', desc: 'Checar medicamentos juntos', search: 'interacao compatibilidade y incompatibilidade' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     D.DRUGS.forEach(function (d) { e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao' }); });
@@ -530,6 +533,9 @@
         '<a href="#/calc/dose" class="qk"><span>💉</span>Regra de três</a>' +
         '<a href="#/escalas" class="qk"><span>📋</span>Escalas</a>' +
         '<a href="#/calc/transformacao-soro" class="qk"><span>🔬</span>Transformar soro</a>' +
+        '<a href="#/pcr" class="qk qk-red"><span>🚨</span>Modo PCR</a>' +
+        '<a href="#/emergencia-ped" class="qk"><span>👶</span>Emergência pediátrica</a>' +
+        '<a href="#/compatibilidade" class="qk"><span>🔗</span>Interações</a>' +
       '</div>' +
       (favEntries.length ? '<h2>★ Favoritos</h2><div class="list">' + favEntries.map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>' : '') +
       CATS.map(function (cat) {
@@ -555,7 +561,10 @@
 
   function viewCalcList() {
     setHeader('Calculadoras', false);
-    $app.innerHTML = '<div class="list">' + card('#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h', 'view:infusao') + '</div>' +
+    $app.innerHTML = '<h2>🚨 Emergência</h2><div class="list">' + card('#/pcr', '🚨', 'Modo PCR', 'Cronômetro, ciclos, adrenalina e registro', 'view:pcr') +
+      card('#/emergencia-ped', '👶', 'Emergência pediátrica', 'Doses, cânula e energia por idade/peso', 'view:emergped') +
+      card('#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar 2+ medicamentos', 'view:compat') + '</div>' +
+      '<h2>💧 Infusão</h2><div class="list">' + card('#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h', 'view:infusao') + '</div>' +
       CATS.map(function (cat) {
         return '<h2>' + cat.icon + ' ' + esc(cat.nome) + '</h2><div class="list">' +
           CALCS.filter(function (c) { return c.cat === cat.id; }).map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>';
@@ -927,6 +936,7 @@
         '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/novo">✏️ Medicamento personalizado</a>' +
         '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/ficha">📄 Ficha de diluições</a>' +
         '<a class="btn ghost" href="#/revisao/' + esc(m.id) + '">📚 Revisão das fichas</a>' +
+        '<a class="btn ghost" href="#/compatibilidade/' + esc(m.id) + '">🔗 Interações</a>' +
         '<button class="btn ghost" id="k-share" type="button">📤 Compartilhar</button>' +
         '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/editar">⚙️ Editar maleta</a>' +
       '</div>';
@@ -1227,7 +1237,7 @@
           return '<label class="chip"><input type="checkbox" name="p-al" value="' + a.id + '"' + ((pac.alergias || []).indexOf(a.id) >= 0 ? ' checked' : '') + '><span>' + esc(a.nome) + '</span></label>';
         }).join('') + '</div></div>' +
       '</form><button class="btn ghost" id="pac-new" type="button">Novo paciente (limpar dados)</button></details>' +
-      '<div id="pac-resumo"></div><div id="kit-int"></div><div id="atl"></div>' +
+      '<div id="pac-resumo"></div><div id="reg-area">' + registroHtml(m) + '</div><div id="kit-int"></div><div id="atl"></div>' +
       '<p class="disclaimer">Doses sugeridas são referências para conferência. Siga sempre a prescrição médica e os protocolos da instituição. Os dados do paciente ficam só neste aparelho; não registre nome.</p>';
 
     var form = document.getElementById('pf');
@@ -1305,10 +1315,12 @@
     document.getElementById('pac-new').onclick = function () {
       if (!confirm('Limpar os dados do paciente atual?')) return;
       store.set('paciente', null);
+      store.set('registro', []);
       viewAtender(id);
       document.getElementById('p-peso').focus();
     };
     render();
+    bindRegistro(m, function () { viewAtender(id); });
     if (!pf0.completo) document.getElementById('p-peso').focus();
   }
 
@@ -1359,7 +1371,7 @@
           '<small>Apresentação: ' + esc(concTxt(d.conc)) + (it.conc ? ' (da sua maleta)' : '') + '</small></div>' +
           (pronto || im ? '' : '<div class="field"><label for="pr-dil">Diluir em' + (dd && dd.diluente ? ' (' + esc(dd.diluente) + ')' : '') + '</label><div class="input-wrap"><input id="pr-dil" type="text" inputmode="decimal"><span class="unit">mL</span></div><small>0 = sem diluição em bolsa (EV direto)</small></div>') +
           (im ? '' : '<div class="field"><label for="pr-t">Tempo de administração</label><div class="input-wrap"><input id="pr-t" type="text" inputmode="decimal"><span class="unit">min</span></div><small>0 = bolus</small></div>') +
-        '</form><div id="prep" aria-live="polite"></div>') +
+        '</form><div id="prep" aria-live="polite"></div><button class="btn" id="reg-btn" type="button">✓ Registrar administração agora</button>') +
       '<h2>🔗 Interações com esta maleta</h2>' +
       (ints.length ? ints.map(function (i) {
         return '<div class="int-item ' + sevClass(i.sev) + '"><b>' + sevIcon(i.sev) + ' ' + esc(i.tipo) + '</b>' + (i.com.length ? ' — ' + i.com.map(itemLink).join(', ') : '') + '<p>' + esc(i.txt) + '</p></div>';
@@ -1369,7 +1381,7 @@
 
     if (cont || !d.conc) return;
     var $d = document.getElementById('pr-dose'), $dil = document.getElementById('pr-dil'), $t = document.getElementById('pr-t');
-    var dirtyDil = false, dirtyT = false;
+    var dirtyDil = false, dirtyT = false, ultimo = null;
     function defaults() {
       var pad = P.preparoPadrao(did, num($d.value), d.conc, pf, DB);
       if ($dil && !dirtyDil) $dil.value = pad.diluenteMl;
@@ -1394,9 +1406,20 @@
       var av = r.avisos.slice();
       if (sug && sug.max != null && dose > sug.max * 1.001) av.unshift('Dose acima da máxima de referência (' + fmt(sug.max, 3) + ' ' + d.conc.u + '). Confirme com o prescritor.');
       if (sug && sug.valor != null && (dose > sug.valor * 2 || dose < sug.valor / 2)) av.push('Dose muito diferente da sugestão (' + fmt(sug.valor, 3) + ' ' + d.conc.u + '). Confira a prescrição e a unidade.');
+      ultimo = { dose: fmt(dose, 3) + ' ' + d.conc.u, prep: (r.via === 'im' ? 'aspirar ' + fmt(r.aspirar, 2) + ' mL; via ' + (dd.viaTxt || 'IM/SC')
+        : (r.via === 'pronto' ? fmt(r.aspirar, 1) + ' mL da bolsa' : 'aspirar ' + fmt(r.aspirar, 2) + ' mL') +
+          (r.diluenteMl > 0 ? '; diluir em ' + fmt(r.diluenteMl, 0) + ' mL de ' + ((dd && dd.diluente) || 'diluente') : '') +
+          (r.tempo > 0 ? '; ' + (r.diluenteMl > 0 || r.via === 'pronto' ? 'infundir' : 'EV lento') + ' em ' + fmtTempo(r.tempo) + (r.mlh && (r.diluenteMl > 0 || r.via === 'pronto') ? ' (' + fmt(r.mlh, 1) + ' mL/h)' : '') : '; bolus')) };
       out.innerHTML = '<ol class="steps">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
         av.map(function (a) { return '<div class="alert warn">⚠️ ' + esc(a) + '</div>'; }).join('');
     }
+    document.getElementById('reg-btn').onclick = function () {
+      if (!ultimo || !(num($d.value) > 0)) { toast('Informe a dose antes de registrar.', true); return; }
+      var reg = loadRegistro();
+      reg.push({ t: new Date().toISOString(), nome: d.nome, dose: ultimo.dose, prep: ultimo.prep });
+      store.set('registro', reg.slice(-200));
+      toast('Administração registrada às ' + hhmm(reg[reg.length - 1].t) + '.');
+    };
     $d.addEventListener('input', function () { defaults(); run(); });
     if ($dil) $dil.addEventListener('input', function () { dirtyDil = true; run(); });
     if ($t) $t.addEventListener('input', function () { dirtyT = true; run(); });
@@ -1406,6 +1429,300 @@
   function fmtTempo(min) {
     if (min < 1) return Math.round(min * 60) + ' s';
     return min >= 60 ? fmtHM(min) : fmt(min, 1) + ' min';
+  }
+
+  // ---- Registro de administração (atendimento) ----
+  function loadRegistro() { var r = store.get('registro', []); return Array.isArray(r) ? r : []; }
+  function hhmm(iso) { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  function textoResumo(m) {
+    var pf = P.perfil(loadPaciente()), reg = loadRegistro();
+    var al = pf.alergias.map(function (a) { var x = DB.ALERGIAS.filter(function (y) { return y.id === a; })[0]; return x ? x.nome : a; });
+    return 'EnfCalc — resumo do atendimento (' + new Date().toLocaleDateString('pt-BR') + ')\n' +
+      'Paciente: ' + pacienteResumo(pf) + (al.length ? ' · Alergias: ' + al.join(', ') : '') + '\n' +
+      (m ? 'Maleta: ' + m.nome + '\n' : '') + '\n' +
+      reg.map(function (e) { return hhmm(e.t) + ' — ' + e.nome + ' ' + e.dose + (e.prep ? ': ' + e.prep : ''); }).join('\n') +
+      '\n\nGerado pelo EnfCalc (ferramenta de apoio; confira a prescrição).';
+  }
+  function compartilharTexto(txt, titulo) {
+    if (navigator.share) { navigator.share({ title: titulo, text: txt }).catch(function () {}); return; }
+    try { navigator.clipboard.writeText(txt).then(function () { toast('Resumo copiado.'); }, function () { toast('Não foi possível copiar.', true); }); }
+    catch (e) { toast('Não foi possível copiar.', true); }
+  }
+  function registroHtml(m) {
+    var reg = loadRegistro();
+    if (!reg.length) return '';
+    return '<details class="reg-box" open><summary>📝 Registro deste atendimento (' + reg.length + ')</summary><ul class="reg-list">' +
+      reg.map(function (e) { return '<li><b>' + esc(hhmm(e.t)) + '</b> ' + esc(e.nome) + ' ' + esc(e.dose) + (e.prep ? '<small>' + esc(e.prep) + '</small>' : '') + '</li>'; }).join('') +
+      '</ul><div class="row"><button class="btn sm" type="button" id="reg-share">📤 Copiar/compartilhar resumo</button><button class="btn sm ghost" type="button" id="reg-clear">Limpar</button></div></details>';
+  }
+  function bindRegistro(m, rerender) {
+    var sh = document.getElementById('reg-share'), cl = document.getElementById('reg-clear');
+    if (sh) sh.onclick = function () { compartilharTexto(textoResumo(m), 'Resumo do atendimento'); };
+    if (cl) cl.onclick = function () { if (confirm('Limpar o registro deste atendimento?')) { store.set('registro', []); rerender(); } };
+  }
+
+  // ---- Verificador de interações/compatibilidade (avulso) ----
+  function viewCompat(preMaleta) {
+    setHeader('Interações e compatibilidade', true);
+    var sel = [];
+    var m = preMaleta ? getMaleta(preMaleta) : null;
+    if (m) sel = kitDrugIds(m);
+    var ms = loadMaletas();
+    var drugs = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    $app.innerHTML =
+      '<p class="lead">Escolha dois ou mais medicamentos para ver interações clínicas, incompatibilidades (mesma via/seringa), vias exclusivas e antídotos.</p>' +
+      (ms.length ? '<div class="field"><label for="cp-m">Carregar de uma maleta</label><select id="cp-m"><option value="">—</option>' +
+        ms.map(function (x) { return '<option value="' + esc(x.id) + '"' + (m && m.id === x.id ? ' selected' : '') + '>' + esc(x.icon + ' ' + x.nome) + '</option>'; }).join('') + '</select></div>' : '') +
+      '<div id="cp-sel" class="pchips"></div><div id="cp-out" aria-live="polite"></div>' +
+      '<h2>Medicamentos</h2><div class="search"><input id="cp-q" type="search" placeholder="Buscar medicamento…" aria-label="Buscar medicamento"></div>' +
+      '<div class="list picks" id="cp-l">' + drugs.map(function (d) {
+        return '<label class="pick" data-name="' + esc(norm(d.nome + ' ' + d.classe)) + '"><input type="checkbox" value="' + esc(d.id) + '"' + (sel.indexOf(d.id) >= 0 ? ' checked' : '') + '><span class="card-t"><b>' + esc(d.nome) + '</b><small>' + esc(d.classe) + '</small></span></label>';
+      }).join('') + '</div>';
+    var list = document.getElementById('cp-l');
+    function render() {
+      sel = [].map.call(list.querySelectorAll('input:checked'), function (i) { return i.value; });
+      document.getElementById('cp-sel').innerHTML = sel.map(function (id) { return '<span class="pchip">' + esc(NOMES[id]) + '</span>'; }).join('');
+      var out = document.getElementById('cp-out');
+      if (sel.length < 2) { out.innerHTML = '<div class="result empty">Selecione pelo menos 2 medicamentos.</div>'; return; }
+      var geral = P.interacoesMaleta(sel, DB);
+      var excl = sel.filter(function (id) { return DB.VIA_EXCLUSIVA[id]; });
+      var ants = [];
+      sel.forEach(function (id) { var a = DB.ANTIDOTOS[id]; if (typeof a === 'string') ants.push({ de: id, ant: a, tem: sel.indexOf(a) >= 0 }); });
+      out.innerHTML =
+        (geral.length ? geral.map(function (g) {
+          return '<div class="int-item ' + sevClass(g.sev) + '"><b>' + sevIcon(g.sev) + ' ' + esc(g.mesmoGrupo ? g.a.map(nm).join(' + ') : g.a.map(nm).join(', ') + ' + ' + g.b.map(nm).join(', ')) + '</b> <span class="badge ' + sevClass(g.sev) + '">' + esc(g.tipo) + '</span><p>' + esc(g.txt) + '</p></div>';
+        }).join('') : '<div class="alert ok-box">✅ Nenhuma interação ou incompatibilidade cadastrada entre os selecionados.</div>') +
+        excl.map(function (id) { return '<div class="int-item warn"><b>⚠️ Via exclusiva — ' + esc(NOMES[id]) + '</b><p>' + esc(DB.VIA_EXCLUSIVA[id]) + '</p></div>'; }).join('') +
+        ants.map(function (a) { return '<div class="int-item ' + (a.tem ? 'info' : 'warn') + '"><b>' + (a.tem ? 'ℹ️' : '⚠️') + ' Antídoto de ' + esc(NOMES[a.de]) + ':</b> ' + esc(NOMES[a.ant]) + (a.tem ? ' (selecionado)' : ' — não está entre os selecionados') + '</div>'; }).join('') +
+        '<p class="note">“Nenhuma interação cadastrada” não garante compatibilidade em Y. A checagem cobre as interações mais importantes; em caso de dúvida consulte a farmácia (Trissel’s, Micromedex).</p>';
+    }
+    list.onchange = render;
+    document.getElementById('cp-q').oninput = function (e) {
+      var t = norm(e.target.value.trim());
+      list.querySelectorAll('.pick').forEach(function (p) { p.hidden = t && p.getAttribute('data-name').indexOf(t) < 0; });
+    };
+    var cm = document.getElementById('cp-m');
+    if (cm) cm.onchange = function () { location.hash = cm.value ? '#/compatibilidade/' + cm.value : '#/compatibilidade'; };
+    render();
+  }
+
+  // ---- Emergência pediátrica ----
+  function viewEmergPed() {
+    setHeader('Emergência pediátrica', true);
+    var E = window.Emergencia;
+    var pac = loadPaciente(), pf0 = P.perfil(pac);
+    $app.innerHTML =
+      '<p class="lead">Doses, energias e materiais por idade e peso (PALS/APLS). Use o peso real sempre que disponível.</p>' +
+      '<form class="form" id="ep-f" onsubmit="return false" autocomplete="off">' +
+        '<div class="field"><label for="ep-id">Idade</label><div class="input-wrap"><input id="ep-id" type="text" inputmode="decimal" value="' + (pf0.ped && pac.idade != null ? esc(String(pac.idade).replace('.', ',')) : '') + '">' +
+          '<select class="unit" id="ep-u" aria-label="Unidade"><option value="anos"' + (pac.idadeU !== 'meses' ? ' selected' : '') + '>anos</option><option value="meses"' + (pac.idadeU === 'meses' ? ' selected' : '') + '>meses</option></select></div></div>' +
+        '<div class="field"><label for="ep-p">Peso real (se souber)</label><div class="input-wrap"><input id="ep-p" type="text" inputmode="decimal" placeholder="vazio = estimar pela idade" value="' + (pf0.ped && pac.peso ? esc(String(pac.peso).replace('.', ',')) : '') + '"><span class="unit">kg</span></div></div>' +
+      '</form><div id="ep-out" aria-live="polite"></div>' +
+      '<a class="btn" href="#/pcr">🚨 Abrir modo PCR</a>' +
+      '<p class="note">Fontes: algoritmo PALS de PCR (AHA); fórmulas APLS de estimativa de peso; cânula com cuff idade/4 + 3,5. Fórmulas de peso são menos precisas fora de 1–10 anos.</p>';
+    function linhaDroga(id, rotulo, porKg, max, min, u, extra) {
+      var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
+      return { d: d, rotulo: rotulo, porKg: porKg, max: max, min: min, u: u || (d && d.conc.u), extra: extra || '' };
+    }
+    function run() {
+      var idade = num(document.getElementById('ep-id').value), u = document.getElementById('ep-u').value;
+      var meses = isFinite(idade) ? (u === 'meses' ? idade : idade * 12) : null;
+      var pReal = num(document.getElementById('ep-p').value);
+      var est = meses != null ? E.pesoEstimado(meses) : null;
+      var peso = pReal > 0 ? pReal : est ? est.kg : null;
+      var out = document.getElementById('ep-out');
+      if (!peso) { out.innerHTML = '<div class="result empty">Informe a idade (até 12 anos) ou o peso.</div>'; return; }
+      var tubo = meses != null ? E.tuboTraqueal(meses) : null, en = E.energias(peso);
+      var rows = [
+        { label: 'Peso utilizado', value: fmt(peso, 1), unit: 'kg', main: true, sub: pReal > 0 ? 'Peso real informado' : 'Estimado: ' + est.formula },
+        { label: 'Cânula traqueal com cuff', value: tubo ? fmt(tubo.comCuff, 1) : '—', unit: tubo ? 'mm' : '', sub: tubo ? 'Sem cuff: ' + fmt(tubo.semCuff, 1) + ' mm · ter ±0,5 mm à mão' : 'Fórmula válida a partir de 2 anos — usar fita/tabela por comprimento' },
+        { label: 'Desfibrilação', value: fmt(en.desf1, 0) + ' → ' + fmt(en.desf2, 0), unit: 'J', sub: '2 J/kg → 4 J/kg; seguintes ≥ 4 J/kg (máx. ' + fmt(en.desfMax, 0) + ' J = 10 J/kg ou dose adulta)' },
+        { label: 'Cardioversão sincronizada', value: fmt(en.cardio1[0], 1) + '–' + fmt(en.cardio1[1], 0), unit: 'J', sub: '0,5–1 J/kg; se necessário até ' + fmt(en.cardio2, 0) + ' J (2 J/kg)' },
+        { label: 'Bolus de volume (choque)', value: fmt(10 * peso, 0) + '–' + fmt(20 * peso, 0), unit: 'mL', sub: '10–20 mL/kg de cristaloide com reavaliação após cada bolus' },
+        { label: 'Glicose 10% (hipoglicemia)', value: fmt(2 * peso, 0) + '–' + fmt(5 * peso, 0), unit: 'mL', sub: '2–5 mL/kg (0,2–0,5 g/kg)' }
+      ];
+      var hol = C.holliday(peso);
+      if (hol) rows.push({ label: 'Hidratação de manutenção', value: fmt(hol.mlH, 0), unit: 'mL/h', sub: 'Holliday-Segar: ' + fmt(hol.mlDia, 0) + ' mL/dia' });
+      var drogas = [
+        linhaDroga('adrenalina', 'Adrenalina (PCR)', 0.01, 1, null, 'mg', 'Solução 0,1 mg/mL (1 mL + 9 mL SF): ' + fmt(Math.min(0.01 * peso, 1) / 0.1, 1) + ' mL'),
+        linhaDroga('amiodarona', 'Amiodarona (FV/TVSP)', 5, 300),
+        linhaDroga('adenosina', 'Adenosina — 1ª dose', 0.1, 6),
+        linhaDroga('adenosina', 'Adenosina — 2ª dose', 0.2, 12),
+        linhaDroga('atropina', 'Atropina', 0.02, 0.5, 0.1),
+        linhaDroga('midazolam', 'Midazolam (crise convulsiva)', 0.1, 5),
+        linhaDroga('diazepam', 'Diazepam (crise convulsiva)', 0.3, 10),
+        linhaDroga('naloxona', 'Naloxona (intoxicação por opioide)', 0.1, 2),
+        linhaDroga('hidrocortisona', 'Hidrocortisona', 2, 100),
+        linhaDroga('gluconato-calcio', 'Gluconato de cálcio 10%', 60, 2000),
+        linhaDroga('bicarbonato', 'Bicarbonato de sódio 8,4%', 1, null, null, 'mEq', 'Neonatos: usar 4,2%')
+      ];
+      var tab = drogas.map(function (x) {
+        var v = x.porKg * peso;
+        if (x.min != null && v < x.min) v = x.min;
+        var lim = x.max != null && v > x.max; if (lim) v = x.max;
+        var ml = x.d ? v * x.d.conc.vol / x.d.conc.qtd : null;
+        return '<tr><td><b>' + esc(x.rotulo) + '</b><small>' + fmt(x.porKg, 3) + ' ' + esc(x.u) + '/kg' + (x.max != null ? ' · máx. ' + fmt(x.max, 3) : '') + (x.min != null ? ' · mín. ' + fmt(x.min, 3) : '') + (x.extra ? ' · ' + esc(x.extra) : '') + '</small></td>' +
+          '<td class="num">' + fmt(v, 3) + ' ' + esc(x.u) + (lim ? ' <small>(máx.)</small>' : '') + '</td><td class="num">' + (ml != null ? fmt(ml, 2) + ' mL' : '—') + '<small>' + (x.d ? esc(concTxt(x.d.conc)) : '') + '</small></td></tr>';
+      }).join('');
+      out.innerHTML = resultsHtml({ results: rows }) +
+        '<h3>Medicações de emergência</h3><div class="tbl-wrap"><table class="tbl ep"><thead><tr><th>Medicamento</th><th>Dose</th><th>Volume*</th></tr></thead><tbody>' + tab + '</tbody></table></div>' +
+        '<p class="note">* Volume a aspirar da apresentação da biblioteca (confira a ampola disponível). Doses de referência — siga o protocolo e a prescrição.</p>';
+    }
+    document.getElementById('ep-f').addEventListener('input', run);
+    document.getElementById('ep-f').addEventListener('change', run);
+    run();
+  }
+
+  // ---- Modo PCR ----
+  var pcrTimer = null, metroTimer = null, audioCtx = null, wakeLock = null;
+  function beep(freq, dur) {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = freq || 880; g.gain.value = 0.15;
+      o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + (dur || 0.15));
+    } catch (e) { /* sem áudio */ }
+  }
+  function pararPCRTimers() {
+    if (pcrTimer) { clearInterval(pcrTimer); pcrTimer = null; }
+    if (metroTimer) { clearInterval(metroTimer); metroTimer = null; }
+    if (wakeLock) { try { wakeLock.release(); } catch (e) { /* ok */ } wakeLock = null; }
+  }
+
+  function viewPCR() {
+    setHeader('Modo PCR', true);
+    var E = window.Emergencia;
+    var st = store.get('pcr', null);
+
+    if (!st || !st.inicio) {
+      var pac = loadPaciente();
+      $app.innerHTML =
+        '<div class="alert bad">🚨 Use em conjunto com o protocolo de RCP da instituição. O app apoia o registro e os tempos; não substitui o líder da reanimação.</div>' +
+        '<form class="form" id="pcr-f" onsubmit="return false"><div class="field"><span class="lbl">Paciente</span><div class="seg">' +
+          '<label class="seg-opt"><input type="radio" name="pcr-m" value="adulto" checked><span>Adulto</span></label>' +
+          '<label class="seg-opt"><input type="radio" name="pcr-m" value="ped"><span>Pediátrico</span></label></div></div>' +
+          '<div class="field" id="pcr-pf" hidden><label for="pcr-p">Peso (kg)</label><div class="input-wrap"><input id="pcr-p" type="text" inputmode="decimal" value="' + (pac.peso ? esc(String(pac.peso).replace('.', ',')) : '') + '"><span class="unit">kg</span></div><small>Sem peso? Estime em Emergência pediátrica.</small></div>' +
+        '</form><button class="btn pcr-start" id="pcr-go" type="button">▶ INICIAR PCR</button>' +
+        '<p class="note">Registra horário de início, ciclos de 2 min, adrenalina (lembrete 3–5 min), choques, amiodarona, via aérea, acesso e RCE, e gera um resumo para o prontuário. Fonte: diretrizes AHA de RCP.</p>';
+      var f = document.getElementById('pcr-f');
+      f.onchange = function () { document.getElementById('pcr-pf').hidden = f.querySelector('input[name=pcr-m]:checked').value !== 'ped'; };
+      document.getElementById('pcr-go').onclick = function () {
+        var modo = f.querySelector('input[name=pcr-m]:checked').value, peso = num(document.getElementById('pcr-p').value);
+        if (modo === 'ped' && !(peso > 0)) { toast('Informe o peso da criança.', true); document.getElementById('pcr-p').focus(); return; }
+        var agora = Date.now();
+        store.set('pcr', { inicio: agora, ciclo: agora, modo: modo, peso: modo === 'ped' ? peso : null, ultimaAdr: null, nChoques: 0, nAmio: 0, eventos: [{ t: agora, txt: 'Início da PCR / RCP iniciada' }], causas: [] });
+        beep(660, 0.2);
+        viewPCR();
+      };
+      return;
+    }
+
+    var ped = st.modo === 'ped', doses = E.dosesPCR(ped, st.peso), en = ped ? E.energias(st.peso) : null;
+    function salvar() { store.set('pcr', st); }
+    function registrar(txt) { st.eventos.push({ t: Date.now(), txt: txt }); salvar(); renderLog(); }
+
+    $app.innerHTML =
+      '<div class="pcr-top"><div><small>Tempo total</small><b id="pcr-total">00:00</b></div><div><small>' + (ped ? 'Pediátrico · ' + fmt(st.peso, 1) + ' kg' : 'Adulto') + '</small><b id="pcr-clock"></b></div></div>' +
+      (st.fim ? '' :
+      '<div class="pcr-card" id="pcr-ciclo"><div class="pcr-row"><span>Ciclo de RCP (2 min)</span><b id="pcr-cic">02:00</b></div><div class="progress"><div class="bar" id="pcr-bar"></div></div>' +
+        '<button class="btn" id="pcr-ritmo" type="button">🔎 Ritmo checado / trocar compressor → novo ciclo</button></div>' +
+      '<div class="pcr-card" id="pcr-adr"><div class="pcr-row"><span>💉 Adrenalina</span><b id="pcr-adr-st"></b></div><small>' + esc(doses.adrenalina.txt) + ' · a cada 3–5 min</small>' +
+        '<button class="btn" id="pcr-adr-b" type="button">Registrar adrenalina</button></div>' +
+      '<div class="pcr-grid">' +
+        '<button class="btn warnb" id="pcr-choque" type="button">⚡ Choque<small id="pcr-choque-s"></small></button>' +
+        '<button class="btn ghost" id="pcr-amio" type="button">💊 Amiodarona<small id="pcr-amio-s"></small></button>' +
+        '<button class="btn ghost" data-ev="Via aérea avançada instalada" type="button">🫁 Via aérea avançada</button>' +
+        '<button class="btn ghost" data-ev="Acesso venoso/IO obtido" type="button">🩸 Acesso IV/IO</button>' +
+        '<button class="btn ghost" id="pcr-outro" type="button">✏️ Outro evento</button>' +
+        '<button class="btn okb" id="pcr-rce" type="button">❤️ RCE</button>' +
+      '</div>' +
+      '<div class="pcr-card"><div class="pcr-row"><span>🎵 Metrônomo 110/min</span><button class="btn sm ghost" id="pcr-metro" type="button">Ligar</button></div>' +
+        '<small>' + (ped ? 'Compressão ≥ 1/3 do diâmetro do tórax (~4 cm lactente, ~5 cm criança). 15:2 com 2 socorristas; com via aérea avançada, 1 ventilação a cada 2–3 s.'
+                        : 'Compressão 5–6 cm, 100–120/min, retorno total do tórax. 30:2; com via aérea avançada, 1 ventilação a cada 6 s.') + '</small></div>' +
+      '<details class="pcr-card"><summary>🧩 Causas reversíveis (5H e 5T)</summary><div class="chips causas">' + E.CAUSAS.map(function (c, i) {
+        return '<label class="chip"><input type="checkbox" data-c="' + i + '"' + (st.causas.indexOf(i) >= 0 ? ' checked' : '') + '><span>' + esc(c) + '</span></label>';
+      }).join('') + '</div></details>' +
+      '<button class="btn danger" id="pcr-fim" type="button">⏹ Encerrar PCR</button>') +
+      '<h2>Registro</h2><ol class="pcr-log" id="pcr-log"></ol>' +
+      (st.fim ? '<button class="btn" id="pcr-share" type="button">📤 Copiar/compartilhar resumo</button><button class="btn ghost" id="pcr-nova" type="button">Nova PCR (apagar registro)</button>' : '');
+
+    var $ = function (id) { return document.getElementById(id); };
+    function rel(t) { return E.mmss((t - st.inicio) / 1000); }
+    function renderLog() {
+      $('pcr-log').innerHTML = st.eventos.slice().reverse().map(function (e) {
+        return '<li><b>' + rel(e.t) + '</b> <small>' + new Date(e.t).toLocaleTimeString('pt-BR') + '</small> ' + esc(e.txt) + '</li>';
+      }).join('');
+      if ($('pcr-choque-s')) {
+        var n = st.nChoques + 1;
+        $('pcr-choque-s').textContent = ped ? (n === 1 ? fmt(en.desf1, 0) : fmt(en.desf2, 0)) + ' J (' + (n === 1 ? '2' : '4') + ' J/kg)' : 'bifásico conforme aparelho';
+        var a = ped ? doses.amiodarona[0] : doses.amiodarona[Math.min(st.nAmio, 1)];
+        $('pcr-amio-s').textContent = (ped && st.nAmio >= 3) || (!ped && st.nAmio >= 2) ? 'doses máximas registradas' : a.txt;
+      }
+    }
+    function tick() {
+      var agora = Date.now();
+      $('pcr-total').textContent = E.mmss(((st.fim || agora) - st.inicio) / 1000);
+      $('pcr-clock').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (st.fim) return;
+      var dc = (agora - st.ciclo) / 1000, rest = 120 - dc;
+      $('pcr-cic').textContent = rest > 0 ? E.mmss(rest) : '+' + E.mmss(-rest);
+      $('pcr-bar').style.width = Math.min(100, dc / 120 * 100) + '%';
+      var alerta = rest <= 0;
+      $('pcr-ciclo').classList.toggle('alarm', alerta);
+      if (alerta && !st.avisouCiclo) { st.avisouCiclo = true; salvar(); beep(990, 0.4); try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) { /* ok */ } }
+      var sa = E.statusAdrenalina(st.ultimaAdr ? (agora - st.ultimaAdr) / 1000 : null);
+      $('pcr-adr-st').textContent = sa.txt;
+      $('pcr-adr').className = 'pcr-card adr-' + sa.fase;
+      if (sa.fase === 'janela' && !st.avisouAdr) { st.avisouAdr = true; salvar(); beep(740, 0.3); }
+    }
+
+    renderLog(); tick();
+    pararPCRTimers();
+    pcrTimer = setInterval(tick, 500);
+    try { if (navigator.wakeLock && !st.fim) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {}); } catch (e) { /* ok */ }
+
+    if (!st.fim) {
+      $('pcr-ritmo').onclick = function () { st.ciclo = Date.now(); st.avisouCiclo = false; registrar('Checagem de ritmo / troca de compressor — novo ciclo'); };
+      $('pcr-adr-b').onclick = function () { st.ultimaAdr = Date.now(); st.avisouAdr = false; registrar('Adrenalina ' + doses.adrenalina.txt.split(' EV')[0].split(' = ')[0]); };
+      $('pcr-choque').onclick = function () {
+        st.nChoques++;
+        registrar('Choque nº ' + st.nChoques + (ped ? ' — ' + fmt(st.nChoques === 1 ? en.desf1 : en.desf2, 0) + ' J' : ''));
+      };
+      $('pcr-amio').onclick = function () {
+        var a = ped ? doses.amiodarona[0] : doses.amiodarona[Math.min(st.nAmio, 1)];
+        st.nAmio++; registrar('Amiodarona (dose ' + st.nAmio + ') — ' + fmt(a.mg, 3) + ' mg');
+      };
+      $app.querySelectorAll('[data-ev]').forEach(function (b) { b.onclick = function () { registrar(b.getAttribute('data-ev')); }; });
+      $('pcr-outro').onclick = function () { var t = prompt('Descreva o evento (ex.: ritmo FV, intubação, medicação):'); if (t && t.trim()) registrar(t.trim().slice(0, 200)); };
+      $('pcr-rce').onclick = function () { registrar('RCE — retorno da circulação espontânea'); };
+      $app.querySelectorAll('[data-c]').forEach(function (c) {
+        c.onchange = function () {
+          var i = +c.getAttribute('data-c');
+          st.causas = st.causas.filter(function (x) { return x !== i; });
+          if (c.checked) { st.causas.push(i); registrar('Causa considerada/tratada: ' + E.CAUSAS[i]); } else salvar();
+        };
+      });
+      $('pcr-metro').onclick = function () {
+        if (metroTimer) { clearInterval(metroTimer); metroTimer = null; this.textContent = 'Ligar'; return; }
+        beep(1200, 0.04); metroTimer = setInterval(function () { beep(1200, 0.04); }, 60000 / 110); this.textContent = 'Desligar';
+      };
+      $('pcr-fim').onclick = function () {
+        var r = prompt('Desfecho (ex.: RCE às HH:MM, óbito constatado às HH:MM, transferido):', '');
+        if (r === null) return;
+        st.eventos.push({ t: Date.now(), txt: 'Encerramento' + (r.trim() ? ': ' + r.trim().slice(0, 200) : '') });
+        st.fim = Date.now(); salvar(); pararPCRTimers(); viewPCR();
+      };
+    } else {
+      $('pcr-share').onclick = function () {
+        var txt = 'EnfCalc — registro de PCR (' + new Date(st.inicio).toLocaleDateString('pt-BR') + ')\n' +
+          'Paciente: ' + (ped ? 'pediátrico, ' + fmt(st.peso, 1) + ' kg' : 'adulto') + '\nDuração: ' + E.mmss((st.fim - st.inicio) / 1000) +
+          ' · Adrenalinas: ' + st.eventos.filter(function (e) { return /^Adrenalina/.test(e.txt); }).length + ' · Choques: ' + st.nChoques + '\n\n' +
+          st.eventos.map(function (e) { return new Date(e.t).toLocaleTimeString('pt-BR') + ' (' + rel(e.t) + ') — ' + e.txt; }).join('\n') +
+          '\n\nRegistro de apoio gerado pelo EnfCalc; transcrever para o prontuário.';
+        compartilharTexto(txt, 'Registro de PCR');
+      };
+      $('pcr-nova').onclick = function () { if (confirm('Apagar este registro de PCR?')) { store.set('pcr', null); viewPCR(); } };
+    }
   }
 
   // ---- Escalas ----
@@ -1418,7 +1735,7 @@
     var s = D.SCALES.filter(function (x) { return x.id === id; })[0];
     if (!s) return viewNotFound();
     setHeader(s.nome, true);
-    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(s.desc) + '</p>' + favButton('escala:' + s.id) + '</div>' +
+    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(s.desc) + (s.fonte ? '<br><small>Fonte: ' + esc(s.fonte) + '</small>' : '') + '</p>' + favButton('escala:' + s.id) + '</div>' +
       '<form id="sform" class="scale" onsubmit="return false">' + s.items.map(function (it, i) {
         return '<fieldset><legend>' + esc(it.label) + '</legend>' + it.opts.map(function (o) {
           return '<label class="opt"><input type="radio" name="s' + i + '" value="' + o[0] + '"><span class="opt-t">' + esc(o[1]) + '</span><span class="opt-p">' + (o[0] > 0 && s.id !== 'rass' ? '+' : '') + o[0] + '</span></label>';
@@ -1467,6 +1784,7 @@
     var h = location.hash.replace(/^#\/?/, '');
     var parts = h.split('/');
     window.scrollTo(0, 0);
+    pararPCRTimers();
     switch (parts[0]) {
       case '': viewHome(); break;
       case 'calculadoras': viewCalcList(); break;
@@ -1478,6 +1796,9 @@
       case 'escala': viewScale(parts[1]); break;
       case 'sobre': viewAbout(); break;
       case 'revisao': viewRevisao(parts[1]); break;
+      case 'pcr': viewPCR(); break;
+      case 'emergencia-ped': viewEmergPed(); break;
+      case 'compatibilidade': viewCompat(parts[1]); break;
       case 'maletas': if (parts[1] === 'nova') viewMaletaForm(null, parts[2]); else viewMaletas(); break;
       case 'maleta':
         if (!parts[2]) viewMaleta(parts[1]);
