@@ -1,0 +1,32 @@
+// Testes de rastreabilidade (fontes/revisões) e da conferência na maleta.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const R = require('../../wwwroot/enfermagem/js/revisoes.js');
+const M = require('../../wwwroot/enfermagem/js/maletas.js');
+const D = require('../../wwwroot/enfermagem/js/data.js');
+
+test('termo de busca na Anvisa', () => {
+  const by = id => D.DRUGS.find(d => d.id === id);
+  assert.equal(R.termoAnvisa(by('adrenalina')), 'epinefrina');
+  assert.equal(R.termoAnvisa(by('ceftriaxona')), 'Ceftriaxona');
+  assert.equal(R.termoAnvisa(by('glicose-50')), 'glicose');
+  assert.match(R.urlAnvisa(by('pipe-tazo')), /nomeProduto=tazobactam$/);
+  for (const d of D.DRUGS) assert.ok(R.termoAnvisa(d).length >= 4 && !/%|\(/.test(R.termoAnvisa(d)), d.id);
+  for (const k of Object.keys(R.BUSCA_ANVISA)) assert.ok(D.DRUGS.some(d => d.id === k), k);
+});
+
+test('revisões registradas são completas e referem medicamentos existentes', () => {
+  for (const [id, r] of Object.entries(R.REVISOES)) {
+    assert.ok(D.DRUGS.some(d => d.id === id), id);
+    assert.ok(r.por && /^\d{4}-\d{2}-\d{2}$/.test(r.data) && r.fonte, id);
+  }
+});
+
+test('conferência do item: sanitização e exportação/importação', () => {
+  assert.equal(M.cleanConferido({ por: '', data: '2026-11-15' }), null);
+  assert.equal(M.cleanConferido({ por: 'Ana', data: 'ontem' }), null);
+  const m = M.novaMaleta('k');
+  m.itens.push(M.novoItem({ drugId: 'ceftriaxona', conferido: { por: 'Ana COREN 123', data: '2026-11-15' } }));
+  const r = M.importar(JSON.parse(JSON.stringify(M.exportar(m))), D.DRUGS.map(d => d.id));
+  assert.deepEqual(r.maleta.itens[0].conferido, { por: 'Ana COREN 123', data: '2026-11-15' });
+});

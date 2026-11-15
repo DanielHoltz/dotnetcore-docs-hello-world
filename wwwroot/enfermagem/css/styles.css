@@ -331,3 +331,23 @@ button.card { width: 100%; border: 0; border-bottom: 1px solid var(--line); back
 .steps .big { font-size: 1.25rem; font-weight: 800; color: var(--primary); white-space: nowrap; }
 .sheet-box { margin-top: 18px; }
 .sheet-box > summary { cursor: pointer; font-weight: 600; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; }
+
+/* ---------- Referências e revisão ---------- */
+.badge.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.refs p { margin: 0 0 8px; }
+.refs small { color: var(--muted); }
+.ref-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 8px; }
+.ref-btns .btn.sm { margin: 0; }
+.rev-line { margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.conf .row input { flex: 1; min-width: 0; }
+.conf { margin-top: 12px; }
+.progress { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.progress .bar { height: 100%; background: var(--ok); }
+.howto { margin: 4px 0 6px; padding-left: 20px; }
+.howto li { margin-bottom: 4px; }
+.print-only { display: none; }
+.ficha-item .check { margin: 8px 0 0; font-size: .8rem; line-height: 1.9; }
+@media print {
+  .print-only { display: block; }
+  .ficha-item .check { font-size: 10px; }
+}

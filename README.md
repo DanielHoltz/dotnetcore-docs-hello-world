@@ -14,6 +14,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - **Pediatria:** dose mg/kg (por dose ou por dia, com dose máxima), Holliday-Segar.
 - **Avaliação clínica:** IMC/SC, PAM, clearance de creatinina, balanço hídrico, Parkland, IG/DPP, autonomia do cilindro de O₂.
 - **Escalas:** Glasgow (com GCS-P), Braden, Morse, RASS, Ramsay, Apgar, qSOFA, dor numérica.
+- **Referências e revisão:** cada ficha mostra a fonte, o status de revisão profissional e um botão para a bula no Bulário Eletrônico da Anvisa (e ISMP Brasil para alta vigilância). O painel de revisão mostra o progresso e gera uma ficha de conferência para impressão/assinatura pelo farmacêutico. Na maleta, cada item pode ser marcado como "conferido com a bula do fabricante" (nome/registro e data).
 - Busca global, favoritos, tema escuro automático, funcionamento offline.
 
 > ⚠️ Ferramenta de apoio. Não substitui prescrição, bula, protocolos institucionais ou julgamento clínico. Os dados de diluição precisam de revisão periódica por farmacêutico/enfermeiro responsável.
@@ -30,6 +31,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - `js/data.js` — medicamentos, soluções de infusão, eletrólitos, escalas e modelos de maleta
 - `js/doses.js` — doses de referência, grupos, alergias, antídotos e interações (revisar com farmácia clínica)
 - `js/paciente.js` — motor do modo atendimento (perfil, dose, preparo, alertas, interações), testado
+- `js/revisoes.js` — fontes, termos de busca na Anvisa e registro de revisões profissionais (`REVISOES`)
 - `js/maletas.js` — modelo de dados das maletas (validade, importar/exportar), testado em `tests/enfermagem/`
 - `js/app.js` — interface e calculadoras
 - `sw.js`, `manifest.webmanifest` — PWA/offline

@@ -35,6 +35,13 @@
     return out;
   }
 
+  // { por, data } — profissional que conferiu a ficha com a bula do fabricante usado
+  function cleanConferido(c) {
+    if (!c || typeof c !== 'object' || !isDate(c.data)) return null;
+    var por = str(c.por, 80);
+    return por ? { por: por, data: c.data } : null;
+  }
+
   function novaMaleta(nome, icon, local) {
     return { id: uid(), nome: str(nome, 60) || 'Minha maleta', icon: ICONS.indexOf(icon) >= 0 ? icon : ICONS[0], local: str(local, 120), criada: new Date().toISOString(), itens: [] };
   }
@@ -48,7 +55,8 @@
       conc: cleanConc(o.conc),
       qtd: o.qtd != null && isFinite(+o.qtd) && +o.qtd >= 0 ? Math.floor(+o.qtd) : null,
       validade: isDate(o.validade) ? o.validade : null,
-      nota: str(o.nota, 2000)
+      nota: str(o.nota, 2000),
+      conferido: cleanConferido(o.conferido)
     };
   }
 
@@ -131,7 +139,7 @@
     novaMaleta: novaMaleta, novoItem: novoItem, daMaleta: daMaleta, temDroga: temDroga,
     adicionarDrogas: adicionarDrogas, resolver: resolver, statusValidade: statusValidade,
     alertas: alertas, deModelo: deModelo, exportar: exportar, importar: importar,
-    cleanConc: cleanConc, cleanCustom: cleanCustom
+    cleanConc: cleanConc, cleanCustom: cleanCustom, cleanConferido: cleanConferido
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Maletas = api;

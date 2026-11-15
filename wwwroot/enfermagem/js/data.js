@@ -105,7 +105,7 @@
       diluicao: 'SF 0,9% ou SG 5%, 50–100 mL.',
       administracao: 'EV em 30 min ou EV direto lento (2–4 min).',
       estabilidade: '6 h em temperatura ambiente; 24 h refrigerado.',
-      obs: 'INCOMPATÍVEL com soluções que contenham cálcio (Ringer lactato, gluconato de cálcio) — risco de precipitação. Nunca usar lidocaína por via EV.',
+      obs: 'INCOMPATÍVEL com soluções que contenham cálcio (Ringer lactato/Hartmann, gluconato de cálcio, nutrição parenteral) — risco de precipitação. Não diluir no mesmo frasco com outros antimicrobianos (vancomicina, aminoglicosídeos, fluconazol). Solução com lidocaína NUNCA por via EV.',
       conc: { qtd: 1000, u: 'mg', vol: 10 } },
 
     { id: 'ciprofloxacino', nome: 'Ciprofloxacino', classe: 'Antibiótico (quinolona)',

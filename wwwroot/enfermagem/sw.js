@@ -1,7 +1,7 @@
 /* EnfCalc service worker — funciona offline (cache-first do app shell) */
-var CACHE = 'enfcalc-v4';
+var CACHE = 'enfcalc-v5';
 var ASSETS = [
-  './', 'index.html', 'css/styles.css', 'js/calc.js', 'js/data.js', 'js/maletas.js', 'js/doses.js', 'js/paciente.js', 'js/app.js',
+  './', 'index.html', 'css/styles.css', 'js/calc.js', 'js/data.js', 'js/maletas.js', 'js/doses.js', 'js/paciente.js', 'js/revisoes.js', 'js/app.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 
