@@ -7,7 +7,8 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - **Infusão e gotejamento:** gotas/min e microgotas/min, tempo de infusão, vazão em bomba (mL/h).
 - **Infusão contínua / drogas vasoativas:** dose ↔ mL/h (mcg/kg/min, mcg/min, mg/kg/h, UI/min, UI/kg/h, mUI/min…) com 15 soluções padrão (noradrenalina, adrenalina, dobutamina, dopamina, nitroprussiato, nitroglicerina, vasopressina, amiodarona, midazolam, fentanil, propofol, dexmedetomidina, insulina, heparina, ocitocina), aviso de dose fora da faixa e tabela de titulação.
 - **Preparo de medicação:** regra de três com conversão de unidades, reconstituição de pó (com volume do pó, diluição e gotejamento), penicilina cristalina.
-- **Diluições:** ficha de 40 medicamentos (apresentação, reconstituição, diluição, tempo de administração, estabilidade, cuidados, alerta de alta vigilância) com calculadora de volume.
+- **Maletas personalizadas:** monte maletas com os medicamentos do seu local de trabalho (do zero ou a partir de modelos: carrinho de emergência, atendimento domiciliar, UTI, obstetrícia). Por item: apresentação disponível no local (usada nos cálculos), estoque, validade com alertas (vencido / vence em 30 dias), protocolo local e medicamentos personalizados. Ficha de diluições da maleta para imprimir/PDF e compartilhamento por arquivo (WhatsApp, e-mail) com importação.
+- **Diluições:** ficha de 48 medicamentos (apresentação, reconstituição, diluição, tempo de administração, estabilidade, cuidados, alerta de alta vigilância) com calculadora de volume.
 - **Soluções:** transformação de soro (adicionar ou desprezar e repor), eletrólitos mEq ↔ mL, solução percentual.
 - **Pediatria:** dose mg/kg (por dose ou por dia, com dose máxima), Holliday-Segar.
 - **Avaliação clínica:** IMC/SC, PAM, clearance de creatinina, balanço hídrico, Parkland, IG/DPP, autonomia do cilindro de O₂.
@@ -25,7 +26,8 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 ## Estrutura
 
 - `js/calc.js` — fórmulas (funções puras, testadas em `tests/enfermagem/`)
-- `js/data.js` — medicamentos, soluções de infusão, eletrólitos e escalas
+- `js/data.js` — medicamentos, soluções de infusão, eletrólitos, escalas e modelos de maleta
+- `js/maletas.js` — modelo de dados das maletas (validade, importar/exportar), testado em `tests/enfermagem/`
 - `js/app.js` — interface e calculadoras
 - `sw.js`, `manifest.webmanifest` — PWA/offline
 

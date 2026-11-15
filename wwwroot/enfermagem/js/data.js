@@ -377,6 +377,70 @@
       estabilidade: 'Diluída: 24 h em temperatura ambiente; 14 dias refrigerada (conforme fabricante).',
       obs: 'Infusão rápida causa "síndrome do homem vermelho". Nefrotóxica: vancocinemia conforme protocolo. Vesicante.',
       conc: { qtd: 500, u: 'mg', vol: 10 } }
+,
+
+    { id: 'adrenalina', nome: 'Adrenalina (epinefrina)', classe: 'Vasopressor — ALTA VIGILÂNCIA',
+      apresentacao: 'Ampola 1 mg/mL (1 mL)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'PCR: sem diluição. Infusão contínua: ex.: 4 mg em 250 mL de SG 5% (16 mcg/mL).',
+      administracao: 'PCR: 1 mg EV/IO a cada 3–5 min, seguido de flush de 20 mL de SF e elevação do membro. Anafilaxia: 0,5 mg IM (0,01 mg/kg; máx. 0,5 mg) no vasto lateral da coxa.',
+      estabilidade: 'Proteger da luz. Infusão: 24 h.',
+      obs: 'Não confundir mg com mL em diluições pediátricas. Vesicante em infusão periférica.',
+      conc: { qtd: 1, u: 'mg', vol: 1 }, infusao: 'adrenalina' },
+
+    { id: 'atropina', nome: 'Atropina', classe: 'Anticolinérgico',
+      apresentacao: 'Ampola 0,25 mg/mL (1 mL); também 0,5 mg/mL',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Não necessita.',
+      administracao: 'Bradicardia sintomática (adulto): 1 mg EV em bolus a cada 3–5 min, máx. 3 mg. Confira a concentração da ampola disponível.',
+      estabilidade: 'Temperatura ambiente.',
+      obs: 'Paciente monitorizado. Doses < 0,5 mg podem causar bradicardia paradoxal. Antídoto em intoxicação por organofosforados (doses maiores).',
+      conc: { qtd: 0.25, u: 'mg', vol: 1 } },
+
+    { id: 'ertapenem', nome: 'Ertapenem', classe: 'Antibiótico (carbapenêmico)',
+      apresentacao: 'Frasco-ampola 1 g (pó)',
+      reconstituicao: 'EV: 1 g em 10 mL de AD ou SF 0,9%. IM: 1 g em 3,2 mL de lidocaína 1% sem vasoconstritor.',
+      diluicao: 'SOMENTE SF 0,9%, 50 mL. NÃO diluir em soluções com glicose.',
+      administracao: 'EV em 30 min, 1 vez ao dia (muito usado em atendimento domiciliar). IM profunda, se prescrito.',
+      estabilidade: 'Diluído: 6 h em temperatura ambiente; 24 h refrigerado (usar em até 4 h após retirar da geladeira).',
+      obs: 'Nunca administrar a solução com lidocaína por via EV. Ajustar dose se ClCr ≤ 30 mL/min.',
+      conc: { qtd: 1000, u: 'mg', vol: 10 } },
+
+    { id: 'fentanil', nome: 'Fentanil', classe: 'Opioide — ALTA VIGILÂNCIA',
+      apresentacao: 'Ampola 50 mcg/mL (2 mL, 5 mL e 10 mL)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Bolus: pode ser diluído em SF 0,9%. Infusão contínua: ex.: 20 mL (1.000 mcg) + 80 mL SF 0,9% = 100 mL (10 mcg/mL).',
+      administracao: 'EV lento (1–2 min) ou infusão contínua em bomba.',
+      estabilidade: '24 h após diluição. Proteger da luz.',
+      obs: 'Bolus rápido pode causar rigidez torácica. Monitorar FR e sedação. Antídoto: naloxona.',
+      conc: { qtd: 50, u: 'mcg', vol: 1 }, infusao: 'fentanil' },
+
+    { id: 'flumazenil', nome: 'Flumazenil', classe: 'Antídoto de benzodiazepínicos',
+      apresentacao: 'Ampola 0,5 mg/5 mL (0,1 mg/mL)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Pode ser usado puro ou diluído em SF 0,9% / SG 5%.',
+      administracao: 'EV: 0,2 mg em 15 s; se necessário, 0,1 mg a cada 60 s até máx. 1 mg.',
+      estabilidade: 'Diluído: 24 h.',
+      obs: 'Meia-vida curta: risco de ressedação. Pode desencadear convulsões em usuários crônicos de benzodiazepínicos.',
+      conc: { qtd: 0.5, u: 'mg', vol: 5 } },
+
+    { id: 'glicose-50', nome: 'Glicose 50%', classe: 'Hipertônico / correção de hipoglicemia',
+      apresentacao: 'Ampola 10 mL (500 mg/mL = 5 g por ampola)',
+      reconstituicao: 'Não necessita.',
+      diluicao: 'Hipoglicemia: em geral sem diluição, em veia calibrosa. Também usada na transformação de soro.',
+      administracao: 'Hipoglicemia (adulto): 25–50 mL (12,5–25 g) EV lento; repetir glicemia capilar em 15 min.',
+      estabilidade: 'Usar imediatamente.',
+      obs: 'Hiperosmolar: risco de flebite e necrose em extravasamento. Veja a calculadora "Transformação de soro".',
+      conc: { qtd: 5000, u: 'mg', vol: 10 } },
+
+    { id: 'naloxona', nome: 'Naloxona', classe: 'Antídoto de opioides',
+      apresentacao: 'Ampola 0,4 mg/mL (1 mL)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Para titulação: 1 mL (0,4 mg) + 9 mL SF 0,9% = 10 mL (0,04 mg/mL).',
+      administracao: 'EV: 0,04–0,4 mg, repetir a cada 2–3 min conforme resposta. Também IM/SC.',
+      estabilidade: 'Diluída: 24 h.',
+      obs: 'Meia-vida menor que a de muitos opioides: risco de renarcotização. Pode desencadear abstinência aguda.',
+      conc: { qtd: 0.4, u: 'mg', vol: 1 } }
   ];
 
   // Presets para infusão contínua (bomba)
@@ -536,6 +600,21 @@
       } }
   ];
 
-  root.DATA = { DRUGS: DRUGS, INFUSIONS: INFUSIONS, ELECTROLYTES: ELECTROLYTES, SCALES: SCALES };
+  // Modelos de maleta (ponto de partida; o usuário personaliza)
+  var KITS = [
+    { id: 'emergencia', nome: 'Carrinho de emergência', icon: '🚑', local: 'Parada / urgência',
+      drogas: ['adrenalina', 'amiodarona', 'atropina', 'adenosina', 'bicarbonato', 'gluconato-calcio', 'sulfato-magnesio', 'glicose-50',
+        'midazolam', 'diazepam', 'fentanil', 'naloxona', 'flumazenil', 'furosemida', 'hidrocortisona', 'noradrenalina'] },
+    { id: 'domiciliar', nome: 'Atendimento domiciliar', icon: '🏠', local: 'Antibioticoterapia e suporte em casa',
+      drogas: ['ceftriaxona', 'cefepima', 'ertapenem', 'meropenem', 'pipe-tazo', 'amicacina', 'gentamicina', 'vancomicina',
+        'dipirona', 'ondansetrona', 'metoclopramida', 'tramadol', 'furosemida', 'omeprazol'] },
+    { id: 'uti', nome: 'UTI — sedação e DVA', icon: '🫀', local: 'Terapia intensiva',
+      drogas: ['noradrenalina', 'adrenalina', 'nitroglicerina', 'nitroprussiato', 'amiodarona', 'midazolam', 'fentanil', 'morfina',
+        'heparina', 'insulina-regular', 'cloreto-potassio', 'sulfato-magnesio'] },
+    { id: 'obstetricia', nome: 'Obstetrícia', icon: '🤰', local: 'Centro obstétrico',
+      drogas: ['ocitocina', 'sulfato-magnesio', 'gluconato-calcio', 'cefazolina', 'dipirona', 'ondansetrona'] }
+  ];
+
+  root.DATA = { DRUGS: DRUGS, INFUSIONS: INFUSIONS, ELECTROLYTES: ELECTROLYTES, SCALES: SCALES, KITS: KITS };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.DATA;
 })(typeof window !== 'undefined' ? window : this);

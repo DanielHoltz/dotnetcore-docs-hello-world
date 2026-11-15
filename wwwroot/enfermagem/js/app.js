@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA;
+  var C = window.Calc, D = window.DATA, M = window.Maletas;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -38,7 +38,8 @@
 
   var store = {
     get: function (k, def) { try { var v = localStorage.getItem('enfcalc.' + k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
-    set: function (k, v) { try { localStorage.setItem('enfcalc.' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } }
+    set: function (k, v) { try { localStorage.setItem('enfcalc.' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
+    trySet: function (k, v) { try { localStorage.setItem('enfcalc.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   };
 
   // ---------- definições das calculadoras ----------
@@ -501,8 +502,16 @@
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     D.DRUGS.forEach(function (d) { e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao' }); });
+    loadMaletas().forEach(function (m) { e.push({ key: 'maleta:' + m.id, href: '#/maleta/' + m.id, icon: m.icon, title: m.nome, desc: 'Maleta · ' + m.itens.length + ' medicamentos', search: m.nome + ' ' + m.local + ' maleta kit' }); });
     D.SCALES.forEach(function (s) { e.push({ key: 'escala:' + s.id, href: '#/escala/' + s.id, icon: '📋', title: s.nome, desc: s.desc, search: s.nome + ' ' + s.desc + ' escala' }); });
     return e;
+  }
+
+  function homeMaletas() {
+    var ms = loadMaletas(), t = totalAlertas();
+    return '<a class="kit-banner" href="#/maletas"><span class="kit-ic">🧰</span><span class="card-t"><b>Minhas maletas</b><small>' +
+      (ms.length ? ms.length + ' maleta' + (ms.length > 1 ? 's' : '') + ' · ' + ms.map(function (m) { return esc(m.nome); }).join(', ') : 'Monte maletas com os medicamentos do seu local de trabalho') +
+      '</small>' + (t.vencidos || t.vencendo ? '<span class="badges">' + badges(t) + '</span>' : '') + '</span><span class="chev">›</span></a>';
   }
 
   function viewHome() {
@@ -513,7 +522,7 @@
     $app.innerHTML =
       '<div class="search"><input id="q" type="search" placeholder="Buscar cálculo, medicamento ou escala…" autocomplete="off" aria-label="Buscar"></div>' +
       '<div id="search-res"></div>' +
-      '<div id="home-main">' +
+      '<div id="home-main">' + homeMaletas() +
       '<div class="quick">' +
         '<a href="#/calc/gotejamento" class="qk"><span>💧</span>Gotejamento</a>' +
         '<a href="#/infusao" class="qk"><span>🫀</span>Drogas vasoativas</a>' +
@@ -690,7 +699,7 @@
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
     function render() {
       var t = norm(dq.value.trim());
-      var list = D.DRUGS.filter(function (d) { return !t || norm(d.nome + ' ' + d.classe).indexOf(t) >= 0; });
+      var list = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); }).filter(function (d) { return !t || norm(d.nome + ' ' + d.classe).indexOf(t) >= 0; });
       dl.innerHTML = list.length ? list.map(function (d) { return card('#/droga/' + d.id, d.classe.indexOf('ALTA VIGILÂNCIA') >= 0 ? '🔴' : '💊', d.nome, d.classe, 'droga:' + d.id); }).join('')
         : '<p class="empty-msg">Nenhum medicamento encontrado.</p>';
     }
@@ -698,33 +707,391 @@
     render();
   }
 
-  function viewDrug(id) {
-    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
-    if (!d) return viewNotFound();
-    setHeader(d.nome, true);
-    var hv = d.classe.indexOf('ALTA VIGILÂNCIA') >= 0;
+  // ---- Ficha do medicamento (biblioteca e maletas) ----
+  function concTxt(c) { return c ? fmt(c.qtd, 4) + ' ' + c.u + ' / ' + fmt(c.vol, 2) + ' mL' : ''; }
+  function isHV(d) { return (d.classe || '').indexOf('ALTA VIGILÂNCIA') >= 0; }
+
+  function drugSheetHtml(d) {
     function sec(t, v, ic) { return v ? '<div class="sec"><h3>' + ic + ' ' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
+    return (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
+      (d.concBiblioteca ? '<div class="alert info">📦 Apresentação do seu local: <b>' + esc(concTxt(d.conc)) + '</b> (biblioteca: ' + esc(concTxt(d.concBiblioteca)) + '). Os cálculos usam a sua.</div>' : '') +
+      sec('Apresentação', d.apresentacao, '📦') + sec('Reconstituição', d.reconstituicao, '🧴') + sec('Diluição', d.diluicao, '💧') +
+      sec('Administração', d.administracao, '⏱️') + sec('Estabilidade', d.estabilidade, '🗓️') + sec('Observações', d.obs, '⚠️') +
+      (d.infusao ? '<a class="btn" href="#/infusao/' + esc(d.infusao) + '">🫀 Calcular infusão contínua</a>' : '') +
+      (d.conc ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
+      '<p class="disclaimer">' + (d.personalizado ? 'Ficha criada por você.' : 'Dados de referência; podem variar entre fabricantes.') + ' Confira a bula e o protocolo da instituição.</p>';
+  }
+
+  function bindDrugCalc(d) {
+    var form = document.getElementById('dform');
+    if (!form || !d.conc) return;
     var units = C.UNITS[d.conc.u].cls === 'mass' ? ['mcg', 'mg', 'g'] : [d.conc.u];
     var fields = [
       { id: 'dose', label: 'Dose prescrita', units: units, defU: d.conc.u },
       { id: 'qtd', label: 'Apresentação: quantidade', units: units, defU: d.conc.u, def: d.conc.qtd },
       { id: 'vol', label: 'Apresentação: em volume de', unit: 'mL', def: d.conc.vol }
     ];
-    $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(d.classe) + '</p>' + favButton('droga:' + d.id) + '</div>' +
-      (hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
-      sec('Apresentação', d.apresentacao, '📦') + sec('Reconstituição', d.reconstituicao, '🧴') + sec('Diluição', d.diluicao, '💧') +
-      sec('Administração', d.administracao, '⏱️') + sec('Estabilidade', d.estabilidade, '🗓️') + sec('Observações', d.obs, '⚠️') +
-      (d.infusao ? '<a class="btn" href="#/infusao/' + d.infusao + '">🫀 Calcular infusão contínua</a>' : '') +
-      '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false">' + fields.map(function (f) { return fieldHtml(f, 'd'); }).join('') + '</form>' +
-      '<div id="dout" aria-live="polite"></div>' +
-      '<p class="disclaimer">Dados de referência; podem variar entre fabricantes. Confira a bula e o protocolo da instituição.</p>';
-    bindLiveForm(document.getElementById('dform'), fields, function (v) {
+    form.innerHTML = fields.map(function (f) { return fieldHtml(f, 'd'); }).join('');
+    bindLiveForm(form, fields, function (v) {
       var ml = C.volumeDose(v.dose, v.dose_u, v.qtd, v.qtd_u, v.vol);
       if (ml == null) return null;
       return { results: [{ label: 'Aspirar', value: fmt(ml, 2), unit: 'mL', main: true }],
         warns: ml > v.vol ? ['A dose excede uma unidade da apresentação (' + fmt(ml / v.vol, 2) + ' unidades).'] : [] };
     }, document.getElementById('dout'));
+  }
+
+  function viewDrug(id) {
+    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
+    if (!d) return viewNotFound();
+    setHeader(d.nome, true);
+    var ms = loadMaletas();
+    var add = '<div class="sec addkit"><h3>🧰 Adicionar a uma maleta</h3>' + (ms.length
+      ? '<div class="row"><select id="kit-sel" aria-label="Maleta">' + ms.map(function (m) {
+          return '<option value="' + esc(m.id) + '"' + (M.temDroga(m, d.id) ? ' disabled' : '') + '>' + esc(m.icon + ' ' + m.nome) + (M.temDroga(m, d.id) ? ' (já contém)' : '') + '</option>';
+        }).join('') + '</select><button class="btn sm" id="kit-add" type="button">Adicionar</button></div>'
+      : '<p>Você ainda não tem maletas. <a href="#/maletas/nova/' + esc(d.id) + '">Criar uma maleta com este medicamento</a></p>') + '</div>';
+    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(d.classe) + '</p>' + favButton('droga:' + d.id) + '</div>' + drugSheetHtml(d) + add;
+    bindDrugCalc(d);
+    var btn = document.getElementById('kit-add');
+    if (btn) {
+      var sel = document.getElementById('kit-sel');
+      var first = [].filter.call(sel.options, function (o) { return !o.disabled; })[0];
+      if (first) sel.value = first.value; else btn.disabled = true;
+      btn.onclick = function () {
+        var m = getMaleta(sel.value);
+        if (!m || M.temDroga(m, d.id)) return;
+        M.adicionarDrogas(m, [d.id]);
+        if (saveMaleta(m)) { toast('Adicionado a “' + m.nome + '”'); viewDrug(id); }
+      };
+    }
+  }
+
+  // ---- Maletas: persistência ----
+  function loadMaletas() { var a = store.get('maletas', []); return Array.isArray(a) ? a : []; }
+  function getMaleta(id) { return loadMaletas().filter(function (m) { return m.id === id; })[0] || null; }
+  function saveMaleta(m) {
+    var a = loadMaletas(), i = -1;
+    a.forEach(function (x, k) { if (x.id === m.id) i = k; });
+    if (i >= 0) a[i] = m; else a.push(m);
+    var ok = store.trySet('maletas', a);
+    if (!ok) toast('Não foi possível salvar neste navegador (armazenamento bloqueado ou cheio).', true);
+    else if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+    return ok;
+  }
+  function deleteMaleta(id) { return store.trySet('maletas', loadMaletas().filter(function (m) { return m.id !== id; })); }
+
+  function totalAlertas() {
+    var t = { vencidos: 0, vencendo: 0 };
+    loadMaletas().forEach(function (m) { var a = M.alertas(m); t.vencidos += a.vencidos; t.vencendo += a.vencendo; });
+    return t;
+  }
+
+  function badges(a) {
+    return (a.vencidos ? '<span class="badge bad">' + a.vencidos + ' vencido' + (a.vencidos > 1 ? 's' : '') + '</span>' : '') +
+      (a.vencendo ? '<span class="badge warn">' + a.vencendo + ' vencendo</span>' : '') +
+      (a.semEstoque ? '<span class="badge">' + a.semEstoque + ' sem estoque</span>' : '');
+  }
+  function validadeBadge(it) {
+    var s = M.statusValidade(it.validade);
+    if (!s) return '';
+    var dt = it.validade.split('-').reverse().join('/');
+    return s === 'vencido' ? '<span class="badge bad">Vencido ' + dt + '</span>' : s === 'vencendo' ? '<span class="badge warn">Vence ' + dt + '</span>' : '<span class="badge">Val. ' + dt + '</span>';
+  }
+
+  function toast(msg, bad) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (bad ? ' bad' : '');
+    t.setAttribute('role', 'status');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('out'); setTimeout(function () { t.remove(); }, 400); }, 2600);
+  }
+
+  function slug(s) { return norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'maleta'; }
+
+  // ---- Maletas: telas ----
+  function viewMaletas() {
+    setHeader('Maletas', false);
+    var ms = loadMaletas();
+    $app.innerHTML =
+      '<p class="lead">Monte maletas com os medicamentos que você tem no seu local de trabalho — carrinho de emergência, atendimento domiciliar, setor. Ajuste a apresentação disponível, o estoque, a validade e o protocolo local.</p>' +
+      (ms.length ? '<div class="list">' + ms.map(function (m) {
+        var a = M.alertas(m);
+        return '<a class="card" href="#/maleta/' + esc(m.id) + '"><span class="card-ic">' + esc(m.icon) + '</span><span class="card-t"><b>' + esc(m.nome) + '</b><small>' +
+          m.itens.length + ' medicamento' + (m.itens.length === 1 ? '' : 's') + (m.local ? ' · ' + esc(m.local) : '') + '</small>' +
+          (a.vencidos || a.vencendo || a.semEstoque ? '<span class="badges">' + badges(a) + '</span>' : '') + '</span><span class="chev">›</span></a>';
+      }).join('') + '</div>' : '<div class="empty-box">🧰<p>Nenhuma maleta ainda. Crie a sua do zero ou comece por um modelo.</p></div>') +
+      '<a class="btn" href="#/maletas/nova">＋ Nova maleta</a>' +
+      '<h2>Começar de um modelo</h2><div class="list">' + D.KITS.map(function (k) {
+        return '<button class="card" type="button" data-kit="' + esc(k.id) + '"><span class="card-ic">' + esc(k.icon) + '</span><span class="card-t"><b>' + esc(k.nome) + '</b><small>' +
+          k.drogas.length + ' medicamentos · ' + esc(k.local) + '</small></span><span class="chev">＋</span></button>';
+      }).join('') + '</div>' +
+      '<h2>Compartilhar e backup</h2>' +
+      '<label class="btn ghost file-btn">📥 Importar maleta (.json)<input type="file" id="imp" accept=".json,application/json"></label>' +
+      '<p class="note">As maletas ficam salvas neste aparelho. Use “Compartilhar” dentro de cada maleta para enviar a colegas (ex.: WhatsApp) ou guardar uma cópia de segurança.</p>';
+
+    $app.querySelectorAll('[data-kit]').forEach(function (b) {
+      b.onclick = function () {
+        var k = D.KITS.filter(function (x) { return x.id === b.getAttribute('data-kit'); })[0];
+        var m = M.deModelo(k);
+        if (saveMaleta(m)) { toast('Maleta “' + m.nome + '” criada. Remova o que não tiver e ajuste ao seu local.'); location.hash = '#/maleta/' + m.id; }
+      };
+    });
+    document.getElementById('imp').onchange = function (e) {
+      var f = e.target.files[0];
+      if (!f) return;
+      if (f.size > 2 * 1024 * 1024) { toast('Arquivo grande demais.', true); return; }
+      var r = new FileReader();
+      r.onload = function () {
+        try {
+          var res = M.importar(JSON.parse(r.result), D.DRUGS.map(function (x) { return x.id; }));
+          if (saveMaleta(res.maleta)) {
+            toast('Maleta importada' + (res.ignorados ? ' (' + res.ignorados + ' item(ns) ignorado(s))' : '') + '.');
+            location.hash = '#/maleta/' + res.maleta.id;
+          }
+        } catch (err) { toast(err instanceof SyntaxError ? 'Arquivo inválido.' : err.message, true); }
+      };
+      r.readAsText(f);
+    };
+  }
+
+  function txtField(id, label, val, o) {
+    o = o || {};
+    var input = o.area
+      ? '<textarea id="' + id + '" rows="' + (o.rows || 3) + '" placeholder="' + esc(o.ph || '') + '">' + esc(val || '') + '</textarea>'
+      : '<input class="txt" id="' + id + '" type="text" value="' + esc(val || '') + '" placeholder="' + esc(o.ph || '') + '"' + (o.max ? ' maxlength="' + o.max + '"' : '') + '>';
+    return '<div class="field"><label for="' + id + '">' + esc(label) + '</label>' + input + (o.hint ? '<small>' + esc(o.hint) + '</small>' : '') + '</div>';
+  }
+
+  function viewMaletaForm(id, addDrugId) {
+    var m = id ? getMaleta(id) : null;
+    if (id && !m) return viewNotFound();
+    setHeader(m ? 'Editar maleta' : 'Nova maleta', true);
+    var icon = m ? m.icon : M.ICONS[0];
+    $app.innerHTML = '<form class="form" id="mf" onsubmit="return false">' +
+      txtField('m-nome', 'Nome da maleta', m ? m.nome : '', { ph: 'Ex.: Maleta domiciliar, Carrinho PS, UTI 2', max: 60 }) +
+      txtField('m-local', 'Local / setor (opcional)', m ? m.local : '', { ph: 'Ex.: Hospital X — Pronto-socorro', max: 120 }) +
+      '<div class="field"><span class="lbl">Ícone</span><div class="icons">' + M.ICONS.map(function (ic) {
+        return '<label class="ic-opt"><input type="radio" name="m-ic" value="' + ic + '"' + (ic === icon ? ' checked' : '') + '><span>' + ic + '</span></label>';
+      }).join('') + '</div></div></form>' +
+      '<button class="btn" id="m-save" type="button">' + (m ? 'Salvar' : 'Criar maleta') + '</button>' +
+      (m ? '<button class="btn danger" id="m-del" type="button">Excluir maleta</button>' : '');
+    document.getElementById('m-nome').focus();
+    document.getElementById('m-save').onclick = function () {
+      var nome = document.getElementById('m-nome').value.trim();
+      if (!nome) { toast('Dê um nome à maleta.', true); document.getElementById('m-nome').focus(); return; }
+      var ic = document.querySelector('input[name=m-ic]:checked').value;
+      var local = document.getElementById('m-local').value;
+      var mm = m || M.novaMaleta(nome, ic, local);
+      if (m) { var t = M.novaMaleta(nome, ic, local); m.nome = t.nome; m.icon = t.icon; m.local = t.local; }
+      if (!m && addDrugId && D.DRUGS.some(function (x) { return x.id === addDrugId; })) M.adicionarDrogas(mm, [addDrugId]);
+      if (saveMaleta(mm)) location.replace('#/maleta/' + mm.id);
+    };
+    var del = document.getElementById('m-del');
+    if (del) del.onclick = function () {
+      if (!confirm('Excluir a maleta “' + m.nome + '” e todos os seus itens? Esta ação não pode ser desfeita.')) return;
+      if (deleteMaleta(m.id)) { toast('Maleta excluída.'); location.replace('#/maletas'); }
+    };
+  }
+
+  function itemRows(m) {
+    return m.itens.map(function (it) { return { it: it, d: M.resolver(it, D.DRUGS) }; })
+      .filter(function (x) { return x.d; })
+      .sort(function (a, b) { return a.d.nome.localeCompare(b.d.nome, 'pt-BR'); });
+  }
+
+  function viewMaleta(id) {
+    var m = getMaleta(id);
+    if (!m) return viewNotFound();
+    setHeader(m.nome, true);
+    var a = M.alertas(m), rows = itemRows(m);
+    $app.innerHTML =
+      '<div class="kit-head"><span class="kit-ic">' + esc(m.icon) + '</span><div><b>' + esc(m.nome) + '</b>' + (m.local ? '<small>' + esc(m.local) + '</small>' : '') +
+        '<small>' + rows.length + ' medicamento' + (rows.length === 1 ? '' : 's') + '</small></div></div>' +
+      (a.vencidos ? '<div class="alert bad">⛔ ' + a.vencidos + ' item(ns) com validade vencida.</div>' : '') +
+      (a.vencendo ? '<div class="alert warn">⏳ ' + a.vencendo + ' item(ns) vencem em até ' + M.DIAS_ALERTA + ' dias.</div>' : '') +
+      (rows.length > 6 ? '<div class="search"><input id="kq" type="search" placeholder="Buscar nesta maleta…" aria-label="Buscar nesta maleta"></div>' : '') +
+      (rows.length ? '<div class="list" id="kl">' + rows.map(function (x) {
+        var it = x.it, d = x.d;
+        var sub = [d.conc ? concTxt(d.conc) : (d.classe || '')];
+        if (it.qtd != null) sub.push('Qtd: ' + it.qtd);
+        return '<a class="card" data-name="' + esc(norm(d.nome + ' ' + (d.classe || ''))) + '" href="#/maleta/' + esc(m.id) + '/item/' + esc(it.id) + '"><span class="card-ic">' +
+          (d.personalizado ? '✏️' : isHV(d) ? '🔴' : '💊') + '</span><span class="card-t"><b>' + esc(d.nome) + '</b><small>' + esc(sub.join(' · ')) + '</small>' +
+          (it.validade || it.qtd === 0 || it.nota ? '<span class="badges">' + validadeBadge(it) + (it.qtd === 0 ? '<span class="badge">Sem estoque</span>' : '') + (it.nota ? '<span class="badge info">📌 Protocolo local</span>' : '') + '</span>' : '') +
+          '</span><span class="chev">›</span></a>';
+      }).join('') + '</div>' : '<div class="empty-box">💊<p>Maleta vazia. Adicione os medicamentos que você tem disponível.</p></div>') +
+      '<div class="btn-grid">' +
+        '<a class="btn" href="#/maleta/' + esc(m.id) + '/adicionar">＋ Adicionar da biblioteca</a>' +
+        '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/novo">✏️ Medicamento personalizado</a>' +
+        '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/ficha">📄 Ficha de diluições</a>' +
+        '<button class="btn ghost" id="k-share" type="button">📤 Compartilhar</button>' +
+        '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/editar">⚙️ Editar maleta</a>' +
+      '</div>';
+
+    var kq = document.getElementById('kq');
+    if (kq) kq.oninput = function () {
+      var t = norm(kq.value.trim());
+      document.querySelectorAll('#kl .card').forEach(function (c) { c.hidden = t && c.getAttribute('data-name').indexOf(t) < 0; });
+    };
+    document.getElementById('k-share').onclick = function () {
+      var json = JSON.stringify(M.exportar(m), null, 2);
+      var name = slug(m.nome) + '.enfcalc.json';
+      var file;
+      try { file = new File([json], name, { type: 'application/json' }); } catch (e) { file = null; }
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Maleta ' + m.nome, text: 'Maleta “' + m.nome + '” do EnfCalc — abra o EnfCalc › Maletas › Importar.' }).catch(function () {});
+        return;
+      }
+      var url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      var aEl = document.createElement('a');
+      aEl.href = url; aEl.download = name;
+      document.body.appendChild(aEl); aEl.click(); aEl.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      toast('Arquivo “' + name + '” salvo.');
+    };
+  }
+
+  function viewMaletaAdd(id) {
+    var m = getMaleta(id);
+    if (!m) return viewNotFound();
+    setHeader('Adicionar medicamentos', true);
+    var drugs = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    $app.innerHTML = '<p class="lead">Marque os medicamentos disponíveis em “' + esc(m.nome) + '”.</p>' +
+      '<div class="search"><input id="aq" type="search" placeholder="Buscar medicamento…" aria-label="Buscar medicamento"></div>' +
+      '<a class="card solo" href="#/maleta/' + esc(m.id) + '/novo"><span class="card-ic">✏️</span><span class="card-t"><b>Não está na lista?</b><small>Criar medicamento personalizado</small></span><span class="chev">›</span></a>' +
+      '<div class="list picks" id="al">' + drugs.map(function (d) {
+        var has = M.temDroga(m, d.id);
+        return '<label class="pick" data-name="' + esc(norm(d.nome + ' ' + d.classe)) + '"><input type="checkbox" value="' + esc(d.id) + '"' + (has ? ' checked disabled' : '') + '>' +
+          '<span class="card-t"><b>' + esc(d.nome) + '</b><small>' + (has ? 'Já está na maleta' : esc(d.classe)) + '</small></span></label>';
+      }).join('') + '</div>' +
+      '<div class="sticky-act"><button class="btn" id="a-go" type="button" disabled>Adicionar</button></div>';
+    var list = document.getElementById('al'), go = document.getElementById('a-go');
+    function sel() { return [].map.call(list.querySelectorAll('input:checked:not(:disabled)'), function (i) { return i.value; }); }
+    list.onchange = function () { var n = sel().length; go.disabled = !n; go.textContent = n ? 'Adicionar ' + n + ' medicamento' + (n > 1 ? 's' : '') : 'Adicionar'; };
+    document.getElementById('aq').oninput = function (e) {
+      var t = norm(e.target.value.trim());
+      list.querySelectorAll('.pick').forEach(function (p) { p.hidden = t && p.getAttribute('data-name').indexOf(t) < 0; });
+    };
+    go.onclick = function () {
+      var n = M.adicionarDrogas(m, sel());
+      if (saveMaleta(m)) { toast(n + ' medicamento(s) adicionado(s).'); location.replace('#/maleta/' + m.id); }
+    };
+  }
+
+  function concFields(prefix, c, ph) {
+    return '<div class="field"><span class="lbl">Apresentação disponível (para os cálculos)</span><div class="conc-row">' +
+      '<div class="input-wrap"><input id="' + prefix + '-cq" type="text" inputmode="decimal" placeholder="' + esc(ph ? fmt(ph.qtd, 4) : 'Qtd') + '" value="' + (c ? esc(fmt(c.qtd, 6)) : '') + '">' +
+      '<select class="unit" id="' + prefix + '-cu" aria-label="Unidade">' + M.CONC_UNITS.map(function (u) { return '<option' + (u === (c ? c.u : ph ? ph.u : 'mg') ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select></div>' +
+      '<span class="em">em</span><div class="input-wrap"><input id="' + prefix + '-cv" type="text" inputmode="decimal" placeholder="' + esc(ph ? fmt(ph.vol, 4) : 'Vol') + '" value="' + (c ? esc(fmt(c.vol, 6)) : '') + '"><span class="unit">mL</span></div>' +
+      '</div><small>Ex.: 500 mg em 2 mL. Para pó, use o volume após reconstituir.</small></div>';
+  }
+  function readConc(prefix) {
+    var q = num(document.getElementById(prefix + '-cq').value), v = num(document.getElementById(prefix + '-cv').value);
+    return M.cleanConc({ qtd: q, u: document.getElementById(prefix + '-cu').value, vol: v });
+  }
+
+  function viewCustomForm(id, itemId) {
+    var m = getMaleta(id);
+    if (!m) return viewNotFound();
+    var it = itemId ? M.daMaleta(m, itemId) : null;
+    if (itemId && (!it || !it.custom)) return viewNotFound();
+    var c = it ? it.custom : {};
+    setHeader(it ? 'Editar ficha' : 'Medicamento personalizado', true);
+    $app.innerHTML = '<p class="lead">Cadastre um medicamento que não está na biblioteca, com as informações do seu protocolo.</p>' +
+      '<form class="form" onsubmit="return false">' +
+      txtField('c-nome', 'Nome *', c.nome, { ph: 'Ex.: Cefuroxima 750 mg', max: 80 }) +
+      txtField('c-classe', 'Classe', c.classe, { ph: 'Ex.: Antibiótico' }) +
+      txtField('c-apresentacao', 'Apresentação', c.apresentacao, { ph: 'Ex.: Frasco-ampola 750 mg (pó)' }) +
+      concFields('c', c.conc) +
+      txtField('c-reconstituicao', 'Reconstituição', c.reconstituicao, { area: true }) +
+      txtField('c-diluicao', 'Diluição', c.diluicao, { area: true }) +
+      txtField('c-administracao', 'Administração (via, tempo)', c.administracao, { area: true }) +
+      txtField('c-estabilidade', 'Estabilidade', c.estabilidade, { area: true, rows: 2 }) +
+      txtField('c-obs', 'Observações / cuidados', c.obs, { area: true }) +
+      '</form><button class="btn" id="c-save" type="button">Salvar</button>';
+    document.getElementById('c-save').onclick = function () {
+      var o = {};
+      M.TEXT_FIELDS.forEach(function (k) { o[k] = document.getElementById('c-' + k).value; });
+      o.conc = readConc('c');
+      var cc = M.cleanCustom(o);
+      if (!cc) { toast('Informe o nome do medicamento.', true); document.getElementById('c-nome').focus(); return; }
+      var target = it;
+      if (target) target.custom = cc; else { target = M.novoItem({ custom: cc }); m.itens.push(target); }
+      if (saveMaleta(m)) { toast('Ficha salva.'); location.replace('#/maleta/' + m.id + '/item/' + target.id); }
+    };
+  }
+
+  function viewMaletaItem(id, itemId) {
+    var m = getMaleta(id);
+    var it = m && M.daMaleta(m, itemId);
+    var d = it && M.resolver(it, D.DRUGS);
+    if (!d) return viewNotFound();
+    setHeader(d.nome, true);
+    var lib = d.personalizado ? null : D.DRUGS.filter(function (x) { return x.id === it.drugId; })[0];
+    $app.innerHTML =
+      '<a class="crumb" href="#/maleta/' + esc(m.id) + '">' + esc(m.icon + ' ' + m.nome) + '</a>' +
+      '<p class="lead">' + esc(d.classe || '') + '</p>' +
+      '<div id="it-top"></div><div id="sheet"></div>' +
+      '<h2>🧰 Nesta maleta</h2><form class="form" id="itf" onsubmit="return false">' +
+        (d.personalizado ? '' : concFields('it', it.conc, lib && lib.conc)) +
+        '<div class="field two"><div><label for="it-qtd">Quantidade em estoque</label><div class="input-wrap"><input id="it-qtd" type="text" inputmode="numeric" placeholder="opcional" value="' + (it.qtd != null ? it.qtd : '') + '"><span class="unit">unid.</span></div></div>' +
+        '<div><label for="it-val">Validade</label><input type="date" id="it-val" value="' + esc(it.validade || '') + '"></div></div>' +
+        txtField('it-nota', 'Protocolo / observação local', it.nota, { area: true, ph: 'Ex.: No nosso serviço diluímos em 100 mL de SF e infundimos em 1 h.' }) +
+      '</form><p class="note" id="it-saved" aria-live="polite">As alterações são salvas automaticamente.</p>' +
+      (d.personalizado ? '<a class="btn ghost" href="#/maleta/' + esc(m.id) + '/editar/' + esc(it.id) + '">✏️ Editar ficha</a>' : '<a class="btn ghost" href="#/droga/' + esc(it.drugId) + '">📚 Ver na biblioteca</a>') +
+      '<button class="btn danger" id="it-del" type="button">Remover da maleta</button>';
+
+    function renderTop() {
+      $('it-top').innerHTML = (it.nota ? '<div class="alert info">📌 <b>Protocolo local:</b> ' + esc(it.nota) + '</div>' : '') +
+        (M.statusValidade(it.validade) === 'vencido' ? '<div class="alert bad">⛔ Validade vencida — não utilizar.</div>' : M.statusValidade(it.validade) === 'vencendo' ? '<div class="alert warn">⏳ Vence em breve (' + esc(it.validade.split('-').reverse().join('/')) + ').</div>' : '') +
+        (it.qtd === 0 ? '<div class="alert warn">📦 Sem estoque nesta maleta.</div>' : '');
+    }
+    function renderSheet() { d = M.resolver(it, D.DRUGS); $('sheet').innerHTML = drugSheetHtml(d); bindDrugCalc(d); }
+    function $(x) { return document.getElementById(x); }
+    renderTop(); renderSheet();
+
+    var timer;
+    function save(full) {
+      if (!d.personalizado) {
+        var cq = $('it-cq').value.trim(), cv = $('it-cv').value.trim();
+        it.conc = cq || cv ? readConc('it') : null;
+      }
+      var q = $('it-qtd').value.trim();
+      it.qtd = q === '' || !(num(q) >= 0) ? null : Math.floor(num(q));
+      it.validade = $('it-val').value || null;
+      it.nota = $('it-nota').value.trim().slice(0, 2000);
+      if (saveMaleta(m)) $('it-saved').textContent = 'Salvo ✓';
+      renderTop();
+      if (full) renderSheet();
+    }
+    var form = $('itf');
+    form.addEventListener('input', function () { clearTimeout(timer); $('it-saved').textContent = 'Salvando…'; timer = setTimeout(function () { save(false); }, 500); });
+    form.addEventListener('change', function () { clearTimeout(timer); save(true); });
+    $('it-del').onclick = function () {
+      if (!confirm('Remover “' + d.nome + '” da maleta?')) return;
+      m.itens = m.itens.filter(function (x) { return x.id !== it.id; });
+      if (saveMaleta(m)) { toast('Removido.'); location.replace('#/maleta/' + m.id); }
+    };
+  }
+
+  function viewMaletaFicha(id) {
+    var m = getMaleta(id);
+    if (!m) return viewNotFound();
+    setHeader('Ficha de diluições', true);
+    var rows = itemRows(m), hoje = new Date().toLocaleDateString('pt-BR');
+    function dd(t, v) { return v ? '<dt>' + t + '</dt><dd>' + esc(v) + '</dd>' : ''; }
+    $app.innerHTML =
+      '<div class="no-print"><p class="lead">Resumo de todos os medicamentos da maleta, para consulta rápida ou para imprimir e deixar junto da maleta.</p>' +
+      '<button class="btn" type="button" onclick="window.print()">🖨️ Imprimir / salvar PDF</button></div>' +
+      '<div class="ficha"><header><h2>' + esc(m.icon + ' ' + m.nome) + '</h2><p>' + esc(m.local || '') + ' · ' + rows.length + ' medicamentos · gerado em ' + hoje + '</p></header>' +
+      rows.map(function (x) {
+        var d = x.d, it = x.it;
+        return '<article class="ficha-item"><h3>' + (isHV(d) ? '🔴 ' : '') + esc(d.nome) + (d.conc ? ' <small>' + esc(concTxt(d.conc)) + '</small>' : '') + '</h3><dl>' +
+          dd('Apresentação', d.apresentacao) + dd('Reconstituição', d.reconstituicao) + dd('Diluição', d.diluicao) +
+          dd('Administração', d.administracao) + dd('Estabilidade', d.estabilidade) + dd('Cuidados', d.obs) +
+          dd('📌 Protocolo local', it.nota) + dd('Validade', it.validade ? it.validade.split('-').reverse().join('/') : '') + '</dl></article>';
+      }).join('') +
+      '<p class="disclaimer">EnfCalc — material de apoio. Confira prescrição, bula e protocolos institucionais.</p></div>';
   }
 
   // ---- Escalas ----
@@ -795,6 +1162,16 @@
       case 'escalas': viewScales(); break;
       case 'escala': viewScale(parts[1]); break;
       case 'sobre': viewAbout(); break;
+      case 'maletas': if (parts[1] === 'nova') viewMaletaForm(null, parts[2]); else viewMaletas(); break;
+      case 'maleta':
+        if (!parts[2]) viewMaleta(parts[1]);
+        else if (parts[2] === 'adicionar') viewMaletaAdd(parts[1]);
+        else if (parts[2] === 'novo') viewCustomForm(parts[1]);
+        else if (parts[2] === 'editar') { if (parts[3]) viewCustomForm(parts[1], parts[3]); else viewMaletaForm(parts[1]); }
+        else if (parts[2] === 'item') viewMaletaItem(parts[1], parts[3]);
+        else if (parts[2] === 'ficha') viewMaletaFicha(parts[1]);
+        else viewNotFound();
+        break;
       default: viewNotFound();
     }
   }
