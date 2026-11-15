@@ -869,6 +869,47 @@
     setTimeout(function () { t.classList.add('out'); setTimeout(function () { t.remove(); }, 400); }, 2600);
   }
 
+  // Modo "incorporado" (ex.: publicado como Artifact): sem impressão, download nem Web Share
+  var EMBED = !!window.ENFCALC_EMBED;
+  if (EMBED) document.documentElement.classList.add('embed');
+
+  // Janela de confirmação/entrada do próprio app (substitui confirm/prompt nativos)
+  function ask(o) {
+    return new Promise(function (resolve) {
+      var w = document.createElement('div');
+      w.className = 'modal';
+      w.innerHTML = '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="ask-t"><h2 id="ask-t">' + esc(o.titulo || 'Confirmar') + '</h2>' +
+        (o.msg ? '<p>' + esc(o.msg) + '</p>' : '') +
+        (o.input ? '<input class="txt ask-in" id="ask-in" type="text" maxlength="200" placeholder="' + esc(o.ph || '') + '">' : '') +
+        '<div class="ask-row"><button class="btn ghost" type="button" id="ask-no">Cancelar</button><button class="btn' + (o.perigo ? ' dangerb' : '') + '" type="button" id="ask-ok">' + esc(o.ok || 'Confirmar') + '</button></div></div>';
+      document.body.appendChild(w);
+      var inp = w.querySelector('#ask-in');
+      function fim(v) { document.removeEventListener('keydown', key); w.remove(); resolve(v); }
+      function key(e) { if (e.key === 'Escape') fim(null); if (e.key === 'Enter' && inp) fim(inp.value); }
+      document.addEventListener('keydown', key);
+      w.querySelector('#ask-no').onclick = function () { fim(null); };
+      w.querySelector('#ask-ok').onclick = function () { fim(inp ? inp.value : true); };
+      w.onclick = function (e) { if (e.target === w) fim(null); };
+      (inp || w.querySelector('#ask-ok')).focus();
+    });
+  }
+
+  // Exporta um arquivo JSON: compartilhar (celular) → baixar; no modo incorporado, copia o conteúdo
+  function salvarArquivo(json, name, titulo) {
+    if (EMBED) {
+      try { navigator.clipboard.writeText(json).then(function () { toast('Conteúdo copiado. Cole num arquivo de texto “' + name + '” para guardar ou enviar.'); }, function () { toast('Não foi possível copiar aqui. Use o app instalado para exportar.', true); }); }
+      catch (e) { toast('Não foi possível copiar aqui. Use o app instalado para exportar.', true); }
+      return;
+    }
+    var file;
+    try { file = new File([json], name, { type: 'application/json' }); } catch (e) { file = null; }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: titulo }).catch(function () {}); return; }
+    var url = URL.createObjectURL(new Blob([json], { type: 'application/json' })), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast('Arquivo “' + name + '” salvo.');
+  }
+
   function slug(s) { return norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'maleta'; }
 
   // ---- Maletas: telas ----
@@ -951,8 +992,9 @@
     };
     var del = document.getElementById('m-del');
     if (del) del.onclick = function () {
-      if (!confirm('Excluir a maleta “' + m.nome + '” e todos os seus itens? Esta ação não pode ser desfeita.')) return;
-      if (deleteMaleta(m.id)) { toast('Maleta excluída.'); location.replace('#/maletas'); }
+      ask({ titulo: 'Excluir maleta', msg: 'Excluir “' + m.nome + '” e todos os seus itens? Esta ação não pode ser desfeita.', ok: 'Excluir', perigo: true }).then(function (sim) {
+        if (sim && deleteMaleta(m.id)) { toast('Maleta excluída.'); location.replace('#/maletas'); }
+      });
     };
   }
 
@@ -999,20 +1041,7 @@
       document.querySelectorAll('#kl .card').forEach(function (c) { c.hidden = t && c.getAttribute('data-name').indexOf(t) < 0; });
     };
     document.getElementById('k-share').onclick = function () {
-      var json = JSON.stringify(M.exportar(m), null, 2);
-      var name = slug(m.nome) + '.enfcalc.json';
-      var file;
-      try { file = new File([json], name, { type: 'application/json' }); } catch (e) { file = null; }
-      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: 'Maleta ' + m.nome, text: 'Maleta “' + m.nome + '” do EnfCalc — abra o EnfCalc › Maletas › Importar.' }).catch(function () {});
-        return;
-      }
-      var url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-      var aEl = document.createElement('a');
-      aEl.href = url; aEl.download = name;
-      document.body.appendChild(aEl); aEl.click(); aEl.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      toast('Arquivo “' + name + '” salvo.');
+      salvarArquivo(JSON.stringify(M.exportar(m), null, 2), slug(m.nome) + '.enfcalc.json', 'Maleta ' + m.nome);
     };
   }
 
@@ -1151,9 +1180,11 @@
     form.addEventListener('input', function () { clearTimeout(timer); $('it-saved').textContent = 'Salvando…'; timer = setTimeout(function () { save(false); }, 500); });
     form.addEventListener('change', function () { clearTimeout(timer); save(true); });
     $('it-del').onclick = function () {
-      if (!confirm('Remover “' + d.nome + '” da maleta?')) return;
-      m.itens = m.itens.filter(function (x) { return x.id !== it.id; });
-      if (saveMaleta(m)) { toast('Removido.'); location.replace('#/maleta/' + m.id); }
+      ask({ titulo: 'Remover da maleta', msg: 'Remover “' + d.nome + '” desta maleta?', ok: 'Remover', perigo: true }).then(function (sim) {
+        if (!sim) return;
+        m.itens = m.itens.filter(function (x) { return x.id !== it.id; });
+        if (saveMaleta(m)) { toast('Removido.'); location.replace('#/maleta/' + m.id); }
+      });
     };
   }
 
@@ -1165,7 +1196,7 @@
     function dd(t, v) { return v ? '<dt>' + t + '</dt><dd>' + esc(v) + '</dd>' : ''; }
     $app.innerHTML =
       '<div class="no-print"><p class="lead">Resumo de todos os medicamentos da maleta, para consulta rápida ou para imprimir e deixar junto da maleta.</p>' +
-      '<button class="btn" type="button" onclick="window.print()">🖨️ Imprimir / salvar PDF</button></div>' +
+      '<button class="btn print-btn" type="button" onclick="window.print()">🖨️ Imprimir / salvar PDF</button></div>' +
       '<div class="ficha"><header><h2>' + esc(m.icon + ' ' + m.nome) + '</h2><p>' + esc(m.local || '') + ' · ' + rows.length + ' medicamentos · gerado em ' + hoje + '</p></header>' +
       rows.map(function (x) {
         var d = x.d, it = x.it;
@@ -1226,7 +1257,7 @@
         '<li>Imprima ou salve em PDF a <b>ficha de conferência</b> abaixo.</li>' +
         '<li>O farmacêutico confere cada item com a bula Anvisa e anota divergências.</li>' +
         '<li>Envie as correções (foto/PDF) para atualizarmos o app; a ficha passa a mostrar “✅ Revisado por … em …”.</li></ol>' +
-        '<button class="btn" type="button" onclick="window.print()">🖨️ Imprimir ficha de conferência</button></div>' +
+        '<button class="btn print-btn" type="button" onclick="window.print()">🖨️ Imprimir ficha de conferência</button></div>' +
       '<h2>Referências recomendadas</h2><div class="list">' + R.REFERENCIAS.map(function (r) {
         return (r.url ? '<a class="card" target="_blank" rel="noopener" href="' + esc(r.url) + '">' : '<div class="card">') + '<span class="card-ic">📚</span><span class="card-t"><b>' + esc(r.nome) + '</b><small>' + esc(r.desc) + '</small></span>' + (r.url ? '<span class="chev">↗</span></a>' : '</div>');
       }).join('') + '</div>' +
@@ -1379,11 +1410,13 @@
       render();
     }
     document.getElementById('pac-new').onclick = function () {
-      if (!confirm('Limpar os dados do paciente atual?')) return;
-      store.set('paciente', null);
-      store.set('registro', []);
-      viewAtender(id);
-      document.getElementById('p-peso').focus();
+      ask({ titulo: 'Novo paciente', msg: 'Limpar os dados e o registro do paciente atual?', ok: 'Limpar' }).then(function (sim) {
+        if (!sim) return;
+        store.set('paciente', null);
+        store.set('registro', []);
+        viewAtender(id);
+        document.getElementById('p-peso').focus();
+      });
     };
     render();
     bindRegistro(m, function () { viewAtender(id); });
@@ -1511,7 +1544,7 @@
       '\n\nGerado pelo EnfCalc (ferramenta de apoio; confira a prescrição).';
   }
   function compartilharTexto(txt, titulo) {
-    if (navigator.share) { navigator.share({ title: titulo, text: txt }).catch(function () {}); return; }
+    if (navigator.share && !EMBED) { navigator.share({ title: titulo, text: txt }).catch(function () {}); return; }
     try { navigator.clipboard.writeText(txt).then(function () { toast('Resumo copiado.'); }, function () { toast('Não foi possível copiar.', true); }); }
     catch (e) { toast('Não foi possível copiar.', true); }
   }
@@ -1525,7 +1558,7 @@
   function bindRegistro(m, rerender) {
     var sh = document.getElementById('reg-share'), cl = document.getElementById('reg-clear');
     if (sh) sh.onclick = function () { compartilharTexto(textoResumo(m), 'Resumo do atendimento'); };
-    if (cl) cl.onclick = function () { if (confirm('Limpar o registro deste atendimento?')) { store.set('registro', []); rerender(); } };
+    if (cl) cl.onclick = function () { ask({ titulo: 'Limpar registro', msg: 'Apagar o registro deste atendimento?', ok: 'Apagar', perigo: true }).then(function (sim) { if (sim) { store.set('registro', []); rerender(); } }); };
   }
 
   // ---- Verificador de interações/compatibilidade (avulso) ----
@@ -1760,7 +1793,7 @@
         st.nAmio++; registrar('Amiodarona (dose ' + st.nAmio + ') — ' + fmt(a.mg, 3) + ' mg');
       };
       $app.querySelectorAll('[data-ev]').forEach(function (b) { b.onclick = function () { registrar(b.getAttribute('data-ev')); }; });
-      $('pcr-outro').onclick = function () { var t = prompt('Descreva o evento (ex.: ritmo FV, intubação, medicação):'); if (t && t.trim()) registrar(t.trim().slice(0, 200)); };
+      $('pcr-outro').onclick = function () { ask({ titulo: 'Outro evento', input: true, ph: 'Ex.: ritmo FV, intubação, bicarbonato 50 mEq', ok: 'Registrar' }).then(function (t) { if (t && t.trim()) registrar(t.trim().slice(0, 200)); }); };
       $('pcr-rce').onclick = function () { registrar('RCE — retorno da circulação espontânea'); };
       $app.querySelectorAll('[data-c]').forEach(function (c) {
         c.onchange = function () {
@@ -1774,10 +1807,11 @@
         beep(1200, 0.04); metroTimer = setInterval(function () { beep(1200, 0.04); }, 60000 / 110); this.textContent = 'Desligar';
       };
       $('pcr-fim').onclick = function () {
-        var r = prompt('Desfecho (ex.: RCE às HH:MM, óbito constatado às HH:MM, transferido):', '');
-        if (r === null) return;
-        st.eventos.push({ t: Date.now(), txt: 'Encerramento' + (r.trim() ? ': ' + r.trim().slice(0, 200) : '') });
-        st.fim = Date.now(); salvar(); pararPCRTimers(); viewPCR();
+        ask({ titulo: 'Encerrar PCR', msg: 'Desfecho (opcional):', input: true, ph: 'Ex.: RCE, óbito constatado, transferido', ok: 'Encerrar', perigo: true }).then(function (r) {
+          if (r === null) return;
+          st.eventos.push({ t: Date.now(), txt: 'Encerramento' + (r.trim() ? ': ' + r.trim().slice(0, 200) : '') });
+          st.fim = Date.now(); salvar(); pararPCRTimers(); viewPCR();
+        });
       };
     } else {
       $('pcr-share').onclick = function () {
@@ -1788,7 +1822,7 @@
           '\n\nRegistro de apoio gerado pelo EnfCalc; transcrever para o prontuário.';
         compartilharTexto(txt, 'Registro de PCR');
       };
-      $('pcr-nova').onclick = function () { if (confirm('Apagar este registro de PCR?')) { store.set('pcr', null); viewPCR(); } };
+      $('pcr-nova').onclick = function () { ask({ titulo: 'Nova PCR', msg: 'Apagar este registro de PCR? Copie o resumo antes, se ainda não copiou.', ok: 'Apagar', perigo: true }).then(function (sim) { if (sim) { store.set('pcr', null); viewPCR(); } }); };
     }
   }
 
@@ -1838,14 +1872,7 @@
         '<label class="btn ghost file-btn">📥 Restaurar backup (.json)<input type="file" id="bk-imp" accept=".json,application/json"></label></div>' +
       '<button class="btn ghost" id="clear-data" type="button">Apagar favoritos e dados salvos</button>';
     document.getElementById('bk-exp').onclick = function () {
-      var json = JSON.stringify(M.exportarBackup(loadMaletas(), favs()), null, 2);
-      var name = 'enfcalc-backup-' + new Date().toISOString().slice(0, 10) + '.json', file;
-      try { file = new File([json], name, { type: 'application/json' }); } catch (e) { file = null; }
-      if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Backup EnfCalc' }).catch(function () {}); return; }
-      var url = URL.createObjectURL(new Blob([json], { type: 'application/json' })), a = document.createElement('a');
-      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      toast('Backup “' + name + '” salvo.');
+      salvarArquivo(JSON.stringify(M.exportarBackup(loadMaletas(), favs()), null, 2), 'enfcalc-backup-' + new Date().toISOString().slice(0, 10) + '.json', 'Backup EnfCalc');
     };
     document.getElementById('bk-imp').onchange = function (e) {
       var f = e.target.files[0];
@@ -1937,7 +1964,7 @@
   window.addEventListener('hashchange', route);
   route();
 
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  if (!EMBED && 'serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () { /* offline indisponível */ }); });
   }
 

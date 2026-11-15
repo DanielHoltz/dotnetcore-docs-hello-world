@@ -17,7 +17,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0d1417;
     --surface: #152024;
     --surface-2: #1b292e;
@@ -34,6 +34,22 @@
     color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+    --bg: #0d1417;
+    --surface: #152024;
+    --surface-2: #1b292e;
+    --text: #e4ecef;
+    --muted: #93a5ad;
+    --line: #26363c;
+    --primary: #2dd4bf;
+    --primary-ink: #04201d;
+    --primary-soft: #11332f;
+    --ok: #4ade80;   --ok-bg: #12301d;
+    --warn: #facc15; --warn-bg: #352c0b;
+    --bad: #f87171;  --bad-bg: #3a1515;
+    --shadow: none;
+    color-scheme: dark;
+  }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -414,3 +430,13 @@ button.card { width: 100%; border: 0; border-bottom: 1px solid var(--line); back
 .rec { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: .85rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 .field input[type=time] { width: 100%; padding: 10px 12px; font-size: 1.15rem; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); height: 46px; }
 .res.main .res-v { overflow-wrap: anywhere; }
+
+/* janelas do app e modo incorporado */
+.modal-box p { margin: 0 0 12px; }
+.ask-in { margin-bottom: 4px; }
+.ask-row { display: flex; gap: 10px; }
+.ask-row .btn { flex: 1; }
+.btn.dangerb { background: var(--bad); color: #fff; }
+.embed .print-btn { display: none; }
+.ask-in { width: 100%; padding: 10px 12px; font: inherit; font-size: 1rem; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); }
+.ask-in:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
