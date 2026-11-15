@@ -106,7 +106,22 @@ test('dados: doses/interações referenciam medicamentos existentes', () => {
   for (const g of Object.values(DB.GRUPOS)) for (const x of g) assert.ok(ids.has(x), 'grupo: ' + x);
   for (const v of Object.values(DB.ANTIDOTOS)) if (typeof v === 'string') assert.ok(ids.has(v));
   for (const [id, d] of Object.entries(DB.DOSES)) {
-    assert.ok(['infusao', 'bolus', 'pronto', 'continua'].includes(d.via), id);
+    assert.ok(['infusao', 'bolus', 'pronto', 'continua', 'im'].includes(d.via), id);
     if (d.via === 'continua') assert.ok(D.INFUSIONS.some(i => i.id === d.infusao), id);
   }
+});
+
+test('ampliação: via IM, paracetamol por peso, QT em grupo, anticoagulantes', () => {
+  const benz = P.preparo('penicilina-benzatina', 2400000, drug('penicilina-benzatina').conc, adulto, DB, 100, 30);
+  near(benz.aspirar, 8); assert.equal(benz.diluenteMl, 0);
+  assert.equal(P.preparoPadrao('enoxaparina', 40, drug('enoxaparina').conc, adulto, DB).tempo, 0);
+  assert.equal(P.doseSugerida('paracetamol-ev', P.perfil({ peso: 45, idade: 30 }), DB, 'mg').valor, 675);
+  assert.equal(P.doseSugerida('paracetamol-ev', adulto, DB, 'mg').valor, 1000);
+  assert.equal(P.preparoPadrao('fluconazol', 400, drug('fluconazol').conc, adulto, DB).tempo, 120);
+  assert.equal(P.preparoPadrao('levofloxacino', 750, drug('levofloxacino').conc, adulto, DB).tempo, 90);
+  const qt = P.interacoes('haloperidol', ['haloperidol', 'azitromicina-ev', 'ondansetrona'], DB);
+  assert.ok(qt.some(i => /QT/.test(i.txt) && i.com.length === 2));
+  assert.ok(P.interacoes('enoxaparina', ['enoxaparina', 'heparina'], DB).some(i => i.sev === 'grave'));
+  assert.ok(P.alertasPaciente('smx-tmp', P.perfil({ peso: 70, idade: 40, alergias: ['sulfas'] }), DB).some(a => a.sev === 'grave'));
+  assert.ok(P.alertasPaciente('tenoxicam', crianca, DB).some(a => a.sev === 'grave'));
 });

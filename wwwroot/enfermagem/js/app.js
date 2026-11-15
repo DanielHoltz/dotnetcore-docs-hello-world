@@ -1338,6 +1338,7 @@
     var ints = did ? P.interacoes(did, ids, DB, NOMES) : [];
     var cont = dd && dd.via === 'continua';
     var pronto = dd && dd.via === 'pronto';
+    var im = dd && dd.via === 'im';
 
     $app.innerHTML =
       '<a class="crumb" href="#/maleta/' + esc(m.id) + '/atender">‹ ' + esc(m.icon + ' ' + m.nome) + ' · atendimento</a>' +
@@ -1356,8 +1357,8 @@
         '<h2>🧪 Preparo para este paciente</h2><form class="form" id="prf" onsubmit="return false" autocomplete="off">' +
           '<div class="field"><label for="pr-dose">Dose prescrita</label><div class="input-wrap"><input id="pr-dose" type="text" inputmode="decimal" value="' + (sug && sug.valor != null ? esc(String(sug.valor).replace('.', ',')) : '') + '" placeholder="informe a dose"><span class="unit">' + esc(d.conc.u) + '</span></div>' +
           '<small>Apresentação: ' + esc(concTxt(d.conc)) + (it.conc ? ' (da sua maleta)' : '') + '</small></div>' +
-          (pronto ? '' : '<div class="field"><label for="pr-dil">Diluir em' + (dd && dd.diluente ? ' (' + esc(dd.diluente) + ')' : '') + '</label><div class="input-wrap"><input id="pr-dil" type="text" inputmode="decimal"><span class="unit">mL</span></div><small>0 = sem diluição em bolsa (EV direto)</small></div>') +
-          '<div class="field"><label for="pr-t">Tempo de administração</label><div class="input-wrap"><input id="pr-t" type="text" inputmode="decimal"><span class="unit">min</span></div><small>0 = bolus</small></div>' +
+          (pronto || im ? '' : '<div class="field"><label for="pr-dil">Diluir em' + (dd && dd.diluente ? ' (' + esc(dd.diluente) + ')' : '') + '</label><div class="input-wrap"><input id="pr-dil" type="text" inputmode="decimal"><span class="unit">mL</span></div><small>0 = sem diluição em bolsa (EV direto)</small></div>') +
+          (im ? '' : '<div class="field"><label for="pr-t">Tempo de administração</label><div class="input-wrap"><input id="pr-t" type="text" inputmode="decimal"><span class="unit">min</span></div><small>0 = bolus</small></div>') +
         '</form><div id="prep" aria-live="polite"></div>') +
       '<h2>🔗 Interações com esta maleta</h2>' +
       (ints.length ? ints.map(function (i) {
@@ -1372,11 +1373,11 @@
     function defaults() {
       var pad = P.preparoPadrao(did, num($d.value), d.conc, pf, DB);
       if ($dil && !dirtyDil) $dil.value = pad.diluenteMl;
-      if (!dirtyT) $t.value = String(pad.tempo).replace('.', ',');
+      if ($t && !dirtyT) $t.value = String(pad.tempo).replace('.', ',');
     }
     function run() {
       var dose = num($d.value), out = document.getElementById('prep');
-      var r = P.preparo(did, dose, d.conc, pf, DB, $dil ? num($dil.value) || 0 : 0, num($t.value) || 0);
+      var r = P.preparo(did, dose, d.conc, pf, DB, $dil ? num($dil.value) || 0 : 0, $t ? num($t.value) || 0 : 0);
       if (!r) { out.innerHTML = resultsHtml(null); return; }
       var steps = [];
       var rec = d.reconstituicao && !/^(Solução pronta|Não necessita)/.test(d.reconstituicao) ? d.reconstituicao : '';
@@ -1384,7 +1385,8 @@
       steps.push(r.via === 'pronto' ? '<b>Separar</b> <span class="big">' + fmt(r.aspirar, 1) + ' mL</span> da bolsa pronta (' + esc(concTxt(d.conc)) + ')'
         : '<b>Aspirar</b> <span class="big">' + fmt(r.aspirar, 2) + ' mL</span>' + (r.unidades > 1.0001 ? ' (' + fmt(r.unidades, 2) + ' unidades)' : ''));
       if (r.diluenteMl > 0) steps.push('<b>Diluir</b> em ' + fmt(r.diluenteMl, 0) + ' mL de ' + esc((dd && dd.diluente) || 'diluente') + ' → volume final <b>' + fmt(r.total, 1) + ' mL</b> (' + fmt(r.concFinal, 3) + ' ' + esc(d.conc.u) + '/mL)');
-      if (r.tempo > 0) {
+      if (r.via === 'im') steps.push('<b>Aplicar</b> por via ' + esc(dd.viaTxt || 'IM/SC'));
+      else if (r.tempo > 0) {
         steps.push((r.diluenteMl > 0 || r.via === 'pronto' ? '<b>Infundir</b> em ' : '<b>Administrar EV lento</b> em ') + fmtTempo(r.tempo) +
           (r.diluenteMl > 0 || r.via === 'pronto' ? ': <span class="big">' + fmt(r.mlh, 1) + ' mL/h</span> na bomba · ' + fmt(Math.round(r.gts), 0) + ' gts/min · ' + fmt(Math.round(r.mcgts), 0) + ' mcgts/min' : ''));
       } else steps.push('<b>Administrar</b> em bolus');
@@ -1397,7 +1399,7 @@
     }
     $d.addEventListener('input', function () { defaults(); run(); });
     if ($dil) $dil.addEventListener('input', function () { dirtyDil = true; run(); });
-    $t.addEventListener('input', function () { dirtyT = true; run(); });
+    if ($t) $t.addEventListener('input', function () { dirtyT = true; run(); });
     defaults(); run();
   }
 

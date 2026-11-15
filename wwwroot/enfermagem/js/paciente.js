@@ -100,7 +100,7 @@
       var minimo = d.concMax && dose > 0 ? dose / d.concMax - aspirar : 0;
       dil = stdUp(Math.max(alvo, minimo));
     }
-    var t = (pf.ped && d.tempoPed) || d.tempo || 0;
+    var t = via === 'im' ? 0 : (pf.ped && d.tempoPed) || d.tempo || 0;
     var vm = vmaxEfetiva(d, pf);
     if (dose > 0 && isFinite(vm)) t = Math.max(t, Math.ceil(dose / vm));
     return { via: via, diluenteMl: dil, tempo: t };
@@ -112,7 +112,7 @@
     var d = DB.DOSES[id] || {};
     var via = d.via || 'bolus';
     var aspirar = dose * conc.vol / conc.qtd;
-    var dil = via === 'pronto' ? 0 : Math.max(0, diluenteMl || 0);
+    var dil = via === 'pronto' || via === 'im' ? 0 : Math.max(0, diluenteMl || 0);
     var total = aspirar + dil;
     var r = { via: via, aspirar: aspirar, unidades: aspirar / conc.vol, diluenteMl: dil, total: total, concFinal: dose / total, tempo: tempo || 0, avisos: [] };
     if (r.tempo > 0) {
@@ -126,7 +126,7 @@
     var vm = vmaxEfetiva(d, pf);
     if (isFinite(vm) && r.tempo > 0 && dose / r.tempo > vm * 1.001)
       r.avisos.push('Velocidade acima do máximo (' + fmtN(vm) + ' ' + conc.u + '/min): infundir em no mínimo ' + Math.ceil(dose / vm) + ' min.');
-    if (isFinite(vm) && r.tempo === 0) r.avisos.push('Este medicamento tem velocidade máxima: informe o tempo de administração.');
+    if (isFinite(vm) && r.tempo === 0 && via !== 'im') r.avisos.push('Este medicamento tem velocidade máxima: informe o tempo de administração.');
     return r;
   }
 

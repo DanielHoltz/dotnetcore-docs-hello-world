@@ -23,7 +23,16 @@
     'glicose-50': 'glicose',
     'insulina-regular': 'insulina humana',
     'heparina': 'heparina sódica',
-    'nitroprussiato': 'nitroprussiato de sódio'
+    'nitroprussiato': 'nitroprussiato de sódio',
+    'paracetamol-ev': 'paracetamol',
+    'azitromicina-ev': 'azitromicina',
+    'cetoprofeno-ev': 'cetoprofeno',
+    'smx-tmp': 'sulfametoxazol',
+    'sacarato-ferro': 'hidróxido férrico',
+    'tranexamico': 'ácido tranexâmico',
+    'penicilina-benzatina': 'benzilpenicilina benzatina',
+    'imipenem': 'imipenem',
+    'escopolamina': 'escopolamina'
   };
 
   // Revisões profissionais registradas (vazio até que um profissional revise)
@@ -37,6 +46,8 @@
     { nome: 'ISMP Brasil', url: 'https://www.ismp-brasil.org/', desc: 'Medicamentos potencialmente perigosos (alta vigilância), nomes semelhantes e boletins de segurança.' },
     { nome: 'RENAME / Formulário Terapêutico Nacional — Ministério da Saúde', url: 'https://www.gov.br/saude/pt-br/composicao/sectics/rename', desc: 'Relação nacional de medicamentos e monografias resumidas.' },
     { nome: 'DailyMed (NIH/FDA)', url: 'https://dailymed.nlm.nih.gov/dailymed/', desc: 'Bulas americanas (em inglês), úteis para conferência de doses pediátricas e segurança. Apresentações podem diferir das do Brasil.' },
+    { nome: 'Manual de preparo e administração de injetáveis — HUPE/UERJ (2025)', url: 'https://www.hupe.uerj.br/wp-content/uploads/2025/12/Manual-para-Preparo-e-Administra%C3%A7%C3%A3o-de-Medicamentos-Injet%C3%A1veis_3%C2%AA_edi%C3%A7%C3%A3o_2025-1-1.pdf', desc: 'Manual amplo de hospital universitário: reconstituição, diluição, tempo e estabilidade de injetáveis.' },
+    { nome: 'Guia Farmacêutico — Hospital Sírio-Libanês', url: 'https://guiafarmaceutico.hsl.org.br/', desc: 'Fichas de preparo e administração por medicamento (adulto e pediatria).' },
     { nome: 'Compatibilidade em Y (Trissel’s / KingGuide)', url: '', desc: 'Referência padrão-ouro de compatibilidade (assinatura). Recomendada para validar as incompatibilidades do app.' }
   ];
 
@@ -59,6 +70,16 @@
     meUfrjMg: { t: 'POP 74 — sulfato de magnésio 50% — Maternidade-Escola UFRJ', url: 'https://www.me.ufrj.br/images/pdfs/protocolos/enfermagem/2021rev/pop_74_administracao_sulfato_magnesio_a_50_pre_eclampsia_e_eclampsia_revisao_2_cris.pdf' },
     hcUfmgMg: { t: 'Protocolo pré-eclâmpsia/eclâmpsia — HC-UFMG/Ebserh', url: 'https://www.gov.br/hubrasil/pt-br/hospitais-universitarios/regiao-sudeste/hc-ufmg/saude/protocolos-assistenciais-hc-ufmg-ebserh/PR_224_Preeclampsia_eclampsia_V01.pdf' },
     aha: { t: 'Diretrizes AHA 2020 de RCP e ACE', url: 'https://cpr.heart.org/en/resuscitation-science/cpr-and-ecc-guidelines' },
+    hupe: { t: 'Manual de preparo e administração de injetáveis — HUPE/UERJ (3ª ed., 2025)', url: 'https://www.hupe.uerj.br/wp-content/uploads/2025/12/Manual-para-Preparo-e-Administra%C3%A7%C3%A3o-de-Medicamentos-Injet%C3%A1veis_3%C2%AA_edi%C3%A7%C3%A3o_2025-1-1.pdf' },
+    poa: { t: 'Manual de administração de medicamentos — Prefeitura de Porto Alegre', url: 'https://bvaps.portoalegre.rs.gov.br/sites/default/files/usu_doc/areas-profissionais/manual%20(1).pdf' },
+    incorPPI: { t: 'Nota técnica IBP injetáveis — InCor/USP', url: 'https://www.incor.usp.br/onadocs/SFARM/SFARM-NTC-DSF-057.pdf' },
+    scPreparo: { t: 'Tabela de preparo — Hospital São Camilo SP', url: 'https://guiafarmaceutico.hospitalsaocamilosp.org.br/wp-content/uploads/2024/06/TABELA-DE-PREPARO-Atualizado.pdf' },
+    scGuia: function (p) { return { t: 'Guia Farmacêutico — Hospital São Camilo SP', url: 'https://guiafarmaceutico.hospitalsaocamilosp.org.br/?p=' + p }; },
+    sbd: { t: 'Posicionamento SBD 01/2024 — insulina endovenosa', url: 'https://profissional.diabetes.org.br/wp-content/uploads/2024/09/Posicionamento-SBD-01-2024-1.pdf' },
+    huabOcit: { t: 'POP indução do parto com ocitocina — HUAB/UFRN (Ebserh)', url: 'https://www.gov.br/hubrasil/pt-br/hospitais-universitarios/regiao-nordeste/huab-ufrn/documentos-institucionais/arquivos-documentos-institucionais-geral/pop-dm-007-inducao-do-trabalho-de-parto-com-ocitocina.pdf' },
+    meUfrjPE: { t: 'Pré-eclâmpsia/eclâmpsia — Maternidade-Escola UFRJ (2023)', url: 'https://www.me.ufrj.br/images/pdfs/protocolos/obstetricia/capitulo_68_pre_eclampsia_eclampsia_new_2023.pdf' },
+    telessaudeSifilis: { t: 'Administração de penicilina benzatina na sífilis — TelessaúdeRS/UFRGS', url: 'https://www.ufrgs.br/telessauders/perguntas/como-deve-ser-administrada-benzilpenicilina-benzatina-para-o-tratamento-de-sifilis/' },
+    univasf: { t: 'Boletim antibióticos de uso em bomba — HU-UNIVASF (Ebserh)', url: 'https://www.gov.br/hubrasil/pt-br/hospitais-universitarios/regiao-nordeste/hu-univasf/saude/setor-de-farmacia-hospitalar/Boletim02AntibiticosdeUsoemBombadeInfuso1.pdf' },
     bula: function (nome, url) { return { t: 'Bula — ' + nome + ' (cópia em site de terceiros)', url: url }; }
   };
 
@@ -93,7 +114,51 @@
     'gluconato-calcio': [{ t: 'Guia Farmacêutico — Hospital São Camilo SP', url: 'https://guiafarmaceutico.hospitalsaocamilosp.org.br/?p=4401' }],
     'adrenalina': [F.aha],
     'atropina': [F.aha],
-    'adenosina': [F.aha]
+    'adenosina': [F.aha],
+    // etapa 1 (fichas existentes)
+    'omeprazol': [F.incorPPI, F.bula('Oprazon', 'https://bula.com.br/oprazon/posologia-como-usar')],
+    'morfina': [F.hsl('morfina-injetavel'), F.scGuia(3700)],
+    'naloxona': [F.scGuia(3700)],
+    'flumazenil': [F.scGuia(3700)],
+    'nitroprussiato': [F.bula('Nitroprus', 'https://bula.com.br/original/nitroprus'), { t: 'Bula profissional nitroprussiato — Cristália', url: 'https://cristalia.com.br/produto/138/bula-profissional' }],
+    'penicilina-cristalina': [F.hsl('aricilina-5-000-000ui-frasco'), { t: 'Benzilpenicilina potássica — Guia Farmacêutico São Camilo SP', url: 'https://guiafarmaceutico.hospitalsaocamilosp.org.br/benzilpenicilina-potassica' }, F.bula('Megapen', 'https://bula.com.br/megapen')],
+    'insulina-regular': [F.hsl('insulina-regular-humana'), F.sbd],
+    'furosemida': [F.hsl('furosemida'), F.bula('Lasix injetável', 'https://drconsulta.com/conteudo/lasix-injetavel-bula/')],
+    'ciprofloxacino': [F.hsl('ciprofloxacino'), F.bula('Cipro I.V. Flexibag', 'https://drconsulta.com/conteudo/cipro-iv-flexibag-bula/')],
+    'metronidazol': [F.hsl('metronidazol')],
+    'diazepam': [F.bula('Uni-Diazepax', 'https://bula.com.br/uni-diazepax-solucao-injetavel'), F.bula('Compaz', 'https://drconsulta.com/conteudo/compaz-bula/')],
+    'ocitocina': [F.huabOcit, F.hsl('ocitocina'), { t: 'Distúrbios da contratilidade uterina — Maternidade-Escola UFRJ', url: 'https://www.me.ufrj.br/images/pdfs/protocolos/obstetricia/disturbios_da_contratilidade_uterina.pdf' }],
+    'bicarbonato': [F.bula('Bicarbonato de sódio 8,4%', 'https://bula.com.br/original/bicarbonato-de-sodio-injetavel-84'), { t: 'Irritantes e vesicantes — Guia Farmacêutico HSL', url: 'https://guiafarmaceutico.hsl.org.br/apoio-a-prescricao/irritantes-e-vesicantes' }],
+    'cefalotina': [F.isgh],
+    'glicose-50': [F.isgh],
+    // ampliação
+    'azitromicina-ev': [F.bula('Zitromax IV', 'https://bula.com.br/zitromax-iv'), F.bula('Azitromicina ABL', 'https://drconsulta.com/conteudo/azitromicina-monoidratada-abl-brasil-bula/')],
+    'bromoprida': [{ t: 'Bula profissional bromoprida — Fresenius Kabi', url: 'https://www.fresenius-kabi.com/br/documents/2.bromoprida_Bula_Profissional.pdf' }, F.bula('Bromoprida Nova Farma', 'https://drconsulta.com/conteudo/bromoprida-nova-farma-bula/')],
+    'cefoxitina': [F.scPed],
+    'ceftazidima': [F.hugg],
+    'cefuroxima': [F.hsl('cefuroxima'), F.scPed],
+    'cetoprofeno-ev': [{ t: 'Bula profissional cetoprofeno IV — Cristália', url: 'https://cristalia.com.br/produto/62/bula-profissional' }, { t: 'Bula Profenid IV', url: 'https://www.saudedireta.com.br/catinc/drugs/bulas/profenidiv.pdf' }],
+    'dobutamina': [F.bula('Dobutrex', 'https://drconsulta.com/conteudo/dobutrex-bula/'), F.incorCrit],
+    'dopamina': [F.scGuia(4366), F.incorCrit],
+    'enoxaparina': [F.hsl('enoxaparina-sodica'), F.bula('Clexane', 'https://bula.com.br/clexane/posologia-como-usar'), F.bula('Versa', 'https://bula.com.br/versa/posologia-como-usar')],
+    'escopolamina': [F.hsl('escopolamina'), { t: 'Preparo e administração — ambulatório — InCor/USP', url: 'https://www.incor.usp.br/onadocs/CENF/FOR%20CENF%200025%20-%20INFORMA%C3%87%C3%95ES%20PARA%20O%20PREPARO%20E%20ADMINISTRA%C3%87%C3%83O%20DE%20MEDICAMENTOS%20AMBULAT%C3%93RIO.pdf' }],
+    'fitomenadiona': [{ t: 'Fitomenadiona 10 mg — Guia Farmacêutico HSL', url: 'https://guiafarmaceutico.hsl.org.br/SiteAssets/vitamina-k-fitomenadiona/Fitomenadiona%2010%20mg_rev%2011.pdf' }, F.bula('Kavit', 'https://bula.com.br/kavit')],
+    'fluconazol': [{ t: 'Bula fluconazol 2 mg/mL (bolsa)', url: 'https://www.sara.com.br/bula-do-paciente-fluconazol-2-mgml-solucao-para-infusao-intravenosa-caixa-30-envol-bols-plas-pp-t/7898170788308' }],
+    'haloperidol': [F.hsl('haloperidol'), { t: 'Medicamentos irritantes e vesicantes — São Camilo SP', url: 'https://guiafarmaceutico.hospitalsaocamilosp.org.br/preparoeadministracaodemedicamentos/medicamentos-irritantes-e-vesicantes' }],
+    'hidralazina': [F.meUfrjPE, { t: 'Bula profissional Nepresol — Cristália', url: 'https://www.cristalia.com.br/produto/135/bula-profissional' }],
+    'imipenem': [F.univasf],
+    'levofloxacino': [F.bula('Levaflox', 'https://bula.com.br/levaflox'), F.bula('Levofloxacino Halex Istar', 'https://bula.com.br/levofloxacino-halex-istar')],
+    'linezolida': [F.hsl('linezolida'), { t: 'Bula linezolida — Eurofarma', url: 'https://eurofarma.com.br/produtos/bulas/healthcare/pt/bula-linezolida.pdf' }],
+    'pantoprazol': [F.hsl('pantoprazol'), F.incorPPI, F.hupe],
+    'paracetamol-ev': [F.bula('Halexminophen', 'https://bula.com.br/original/halexminophen'), { t: 'Paracetamol injetável — MSF Essential Drugs', url: 'https://medicalguidelines.msf.org/en/viewport/EssDr/english/paracetamol-acetaminophen-injectable-16683025.html' }],
+    'penicilina-benzatina': [F.hsl('benzilpenicilina'), F.telessaudeSifilis],
+    'propofol': [F.hsl('propofol'), F.bula('Spiva MCT/LCT', 'https://bula.com.br/spiva-mct-lct/posologia-como-usar')],
+    'sacarato-ferro': [F.hsl('ferro-(injetavel)'), F.bula('Noripurum EV', 'https://bula.com.br/original/noripurum-ev-solucao-injetavel-endovenosa')],
+    'smx-tmp': [F.univasf, F.hugg],
+    'teicoplanina': [F.hsl('teicoplanina'), F.bula('Teicoplanina BioChimico', 'https://bula.com.br/teicoplanina-biochimico/posologia-como-usar')],
+    'tenoxicam': [{ t: 'Bula profissional tenoxicam — Eurofarma', url: 'https://cdn.eurofarma.com.br//wp-content/uploads/2016/09/Bula_Tenoxicam_Profissional.pdf' }],
+    'tranexamico': [{ t: 'Bula profissional ácido tranexâmico — Fresenius Kabi', url: 'https://www.fresenius-kabi.com/content/dam/fresenius-kabi/br/documents/bulas/medicamentos/%C3%81cido%20Tranex%C3%A2mico%20-%20Bula%20Profissional%20da%20Sa%C3%BAde.pdf.coredownload.inline.pdf' }],
+    'vasopressina': [F.scGuia(4366), F.incorCrit]
   };
   function verificacao(id) { return VERIFICACOES[id] ? { data: DATA_CONF, fontes: VERIFICACOES[id] } : null; }
 

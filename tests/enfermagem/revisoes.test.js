@@ -37,7 +37,7 @@ test('conferências com fontes: ids válidos e URLs https', () => {
     assert.ok(fontes.length > 0, id);
     for (const f of fontes) assert.match(f.url, /^https:\/\/[^\s]+$/, id + ': ' + f.url);
   }
-  assert.equal(R.verificacao('omeprazol'), null);
+  assert.equal(R.verificacao('dexametasona'), null);
 });
 
 test('piperacilina+tazobactam usa volume final de ~23 mL', () => {

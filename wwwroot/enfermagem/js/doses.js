@@ -11,6 +11,7 @@
  *              (sem porKg/valor = só texto, o app não sugere número)
  *   freqPed    intervalo pediátrico, se diferente
  *   via        'infusao' (diluir em bolsa) | 'bolus' (EV direto) | 'pronto' (bolsa pronta) | 'continua' (bomba — calculadora de infusão)
+ *              | 'im' (aplicação IM/SC — viaTxt descreve a via)
  *   diluente, volDil (mL adulto), volDilPed (mL criança), concMax (u/mL), tempo (min), tempoPed,
  *   vmax (u/min), vmaxKgPed (u/kg/min, criança), admTxt (texto de administração)
  *   idadeMinMeses, pesoMin, renal { clcr, txt }, obs, obsPed (só para criança)
@@ -156,22 +157,86 @@
     'vancomicina': { freq: 'a cada 12 h', freqPed: 'a cada 6 h', adulto: { porKg: 15, max: 2000, txt: '15–20 mg/kg/dose a cada 8–12 h (máx. 2 g/dose); ajustar pelo nível sérico' },
       ped: { porKg: 15, max: 1000, txt: '15 mg/kg/dose a cada 6 h' },
       via: 'infusao', diluente: 'SF 0,9% ou SG 5%', volDil: 250, volDilPed: 100, concMax: 5, tempo: 60, vmax: 10,
-      renal: { clcr: 50, txt: 'ClCr < 50 mL/min: ajustar intervalo pelo nível sérico.' } }
+      renal: { clcr: 50, txt: 'ClCr < 50 mL/min: ajustar intervalo pelo nível sérico.' } },
+    // ---- ampliação ----
+    'azitromicina-ev': { freq: 'a cada 24 h', adulto: { valor: 500, txt: '500 mg 1x/dia' }, ped: { porKg: 10, max: 500, txt: '10 mg/kg 1x/dia' },
+      via: 'infusao', diluente: 'SF 0,9% ou Ringer lactato', volDil: 250, volDilPed: 100, concMax: 2, tempo: 60 },
+    'bromoprida': { freq: 'até 3 x/dia', adulto: { valor: 10, txt: '10 mg até 3 x/dia' }, ped: { txt: 'Conforme bula/prescrição (dose diária por kg dividida)' },
+      via: 'bolus', tempo: 3 },
+    'cefoxitina': { freq: 'a cada 6–8 h', adulto: { valor: 2000, txt: '1–2 g a cada 6–8 h' }, ped: { porKg: 30, max: 2000, txt: '20–40 mg/kg/dose a cada 6–8 h' },
+      via: 'infusao', diluente: 'SF 0,9%', volDil: 100, volDilPed: 50, concMax: 40, tempo: 30, renal: { clcr: 50, txt: 'ClCr < 50 mL/min: aumentar intervalo.' } },
+    'ceftazidima': { freq: 'a cada 8 h', adulto: { valor: 2000, txt: '1–2 g a cada 8 h' }, ped: { porKg: 50, max: 2000, txt: '30–50 mg/kg/dose a cada 8 h' },
+      via: 'infusao', diluente: 'SF 0,9%', volDil: 100, volDilPed: 50, tempo: 30, renal: { clcr: 50, txt: 'ClCr < 50 mL/min: reduzir dose/aumentar intervalo.' } },
+    'cefuroxima': { freq: 'a cada 8 h', adulto: { valor: 750, txt: '750 mg–1,5 g a cada 8 h' }, ped: { porKg: 25, max: 1500, txt: '25–50 mg/kg/dose a cada 8 h' },
+      via: 'infusao', diluente: 'SF 0,9%', volDil: 100, volDilPed: 50, tempo: 30, renal: { clcr: 20, txt: 'ClCr < 20 mL/min: aumentar intervalo.' } },
+    'cetoprofeno-ev': { freq: 'até 3 x/dia', adulto: { valor: 100, txt: '100 mg até 3 x/dia (máx. 300 mg/dia, por até 48 h)' }, ped: null, idadeMinMeses: 180,
+      via: 'pronto', tempo: 20, obs: 'Considere o volume de 100–150 mL como a solução já preparada.' },
+    'dobutamina': { via: 'continua', infusao: 'dobutamina', adulto: { txt: '2–20 mcg/kg/min em bomba' }, ped: { txt: '2–20 mcg/kg/min em bomba' } },
+    'dopamina': { via: 'continua', infusao: 'dopamina', adulto: { txt: '1–20 mcg/kg/min em bomba' }, ped: { txt: '1–20 mcg/kg/min em bomba' } },
+    'enoxaparina': { freq: 'profilaxia: 1x/dia; tratamento: a cada 12 h', adulto: { valor: 40, txt: 'Profilaxia: 40 mg SC 1x/dia. Tratamento: 1 mg/kg SC a cada 12 h (ou 1,5 mg/kg 1x/dia)' },
+      ped: { txt: 'Conforme protocolo pediátrico (dose por kg e idade)' }, via: 'im', viaTxt: 'subcutânea (SC)',
+      admTxt: 'Abdômen anterolateral, alternando os lados. NÃO expelir a bolha de ar; não friccionar.',
+      renal: { clcr: 30, txt: 'ClCr < 30 mL/min: profilaxia 20 mg/dia; tratamento 1 mg/kg 1x/dia.' } },
+    'escopolamina': { freq: 'até 100 mg/dia', adulto: { valor: 20, txt: '20–40 mg EV/IM/SC (máx. 100 mg/dia)' },
+      ped: { porKg: 0.3, max: 20, txt: '0,3–0,6 mg/kg em casos graves (máx. 1,5 mg/kg/dia)' }, via: 'bolus', tempo: 3 },
+    'fitomenadiona': { freq: 'conforme INR/indicação', adulto: { valor: 10, txt: '1–10 mg conforme INR e indicação' },
+      ped: { txt: 'Recém-nascido: profilaxia IM conforme protocolo neonatal' }, via: 'bolus', tempo: 10, vmax: 1,
+      admTxt: 'Preferir IM/SC. EV somente se inevitável, diluído e lento, com monitorização (risco de anafilaxia).' },
+    'fluconazol': { freq: 'a cada 24 h', adulto: { valor: 400, txt: 'Ataque 400–800 mg; manutenção 200–400 mg 1x/dia' },
+      ped: { porKg: 6, max: 400, txt: '6–12 mg/kg 1x/dia' }, via: 'pronto', tempo: 60, vmax: 200 / 60,
+      renal: { clcr: 50, txt: 'ClCr ≤ 50 mL/min: reduzir a dose de manutenção pela metade.' } },
+    'haloperidol': { freq: 'conforme protocolo', adulto: { valor: 5, txt: '2,5–5 mg IM, repetir conforme protocolo' },
+      ped: { txt: 'Conforme protocolo pediátrico' }, via: 'im', viaTxt: 'intramuscular (IM)' },
+    'hidralazina': { freq: 'a cada 15–20 min conforme PA', adulto: { valor: 5, txt: '5 mg EV lento a cada 15–20 min (máx. 20 mg em bolus)' },
+      ped: { txt: 'Conforme protocolo pediátrico' }, via: 'bolus', tempo: 2,
+      admTxt: 'Diluir 1 mL (20 mg) + 19 mL de AD = 1 mg/mL (ajuste a apresentação na maleta para 1 mg/mL).' },
+    'imipenem': { freq: 'a cada 6 h', adulto: { valor: 500, txt: '500 mg a cada 6 h (até 1 g a cada 6–8 h)' },
+      ped: { porKg: 15, max: 500, txt: '15–25 mg/kg/dose a cada 6 h' }, via: 'pronto', tempo: 30, vmax: 500 / 30,
+      renal: { clcr: 70, txt: 'ClCr < 70 mL/min: ajustar dose (risco de convulsão).' } },
+    'levofloxacino': { freq: 'a cada 24 h', adulto: { valor: 500, txt: '500–750 mg 1x/dia' }, ped: { txt: 'Uso pediátrico restrito — confirmar com prescritor' },
+      via: 'pronto', tempo: 60, vmax: 500 / 60, renal: { clcr: 50, txt: 'ClCr < 50 mL/min: ajustar dose/intervalo.' } },
+    'linezolida': { freq: 'a cada 12 h', freqPed: 'a cada 8 h', adulto: { valor: 600, txt: '600 mg a cada 12 h' },
+      ped: { porKg: 10, max: 600, txt: '10 mg/kg a cada 8 h (< 12 anos)' }, via: 'pronto', tempo: 60 },
+    'pantoprazol': { freq: 'a cada 24 h', adulto: { valor: 40, txt: '40 mg 1x/dia (HDA: conforme protocolo)' },
+      ped: { porKg: 1, max: 40, txt: '1 mg/kg/dia' }, via: 'bolus', tempo: 2 },
+    'paracetamol-ev': { freq: 'a cada 6 h', adulto: { porKg: 15, max: 1000, txt: '≥ 50 kg: 1 g a cada 6 h (máx. 4 g/dia); 33–50 kg: 15 mg/kg (máx. 3 g/dia)' },
+      ped: { porKg: 15, max: 1000, txt: '15 mg/kg a cada 6 h (máx. 60 mg/kg/dia)' }, via: 'pronto', tempo: 15 },
+    'penicilina-benzatina': { freq: 'dose única ou semanal conforme estágio', adulto: { valor: 2400000, txt: 'Sífilis recente: 2.400.000 UI dose única; tardia: 2.400.000 UI/semana × 3' },
+      ped: { porKg: 50000, max: 2400000, txt: '50.000 UI/kg IM (máx. 2.400.000 UI) conforme indicação' }, via: 'im', viaTxt: 'intramuscular profunda (IM)',
+      admTxt: 'Máx. 4 mL por local: 2.400.000 UI = 2 frascos, um em cada glúteo. Observar 30 min após.' },
+    'propofol': { via: 'continua', infusao: 'propofol', adulto: { txt: 'Sedação: 0,3–3 mg/kg/h em bomba' }, ped: { txt: 'Uso pediátrico conforme protocolo' } },
+    'sacarato-ferro': { freq: 'conforme déficit de ferro calculado', adulto: { valor: 100, txt: '100–200 mg por aplicação, conforme déficit de ferro' },
+      ped: { txt: 'Conforme protocolo (dose por kg)' }, via: 'infusao', diluente: 'SF 0,9% (somente)', volDil: 100, volDilPed: 50, concMax: 1, tempo: 15 },
+    'smx-tmp': { freq: 'a cada 6–12 h', adulto: { txt: '8–20 mg/kg/dia de TMP, divididos a cada 6–12 h, conforme indicação' },
+      ped: { txt: '8–20 mg/kg/dia de TMP, divididos a cada 6–12 h' }, via: 'infusao', diluente: 'SG 5%', volDil: 125, volDilPed: 75, concMax: 80 / 130, tempo: 60 },
+    'teicoplanina': { freq: 'ataque a cada 12 h (3 doses), depois a cada 24 h', adulto: { valor: 400, txt: 'Ataque 400 mg a cada 12 h × 3; depois 400 mg/dia (> 85 kg: 6 mg/kg; infecções graves: até 10–12 mg/kg conforme protocolo)' },
+      ped: { txt: 'Conforme protocolo pediátrico' }, via: 'infusao', diluente: 'SF 0,9%, SG 5% ou RL', volDil: 100, volDilPed: 50, tempo: 30,
+      renal: { clcr: 60, txt: 'A partir do 4º dia, ClCr < 60 mL/min: ajustar dose/intervalo.' } },
+    'tenoxicam': { freq: 'a cada 24 h', adulto: { valor: 20, txt: '20–40 mg 1x/dia (pós-operatório: 40 mg/dia por até 5 dias)' }, ped: null, idadeMinMeses: 216,
+      via: 'bolus', tempo: 2 },
+    'tranexamico': { freq: 'a cada 6–8 h', adulto: { valor: 1000, txt: '500–1000 mg EV lenta a cada 6–8 h' }, ped: { txt: 'Conforme protocolo (mg/kg)' },
+      via: 'bolus', tempo: 10, vmax: 50, renal: { clcr: 50, txt: 'Insuficiência renal: reduzir a dose.' } },
+    'vasopressina': { via: 'continua', infusao: 'vasopressina', adulto: { txt: 'Choque: 0,01–0,04 UI/min em bomba (dose fixa)' }, ped: { txt: 'Conforme protocolo' } }
   };
 
   // Grupos farmacológicos (alergias e interações)
   var GRUPOS = {
-    penicilina: ['ampicilina', 'ampi-sulbactam', 'oxacilina', 'penicilina-cristalina', 'pipe-tazo'],
-    cefalosporina: ['cefalotina', 'cefazolina', 'cefepima', 'ceftriaxona'],
-    carbapenem: ['meropenem', 'ertapenem'],
+    penicilina: ['ampicilina', 'ampi-sulbactam', 'oxacilina', 'penicilina-cristalina', 'pipe-tazo', 'penicilina-benzatina'],
+    cefalosporina: ['cefalotina', 'cefazolina', 'cefepima', 'ceftriaxona', 'cefuroxima', 'cefoxitina', 'ceftazidima'],
+    carbapenem: ['meropenem', 'ertapenem', 'imipenem'],
     aminoglicosideo: ['amicacina', 'gentamicina'],
-    quinolona: ['ciprofloxacino'],
+    quinolona: ['ciprofloxacino', 'levofloxacino'],
     opioide: ['morfina', 'fentanil', 'tramadol'],
     benzodiazepinico: ['midazolam', 'diazepam'],
     dipirona: ['dipirona'],
-    glicopeptideo: ['vancomicina'],
+    glicopeptideo: ['vancomicina', 'teicoplanina'],
     lincosamida: ['clindamicina'],
-    imidazol: ['metronidazol']
+    imidazol: ['metronidazol'],
+    sulfa: ['smx-tmp'],
+    aine: ['tenoxicam', 'cetoprofeno-ev'],
+    macrolideo: ['azitromicina-ev'],
+    oxazolidinona: ['linezolida'],
+    azol: ['fluconazol']
   };
   var BETALACTAMICOS = GRUPOS.penicilina.concat(GRUPOS.cefalosporina, GRUPOS.carbapenem);
 
@@ -186,7 +251,10 @@
     { id: 'dipirona', nome: 'Dipirona', grupos: ['dipirona'] },
     { id: 'opioides', nome: 'Opioides', grupos: ['opioide'] },
     { id: 'benzodiazepinicos', nome: 'Benzodiazepínicos', grupos: ['benzodiazepinico'] },
-    { id: 'vancomicina', nome: 'Vancomicina', grupos: ['glicopeptideo'] },
+    { id: 'vancomicina', nome: 'Vancomicina / teicoplanina', grupos: ['glicopeptideo'] },
+    { id: 'sulfas', nome: 'Sulfas', grupos: ['sulfa'] },
+    { id: 'aines', nome: 'Anti-inflamatórios (AINEs)', grupos: ['aine'] },
+    { id: 'macrolideos', nome: 'Macrolídeos', grupos: ['macrolideo'] },
     { id: 'clindamicina', nome: 'Clindamicina', grupos: ['lincosamida'] },
     { id: 'metronidazol', nome: 'Metronidazol', grupos: ['imidazol'] }
   ];
@@ -197,11 +265,14 @@
     midazolam: 'flumazenil', diazepam: 'flumazenil',
     'sulfato-magnesio': 'gluconato-calcio',
     'insulina-regular': 'glicose-50',
-    heparina: { nome: 'Protamina' }
+    heparina: { nome: 'Protamina' },
+    enoxaparina: { nome: 'Protamina (reversão parcial)' }
   };
 
   var OPIOIDES = GRUPOS.opioide, BZD = GRUPOS.benzodiazepinico, AMINO = GRUPOS.aminoglicosideo;
   var QT = 'Prolongamento do intervalo QT aditivo. Monitorar ECG e manter K e Mg normais.';
+  var QT_LISTA = ['amiodarona', 'ondansetrona', 'ciprofloxacino', 'levofloxacino', 'azitromicina-ev', 'haloperidol', 'fluconazol'];
+  var ANTICOAG = ['heparina', 'enoxaparina'], AINES = ['tenoxicam', 'cetoprofeno-ev'];
 
   // sev: 'grave' | 'moderada' ; tipo: 'Incompatibilidade' (mesma via/seringa) | 'Interação' (efeito clínico)
   var INTERACOES = [
@@ -215,12 +286,11 @@
     { a: ['vancomicina'], b: ['ceftriaxona'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Incompatibilidade em Y relatada (precipitação). Infundir em horários diferentes ou lavar bem a via.' },
     { a: ['ceftriaxona'], b: ['gluconato-calcio'], sev: 'grave', tipo: 'Incompatibilidade', txt: 'Forma precipitado de ceftriaxona-cálcio. Nunca misturar nem infundir simultaneamente na mesma via. Em neonatos o uso concomitante é contraindicado.' },
     { a: ['bicarbonato'], b: ['gluconato-calcio'], sev: 'grave', tipo: 'Incompatibilidade', txt: 'Forma carbonato de cálcio (precipitado). Não misturar; lavar a via entre as administrações.' },
-    { a: ['bicarbonato'], b: ['adrenalina', 'noradrenalina'], sev: 'grave', tipo: 'Incompatibilidade', txt: 'Catecolaminas são inativadas em meio alcalino. Nunca misturar; lavar a via antes e depois.' },
+    { a: ['bicarbonato'], b: ['adrenalina', 'noradrenalina', 'dobutamina', 'dopamina'], sev: 'grave', tipo: 'Incompatibilidade', txt: 'Catecolaminas são inativadas em meio alcalino. Nunca misturar; lavar a via antes e depois.' },
     { a: ['bicarbonato'], b: ['sulfato-magnesio', 'midazolam', 'amiodarona'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Incompatível em Y (precipitação). Usar vias separadas ou lavar o acesso.' },
     { a: ['amiodarona'], b: ['heparina', 'furosemida'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Incompatibilidade em Y relatada (precipitação). Usar vias separadas.' },
     { a: ['furosemida'], b: ['midazolam', 'ondansetrona', 'metoclopramida'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Furosemida (alcalina) precipita em Y com várias drogas. Usar via separada ou lavar o acesso.' },
-    { a: ['amiodarona'], b: ['ondansetrona', 'ciprofloxacino'], sev: 'moderada', tipo: 'Interação', txt: QT },
-    { a: ['ondansetrona'], b: ['ciprofloxacino'], sev: 'moderada', tipo: 'Interação', txt: QT },
+    { a: QT_LISTA, b: QT_LISTA, sev: 'moderada', tipo: 'Interação', txt: QT },
     { a: ['amiodarona'], b: ['midazolam', 'fentanil'], sev: 'moderada', tipo: 'Interação', txt: 'Amiodarona inibe o CYP3A4 e pode aumentar o efeito de midazolam/fentanil. Monitorar sedação e FR.' },
     { a: ['ondansetrona'], b: ['tramadol', 'fentanil'], sev: 'moderada', tipo: 'Interação', txt: 'Risco de síndrome serotoninérgica. Com tramadol, a ondansetrona também pode reduzir o efeito analgésico.' },
     { a: ['insulina-regular'], b: ['dexametasona', 'hidrocortisona'], sev: 'moderada', tipo: 'Interação', txt: 'Corticoides elevam a glicemia; pode ser necessário ajustar a insulina. Monitorar glicemia capilar.' },
@@ -228,6 +298,14 @@
     { a: ['fenitoina'], b: ['dexametasona', 'hidrocortisona'], sev: 'moderada', tipo: 'Interação', txt: 'Fenitoína reduz o efeito dos corticoides (indução enzimática).' },
     { a: ['nitroprussiato'], b: ['nitroglicerina'], sev: 'moderada', tipo: 'Interação', txt: 'Hipotensão aditiva. Monitorar PA continuamente.' },
     { a: ['tramadol'], b: ['midazolam', 'diazepam', 'nitroglicerina'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Incompatível quando misturado (bula do tramadol). Não misturar na mesma seringa/solução; usar via separada ou lavar o acesso.' },
+    { a: ANTICOAG, b: ANTICOAG, sev: 'grave', tipo: 'Interação', txt: 'Dois anticoagulantes (heparina + enoxaparina): duplicidade com alto risco de sangramento. Confirmar transição/prescrição.' },
+    { a: ANTICOAG, b: AINES, sev: 'moderada', tipo: 'Interação', txt: 'AINE aumenta o risco de sangramento com anticoagulante. Monitorar sinais de sangramento.' },
+    { a: AINES, b: AINES, sev: 'moderada', tipo: 'Interação', txt: 'Dois AINEs: duplicidade sem benefício e com mais risco gastrointestinal e renal.' },
+    { a: AINES, b: AMINO.concat(['vancomicina']), sev: 'moderada', tipo: 'Interação', txt: 'AINE aumenta o risco de lesão renal com nefrotóxicos. Monitorar função renal.' },
+    { a: ['bromoprida'], b: ['metoclopramida'], sev: 'moderada', tipo: 'Interação', txt: 'Dois antagonistas dopaminérgicos: duplicidade com mais risco de reações extrapiramidais.' },
+    { a: ['teicoplanina'], b: AMINO, sev: 'moderada', tipo: 'Interação', txt: 'Nefrotoxicidade e ototoxicidade aditivas. Monitorar função renal.' },
+    { a: ['linezolida'], b: ['ondansetrona', 'tramadol', 'fentanil'], sev: 'moderada', tipo: 'Interação', txt: 'Linezolida (inibidor da MAO) + serotoninérgico: risco de síndrome serotoninérgica.' },
+    { a: ['fluconazol'], b: ['midazolam', 'fentanil', 'fenitoina'], sev: 'moderada', tipo: 'Interação', txt: 'Fluconazol inibe o metabolismo (CYP) e aumenta os níveis/efeitos deste medicamento.' },
     { a: ['clindamicina'], b: ['aciclovir'], sev: 'moderada', tipo: 'Incompatibilidade', txt: 'Não administrar na mesma linha (tabela de diluição Fiocruz/IFF). Usar via separada ou lavar o acesso.' }
   ];
 
@@ -237,7 +315,10 @@
     diazepam: 'Precipita quando misturado/diluído: não misturar com outros medicamentos.',
     ertapenem: 'Não misturar com outros medicamentos nem com soluções glicosadas.',
     adenosina: 'Bolus rápido isolado, seguido de flush; não misturar.',
-    dipirona: 'A bula orienta não misturar com outros medicamentos injetáveis.'
+    dipirona: 'A bula orienta não misturar com outros medicamentos injetáveis.',
+    pantoprazol: 'Reconstituir só com o diluente próprio e não misturar com outros injetáveis.',
+    levofloxacino: 'Não misturar nem infundir na mesma linha com outros medicamentos (lavar o equipo antes e depois).',
+    'paracetamol-ev': 'Não adicionar outros medicamentos ao frasco/bolsa.'
   };
 
   var api = { DOSES: DOSES, GRUPOS: GRUPOS, ALERGIAS: ALERGIAS, ANTIDOTOS: ANTIDOTOS, INTERACOES: INTERACOES, VIA_EXCLUSIVA: VIA_EXCLUSIVA };
