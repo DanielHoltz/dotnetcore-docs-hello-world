@@ -538,6 +538,8 @@
     e.push({ key: 'view:pcr', href: '#/pcr', icon: '🚨', title: 'Modo PCR', desc: 'Parada cardiorrespiratória: cronômetro e registro', search: 'pcr parada reanimacao rcp adrenalina choque' });
     e.push({ key: 'view:emergped', href: '#/emergencia-ped', icon: '👶', title: 'Emergência pediátrica', desc: 'Doses e materiais por peso/idade', search: 'pediatria pals crianca tubo canula desfibrilacao peso estimado' });
     e.push({ key: 'view:compat', href: '#/compatibilidade', icon: '🔗', title: 'Interações e compatibilidade', desc: 'Checar medicamentos juntos', search: 'interacao compatibilidade y incompatibilidade' });
+    e.push({ key: 'view:sri', href: '#/sri', icon: '🫁', title: 'Intubação — sequência rápida', desc: 'Doses por peso em mg e mL', search: 'intubacao sri iot etomidato cetamina rocuronio succinilcolina via aerea' });
+    e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') }); });
@@ -578,7 +580,7 @@
     { href: '#/maletas', icon: '🧰', nome: 'Maletas', desc: 'Seus kits de trabalho' },
     { href: '#/escalas', icon: '📋', nome: 'Escalas', desc: 'Glasgow, Braden, NEWS2…' },
     { href: '#/compatibilidade', icon: '🔗', nome: 'Interações', desc: 'Checar medicamentos juntos' },
-    { href: '#/ferramentas', icon: '⚙️', nome: 'Ferramentas', desc: 'Revisão, backup, sobre' }
+    { href: '#/ferramentas', icon: '⚙️', nome: 'Ferramentas', desc: 'Hipodermóclise, revisão, backup' }
   ];
 
   function viewHome() {
@@ -617,6 +619,7 @@
     $app.innerHTML =
       '<a class="btn pcr-start" href="#/pcr">🚨 MODO PCR</a>' +
       '<h2>Suporte imediato</h2><div class="list">' +
+        card('#/sri', '🫁', 'Intubação — sequência rápida', 'Indutores e bloqueadores em mg e mL + checklist', 'view:sri') +
         card('#/emergencia-ped', '👶', 'Emergência pediátrica', 'Doses, cânula e energia por idade/peso', 'view:emergped') +
         card('#/infusao', '🫀', 'Drogas vasoativas e sedação', 'mcg/kg/min ↔ mL/h', 'view:infusao') +
         card('#/maleta/lib/atender', '👤', 'Dose por paciente', 'Qualquer medicamento do bulário') + '</div>' +
@@ -633,6 +636,7 @@
     setHeader('Ferramentas', true);
     $app.innerHTML = '<div class="list">' +
       card('#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar 2+ medicamentos ou uma maleta', 'view:compat') +
+      card('#/hipodermoclise', '💧', 'Hipodermóclise', 'Hidratação e medicamentos por via SC', 'view:hipo') +
       card('#/revisao', '📚', 'Referências e revisão das fichas', 'Fontes, bulas Anvisa, ficha de conferência') +
       card('#/sobre', 'ℹ️', 'Sobre, backup e dados', 'Exportar/restaurar maletas, aviso legal') + '</div>';
   }
@@ -643,6 +647,7 @@
     $app.innerHTML =
       '<div class="chipnav" role="navigation" aria-label="Categorias">' + grupos.map(function (g) { return '<button type="button" class="chipnav-b" data-go="' + g.id + '">' + g.icon + ' ' + esc(g.nome.split(' ')[0]) + '</button>'; }).join('') + '</div>' +
       '<h2 id="g-infusao">💧 Infusão e gotejamento</h2><div class="list">' + card('#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h com predefinições', 'view:infusao') +
+        card('#/hipodermoclise', '💧', 'Hipodermóclise', 'Vazão por sítio e medicamentos por via SC', 'view:hipo') +
         CALCS.filter(function (c) { return c.cat === 'infusao'; }).map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>' +
       grupos.slice(1).map(function (g) {
         return '<h2 id="' + g.id + '">' + g.icon + ' ' + esc(g.nome) + '</h2><div class="list">' +
@@ -715,6 +720,7 @@
         li('🎯 Indicações', bu.ind) + li('⛔ Contraindicações', bu.contra) + li('⚠️ Efeitos adversos principais', bu.adv) +
         li('🩺 Cuidados de enfermagem', bu.enf) + li('🤰 Gestação e lactação', bu.gest) +
         (DB.VIA_EXCLUSIVA[id] ? li('🚫 Via exclusiva', DB.VIA_EXCLUSIVA[id]) : '') +
+        (B.HIPO[id] ? '<div class="sec"><h3>💧 Hipodermóclise (via SC)</h3><p>' + (B.HIPO[id].st === 'sim' ? '✅ ' : B.HIPO[id].st === 'nao' ? '⛔ ' : '⚠️ ') + esc(B.HIPO[id].txt) + ' <a href="#/hipodermoclise">Ver guia</a></p></div>' : '') +
         (ant ? li('🛟 Antídoto / reversor', typeof ant === 'string' ? NOMES[ant] : ant.nome) : '') +
         (rev.length ? li('🛟 É antídoto de', rev.map(nm).join(', ')) : '') +
         '<h3 class="sub-h">🔗 Interações e incompatibilidades</h3>' +
@@ -1623,10 +1629,14 @@
     }
     document.getElementById('reg-btn').onclick = function () {
       if (!ultimo || !(num($d.value) > 0)) { toast('Informe a dose antes de registrar.', true); return; }
-      var reg = loadRegistro();
-      reg.push({ t: new Date().toISOString(), nome: d.nome, dose: ultimo.dose, prep: ultimo.prep });
-      store.set('registro', reg.slice(-200));
-      toast('Administração registrada às ' + hhmm(reg[reg.length - 1].t) + '.');
+      var dados = ultimo;
+      confirmar9Certos(d.nome).then(function (sim) {
+        if (!sim) return;
+        var reg = loadRegistro();
+        reg.push({ t: new Date().toISOString(), nome: d.nome, dose: dados.dose, prep: dados.prep, certos: true });
+        store.set('registro', reg.slice(-200));
+        toast('Administração registrada às ' + hhmm(reg[reg.length - 1].t) + ' (9 certos conferidos).');
+      });
     };
     $d.addEventListener('input', function () { defaults(); run(); });
     if ($dil) $dil.addEventListener('input', function () { dirtyDil = true; run(); });
@@ -1648,7 +1658,7 @@
     return 'EnfCalc — resumo do atendimento (' + new Date().toLocaleDateString('pt-BR') + ')\n' +
       'Paciente: ' + pacienteResumo(pf) + (al.length ? ' · Alergias: ' + al.join(', ') : '') + '\n' +
       (m && !m.lib ? 'Maleta: ' + m.nome + '\n' : '') + '\n' +
-      reg.map(function (e) { return hhmm(e.t) + ' — ' + e.nome + ' ' + e.dose + (e.prep ? ': ' + e.prep : ''); }).join('\n') +
+      reg.map(function (e) { return hhmm(e.t) + ' — ' + e.nome + ' ' + e.dose + (e.prep ? ': ' + e.prep : '') + (e.certos ? ' [9 certos conferidos]' : ''); }).join('\n') +
       '\n\nGerado pelo EnfCalc (ferramenta de apoio; confira a prescrição).';
   }
   function compartilharTexto(txt, titulo) {
@@ -1934,6 +1944,110 @@
     }
   }
 
+  // ---- Sequência rápida de intubação ----
+  function viewSRI() {
+    setHeader('Intubação (SRI)', true);
+    var E = window.Emergencia, pac = loadPaciente();
+    var conc = store.get('sriConc', {});
+    $app.innerHTML =
+      '<p class="lead">Doses por peso das medicações da sequência rápida de intubação, em mg e mL. Ajuste a concentração à ampola disponível.</p>' +
+      '<form class="form" id="sri-f" onsubmit="return false" autocomplete="off">' +
+        '<div class="field"><label for="sri-p">Peso</label><div class="input-wrap"><input id="sri-p" type="text" inputmode="decimal" value="' + (pac.peso ? esc(String(pac.peso).replace('.', ',')) : '70') + '"><span class="unit">kg</span></div></div>' +
+        '<div class="field"><span class="lbl">Paciente</span><div class="seg"><label class="seg-opt"><input type="radio" name="sri-m" value="a" checked><span>Adulto</span></label><label class="seg-opt"><input type="radio" name="sri-m" value="p"><span>Pediátrico</span></label></div></div>' +
+      '</form><div id="sri-out" aria-live="polite"></div>' +
+      '<details class="sec chk" open><summary><h3>✅ Antes de intubar (SOAP-ME)</h3></summary><div class="chips col">' +
+        ['Sucção testada e ao alcance', 'Oxigênio: pré-oxigenação por 3 min (máscara com reservatório ou VNI)', 'Via aérea: laringoscópio testado, cânulas (tamanho e ½ menor), fio-guia, bougie, dispositivo supraglótico de resgate',
+         'Posição: alinhamento orelha–esterno, cabeceira elevada', 'Monitorização: ECG, PA, SpO₂ e capnografia', 'Medicações aspiradas, rotuladas e acesso venoso pérvio; vasopressor à mão'].map(function (t, i) {
+          return '<label class="chk-i"><input type="checkbox" id="sri-c' + i + '"><span>' + esc(t) + '</span></label>'; }).join('') + '</div></details>' +
+      '<details class="sec chk"><summary><h3>🫁 Depois de intubar</h3></summary><ul class="howto">' +
+        '<li>Confirmar com capnografia (onda contínua) e ausculta; observar expansão torácica.</li><li>Fixar a cânula e anotar a marca na rima labial.</li>' +
+        '<li>Iniciar sedoanalgesia contínua (o bloqueador dura mais que o indutor).</li><li>Raio X de tórax; ajustar o ventilador; gasometria.</li></ul></details>' +
+      '<div class="list">' + card('#/infusao/fentanil', '🫀', 'Sedação contínua pós-intubação', 'Fentanil, midazolam, propofol em mL/h') + '</div>' +
+      '<p class="note">Fontes: MSD Manuals (medicamentos para intubação); protocolo de via aérea na emergência HCFMUSP; WikEM. Doses de referência — siga o protocolo do serviço e a decisão da equipe médica.</p>';
+    function run() {
+      var peso = num(document.getElementById('sri-p').value), ped = document.querySelector('input[name=sri-m]:checked').value === 'p';
+      var out = document.getElementById('sri-out'), r = E.sriDoses(peso, ped);
+      if (!r) { out.innerHTML = '<div class="result empty">Informe o peso.</div>'; return; }
+      var grupo = '';
+      out.innerHTML = '<div class="tbl-wrap"><table class="tbl ep"><thead><tr><th>Medicação</th><th>Dose</th><th>Volume</th></tr></thead><tbody>' + r.map(function (x) {
+        var c = conc[x.id] > 0 ? conc[x.id] : x.conc, ml = x.dose / c;
+        var head = x.grupo !== grupo ? '<tr class="grp"><td colspan="3">' + esc(x.grupo) + '</td></tr>' : '';
+        grupo = x.grupo;
+        return head + '<tr class="sri-r"><td><b>' + esc(x.nome) + '</b><small>' + fmt(x.porKg, 2) + ' ' + x.u + '/kg · faixa ' + fmt(x.faixa[0], 0) + '–' + fmt(x.faixa[1], 0) + ' ' + x.u + '</small></td>' +
+          '<td class="num"><b>' + fmt(x.dose, 1) + ' ' + x.u + '</b>' + (x.limitado ? '<small>dose máx.</small>' : '') + '</td>' +
+          '<td class="num"><b>' + fmt(ml, 1) + ' mL</b><small><input class="mini" data-c="' + x.id + '" type="text" inputmode="decimal" value="' + fmt(c, 2) + '" aria-label="Concentração de ' + esc(x.nome) + '"> ' + x.u + '/mL</small></td></tr>' +
+          '<tr class="sri-obs"><td colspan="3">' + esc(x.obs) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+      out.querySelectorAll('[data-c]').forEach(function (i) {
+        i.onchange = function () { var v = num(i.value); if (v > 0) { conc[i.getAttribute('data-c')] = v; store.set('sriConc', conc); } run(); };
+      });
+    }
+    document.getElementById('sri-f').addEventListener('input', run);
+    document.getElementById('sri-f').addEventListener('change', run);
+    run();
+  }
+
+  // ---- Hipodermóclise ----
+  function viewHipo() {
+    setHeader('Hipodermóclise', true);
+    var E = window.Emergencia;
+    var lista = function (st) {
+      return D.DRUGS.filter(function (d) { return B.HIPO[d.id] && B.HIPO[d.id].st === st; }).sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); })
+        .map(function (d) { return '<a class="card" href="#/droga/' + esc(d.id) + '"><span class="card-ic">' + (st === 'sim' ? '✅' : st === 'nao' ? '⛔' : '⚠️') + '</span><span class="card-t"><b>' + esc(d.nome) + '</b><small>' + esc(B.HIPO[d.id].txt) + '</small></span><span class="chev">›</span></a>'; }).join('');
+    };
+    $app.innerHTML =
+      '<p class="lead">Infusão de líquidos e medicamentos pela via subcutânea — muito usada no domicílio, em idosos e em cuidados paliativos.</p>' +
+      '<h2>💧 Hidratação por hipodermóclise</h2><form class="form" id="hp-f" onsubmit="return false" autocomplete="off">' +
+        '<div class="field"><label for="hp-v">Volume prescrito</label><div class="input-wrap"><input id="hp-v" type="text" inputmode="decimal" value="1000"><span class="unit">mL</span></div></div>' +
+        '<div class="field"><label for="hp-h">Em quantas horas</label><div class="input-wrap"><input id="hp-h" type="text" inputmode="decimal" value="24"><span class="unit">h</span></div></div>' +
+        '<div class="field"><label for="hp-s">Número de sítios de punção</label><div class="input-wrap"><input id="hp-s" type="text" inputmode="numeric" value="1"><span class="unit">sítios</span></div></div>' +
+      '</form><div id="hp-out" aria-live="polite"></div>' +
+      '<div class="sec"><h3>📏 Regras gerais</h3><ul class="howto">' +
+        '<li>Soluções: SF 0,9% ou SG 5% (preferir isotônicas; SG 5% pode ser associado a SF).</li>' +
+        '<li>Volume: até <b>1.500 mL em 24 h por sítio</b> (≈ 62,5 mL/h); para mais volume, usar 2 sítios.</li>' +
+        '<li>No máximo <b>3 medicamentos compatíveis</b> por sítio; dexametasona e omeprazol em sítio exclusivo.</li>' +
+        '<li>Locais: abdômen, face anterior/lateral da coxa, região subclavicular, deltoide e escapular (conforme volume).</li>' +
+        '<li>Preferir cateter flexível (não agulhado); lavar com 1–2 mL de SF entre medicamentos; observar edema, dor e hiperemia.</li>' +
+        '<li>Não usar: eletrólitos concentrados, soluções hipertônicas, AINEs, diazepam (risco de necrose).</li></ul></div>' +
+      '<h2>✅ Descritos em hipodermóclise</h2><div class="list">' + lista('sim') + '</div>' +
+      '<h2>⛔ Não usar por via SC</h2><div class="list">' + lista('nao') + '</div>' +
+      '<h2>⚠️ Fontes divergem</h2><div class="list">' + lista('diverge') + '</div>' +
+      '<p class="note">Diluições e tempos variam entre instituições e o uso SC de muitos medicamentos é off-label. Siga a tabela de hipodermóclise do seu serviço. Fontes: Guia SBGG/ANCP “O uso da via subcutânea em geriatria e cuidados paliativos” (2ª ed., 2017); <a href="https://guiafarmaceutico.hospitalsaocamilosp.org.br/storags/2026/06/Tabela-hipodermoclise.pdf" target="_blank" rel="noopener">tabela de hipodermóclise — Hospital São Camilo SP</a>; revisão Infarma (CFF, 2023).</p>';
+    function run() {
+      var r = E.hipodermoclise(num(document.getElementById('hp-v').value), num(document.getElementById('hp-h').value), Math.floor(num(document.getElementById('hp-s').value)));
+      var out = document.getElementById('hp-out');
+      if (!r) { out.innerHTML = resultsHtml(null); return; }
+      var warns = [];
+      if (r.acimaVelocidade || r.acimaVolume) warns.push('Acima do limite por sítio (62,5 mL/h ou 1.500 mL/24 h). Use pelo menos ' + r.sitiosNecessarios + ' sítios ou aumente o tempo.');
+      out.innerHTML = resultsHtml({ results: [
+        { label: 'Vazão total', value: fmt(r.mlh, 1), unit: 'mL/h', main: true, sub: fmt(Math.round(r.gts), 0) + ' gts/min (macrogotas) · ' + fmt(Math.round(r.mlh), 0) + ' mcgts/min' },
+        { label: 'Por sítio', value: fmt(r.porSitio, 1), unit: 'mL/h', sub: fmt(r.porSitio24, 0) + ' mL em 24 h por sítio' }
+      ], warns: warns });
+    }
+    document.getElementById('hp-f').addEventListener('input', run);
+    run();
+  }
+
+  // ---- Os 9 certos antes de registrar ----
+  var NOVE_CERTOS = ['Paciente certo — conferir nome completo e identificação', 'Medicamento certo — conferir nome com a prescrição e alergias', 'Via certa', 'Hora certa', 'Dose certa — conferir o cálculo e a unidade',
+    'Forma certa — apresentação e preparo adequados à via', 'Orientação certa — paciente/família orientados', 'Registro certo — horário e assinatura no prontuário', 'Resposta certa — observar efeito e reações'];
+  function confirmar9Certos(nome) {
+    return new Promise(function (resolve) {
+      var w = document.createElement('div');
+      w.className = 'modal';
+      w.innerHTML = '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="nc-t"><h2 id="nc-t">Os 9 certos — ' + esc(nome) + '</h2>' +
+        '<div class="chips col">' + NOVE_CERTOS.map(function (t, i) { return '<label class="chk-i"><input type="checkbox" id="nc-' + i + '"><span>' + esc(t) + '</span></label>'; }).join('') + '</div>' +
+        '<div class="ask-row"><button class="btn ghost" type="button" id="nc-no">Cancelar</button><button class="btn" type="button" id="nc-ok" disabled>Registrar (0/9)</button></div></div>';
+      document.body.appendChild(w);
+      var ok = w.querySelector('#nc-ok');
+      w.addEventListener('change', function () { var n = w.querySelectorAll('input:checked').length; ok.disabled = n < 9; ok.textContent = 'Registrar (' + n + '/9)'; });
+      function fim(v) { w.remove(); resolve(v); }
+      w.querySelector('#nc-no').onclick = function () { fim(false); };
+      ok.onclick = function () { fim(true); };
+      w.querySelector('#nc-0').focus();
+    });
+  }
+
   // ---- Escalas ----
   function viewScales() {
     setHeader('Escalas', false);
@@ -2016,7 +2130,7 @@
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao' }[parts[0]];
+    var rk = { sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao' }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -2031,6 +2145,8 @@
       case 'revisao': viewRevisao(parts[1]); break;
       case 'pcr': viewPCR(); break;
       case 'emergencia': viewEmergencia(); break;
+      case 'sri': viewSRI(); break;
+      case 'hipodermoclise': viewHipo(); break;
       case 'ferramentas': viewFerramentas(); break;
       case 'atender': viewAtender('lib'); break;
       case 'emergencia-ped': viewEmergPed(); break;

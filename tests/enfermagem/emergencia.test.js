@@ -61,3 +61,32 @@ test('FLACC, CPOT e Aldrete: pontuação máxima e cortes', () => {
   assert.equal(scale('aldrete').interp(8).level, 'ok');
   assert.equal(scale('flacc').interp(7).level, 'bad');
 });
+
+test('SRI: doses por peso e volume', () => {
+  const r = E.sriDoses(70, false);
+  const by = id => r.find(x => x.id === id);
+  assert.equal(by('etomidato').dose, 21); assert.equal(by('etomidato').ml, 10.5);
+  assert.equal(by('rocuronio').dose, 84); assert.equal(by('rocuronio').ml, 8.4);
+  assert.equal(by('succinilcolina').dose, 105);
+  assert.equal(by('fentanil').dose, 140); assert.equal(by('fentanil').ml, 2.8);
+  assert.equal(E.sriDoses(150, false).find(x => x.id === 'etomidato').dose, 40);   // teto
+  assert.equal(E.sriDoses(8, true).find(x => x.id === 'succinilcolina').porKg, 2); // lactente
+  assert.equal(E.sriDoses(0), null);
+});
+
+test('hipodermóclise: limites por sítio', () => {
+  const ok = E.hipodermoclise(1000, 24, 1);
+  assert.ok(Math.abs(ok.porSitio - 41.67) < 0.01); assert.equal(ok.acimaVelocidade, false); assert.equal(ok.acimaVolume, false);
+  const alto = E.hipodermoclise(2000, 24, 1);
+  assert.equal(alto.acimaVolume, true); assert.equal(alto.sitiosNecessarios, 2);
+  assert.equal(E.hipodermoclise(500, 4, 1).acimaVelocidade, true);
+  assert.equal(E.hipodermoclise(2000, 24, 2).acimaVolume, false);
+});
+
+test('hipodermóclise: marcações referem medicamentos do bulário', () => {
+  const B = require('../../wwwroot/enfermagem/js/bulario.js');
+  for (const [id, h] of Object.entries(B.HIPO)) {
+    assert.ok(D.DRUGS.some(d => d.id === id), id);
+    assert.ok(['sim', 'nao', 'diverge'].includes(h.st), id);
+  }
+});

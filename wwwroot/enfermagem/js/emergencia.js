@@ -74,8 +74,41 @@
   var CAUSAS = ['Hipovolemia', 'Hipóxia', 'H⁺ (acidose)', 'Hipo/hipercalemia', 'Hipotermia',
     'Tensão no tórax (pneumotórax)', 'Tamponamento cardíaco', 'Toxinas', 'Trombose pulmonar', 'Trombose coronária'];
 
+  // Sequência rápida de intubação: doses por peso (referências: MSD Manuals, protocolo de via aérea HCFMUSP, WikEM)
+  // conc em mg/mL (fentanil em mcg/mL); faixa [min, max] por kg; padrao = dose usual por kg
+  var SRI = [
+    { id: 'fentanil', grupo: 'Pré-tratamento / analgesia', nome: 'Fentanil', u: 'mcg', faixa: [1, 3], padrao: 2, conc: 50, max: 200, obs: 'EV lento (rigidez torácica em bolus rápido). Cautela em hipotensão.' },
+    { id: 'etomidato', grupo: 'Indutor', nome: 'Etomidato', u: 'mg', faixa: [0.2, 0.3], padrao: 0.3, conc: 2, max: 40, obs: 'Estabilidade hemodinâmica. Pode causar mioclonias; supressão adrenal transitória (cautela na sepse).' },
+    { id: 'cetamina', grupo: 'Indutor', nome: 'Cetamina', u: 'mg', faixa: [1, 2], padrao: 1.5, conc: 50, max: 200, obs: 'Preserva drive respiratório e PA; útil em broncoespasmo e choque. Cautela em hipertensão grave e isquemia coronariana.' },
+    { id: 'propofol', grupo: 'Indutor', nome: 'Propofol', u: 'mg', faixa: [1, 2], padrao: 1.5, conc: 10, max: 200, obs: 'Hipotensão frequente — preferir em paciente hemodinamicamente estável; reduzir dose em idosos.' },
+    { id: 'midazolam', grupo: 'Indutor', nome: 'Midazolam', u: 'mg', faixa: [0.1, 0.3], padrao: 0.2, conc: 5, max: 20, obs: 'Início mais lento; hipotensão. Alternativa quando os demais indutores não estão disponíveis.' },
+    { id: 'rocuronio', grupo: 'Bloqueador neuromuscular', nome: 'Rocurônio', u: 'mg', faixa: [1, 1.2], padrao: 1.2, conc: 10, max: 200, obs: 'Início em ~60 s; duração de 30–60 min. Preferir quando a succinilcolina é contraindicada. Reversor: sugamadex.' },
+    { id: 'succinilcolina', grupo: 'Bloqueador neuromuscular', nome: 'Succinilcolina', u: 'mg', faixa: [1, 1.5], padrao: 1.5, conc: 20, max: 200, obs: 'Início em 30–60 s; duração curta. CONTRAINDICADA: hipercalemia, queimadura ou trauma por esmagamento após 24–72 h, rabdomiólise, doença neuromuscular, imobilização prolongada, história de hipertermia maligna. Lactentes: 2 mg/kg.' }
+  ];
+
+  function sriDoses(pesoKg, ped) {
+    if (!(pesoKg > 0)) return null;
+    return SRI.map(function (x) {
+      var porKg = x.padrao;
+      if (x.id === 'succinilcolina' && ped && pesoKg < 10) porKg = 2;
+      var dose = Math.min(porKg * pesoKg, x.max);
+      return { id: x.id, grupo: x.grupo, nome: x.nome, u: x.u, porKg: porKg, faixa: [x.faixa[0] * pesoKg, Math.min(x.faixa[1] * pesoKg, x.max)],
+        dose: dose, limitado: porKg * pesoKg > x.max, conc: x.conc, ml: dose / x.conc, obs: x.obs };
+    });
+  }
+
+  // Hipodermóclise: hidratação por via subcutânea (SBGG/ANCP; tabela do Hospital São Camilo)
+  // até 1500 mL/24 h por sítio (≈ 62,5 mL/h); para volume total V em H horas com S sítios
+  function hipodermoclise(volMl, horas, sitios) {
+    if (!(volMl > 0) || !(horas > 0) || !(sitios >= 1)) return null;
+    var mlh = volMl / horas, porSitio = mlh / sitios, por24 = volMl / sitios * (24 / horas);
+    return { mlh: mlh, porSitio: porSitio, gts: mlh / 3, porSitio24: por24,
+      sitiosNecessarios: Math.max(1, Math.ceil(Math.max(porSitio * sitios / 62.5, volMl * (24 / horas) / 1500))),
+      acimaVelocidade: porSitio > 62.5 + 1e-9, acimaVolume: por24 > 1500 + 1e-9 };
+  }
+
   var api = { pesoEstimado: pesoEstimado, tuboTraqueal: tuboTraqueal, energias: energias, dosesPCR: dosesPCR,
-    mmss: mmss, statusAdrenalina: statusAdrenalina, CAUSAS: CAUSAS };
+    mmss: mmss, statusAdrenalina: statusAdrenalina, CAUSAS: CAUSAS, SRI: SRI, sriDoses: sriDoses, hipodermoclise: hipodermoclise };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Emergencia = api;
 })(this);

@@ -17,6 +17,9 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - **Escalas:** Glasgow (com GCS-P), Braden, Morse, RASS, Ramsay, Apgar, qSOFA, NEWS2, FLACC, CPOT, Aldrete e Kroulik, dor numérica.
 - **Referências e revisão:** cada ficha mostra a fonte, o status de revisão profissional e um botão para a bula no Bulário Eletrônico da Anvisa (e ISMP Brasil para alta vigilância). O painel de revisão mostra o progresso e gera uma ficha de conferência para impressão/assinatura pelo farmacêutico. Na maleta, cada item pode ser marcado como "conferido com a bula do fabricante" (nome/registro e data).
 - **Modo PCR:** cronômetro total, ciclos de 2 min com alarme, lembrete da adrenalina (janela 3–5 min), choques com energia por peso (pediatria), amiodarona, via aérea, acesso, RCE, metrônomo 110/min, 5H/5T e registro com horário para o prontuário (AHA).
+- **Intubação (sequência rápida):** doses por peso de fentanil, etomidato, cetamina, propofol, midazolam, rocurônio e succinilcolina em mg e mL (concentração editável), contraindicações e checklist SOAP-ME.
+- **Hipodermóclise:** vazão por sítio com limites (62,5 mL/h; 1.500 mL/24 h), regras gerais e medicamentos descritos / contraindicados por via SC.
+- **9 certos da medicação:** conferência obrigatória antes de registrar uma administração no atendimento.
 - **Emergência pediátrica:** peso estimado (APLS), cânula traqueal, energias de desfibrilação/cardioversão, volume, glicose e doses das medicações de emergência em mg e mL.
 - **Interações e compatibilidade avulsas:** escolha 2+ medicamentos (ou carregue uma maleta).
 - **Registro de administração** no atendimento, com resumo para copiar/compartilhar.

@@ -474,10 +474,39 @@
       gest: 'Pode estimular contração uterina — usar só se indispensável.' }
   };
 
+  // Hipodermóclise (via subcutânea). 'sim' = descrito em guias de hipodermóclise; 'nao' = não usar SC;
+  // 'diverge' = fontes discordam. Diluição/tempo detalhados só quando há fonte; nos demais, seguir a tabela institucional.
+  var HIPO = {
+    'morfina': { st: 'sim', txt: 'Bolus SC ou infusão contínua (cuidados paliativos).' },
+    'tramadol': { st: 'sim', txt: 'Bolus SC diluído ou infusão.' },
+    'dipirona': { st: 'sim', txt: 'Diluída, em infusão SC lenta.' },
+    'ondansetrona': { st: 'sim', txt: 'Diluir em 30 mL de SF 0,9% e infundir em ~30 min.' },
+    'metoclopramida': { st: 'sim', txt: 'Bolus SC ou infusão.' },
+    'escopolamina': { st: 'sim', txt: 'Bolus SC; muito usada para secreções em cuidados de fim de vida.' },
+    'haloperidol': { st: 'sim', txt: 'Bolus SC ou infusão (náuseas, delirium).' },
+    'midazolam': { st: 'sim', txt: 'Bolus SC ou infusão contínua (sedação paliativa).' },
+    'furosemida': { st: 'sim', txt: 'Bolus SC ou infusão; pode ser irritante.' },
+    'dexametasona': { st: 'sim', txt: 'Preferir sítio exclusivo (incompatível com vários fármacos na mesma via).' },
+    'ceftriaxona': { st: 'sim', txt: 'Diluída em SF 0,9%, infusão SC lenta.' },
+    'cefepima': { st: 'sim', txt: 'Diluída em SF 0,9%, infusão SC lenta.' },
+    'ertapenem': { st: 'sim', txt: 'Diluído em SF 0,9% (nunca SG), infusão SC lenta.' },
+    'ampicilina': { st: 'sim', txt: 'Diluída em SF 0,9%; tempos de 20–60 min ou 1 mL/min (62,5 mL/h) conforme a tabela.' },
+    'omeprazol': { st: 'sim', txt: '40 mg/dia em 100 mL de SF 0,9%, infusão em 4 h, via exclusiva (São Camilo).' },
+    'cloreto-potassio': { st: 'sim', txt: 'Somente diluído: até 40 mEq/L, velocidade máx. 62,5 mL/h (São Camilo).' },
+    'diazepam': { st: 'nao', txt: 'Não usar por via SC: risco de necrose tecidual.' },
+    'fenitoina': { st: 'diverge', txt: 'Fontes divergem: alguns manuais contraindicam (necrose); outra tabela permite com filtro e via exclusiva. Evitar sem protocolo local.' },
+    'bicarbonato': { st: 'nao', txt: 'Eletrólito hipertônico: não usar por via SC.' },
+    'gluconato-calcio': { st: 'nao', txt: 'Eletrólito concentrado: não usar por via SC (necrose).' },
+    'glicose-50': { st: 'nao', txt: 'Solução hipertônica: não usar por via SC.' },
+    'sulfato-magnesio': { st: 'nao', txt: 'Eletrólito concentrado: não usar por via SC.' },
+    'tenoxicam': { st: 'nao', txt: 'AINE: não usar por hipodermóclise (irritação/necrose).' },
+    'cetoprofeno-ev': { st: 'nao', txt: 'AINE: não usar por hipodermóclise (irritação/necrose).' }
+  };
+
   function bula(id) { return BULA[id] || null; }
   function categoria(id) { var b = BULA[id]; return b ? CATEGORIAS.filter(function (c) { return c.id === b.cat; })[0] || null : null; }
 
-  var api = { CATEGORIAS: CATEGORIAS, BULA: BULA, bula: bula, categoria: categoria };
+  var api = { CATEGORIAS: CATEGORIAS, BULA: BULA, HIPO: HIPO, bula: bula, categoria: categoria };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Bulario = api;
 })(this);
