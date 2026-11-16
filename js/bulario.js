@@ -19,6 +19,8 @@
     { id: 'hormonio', nome: 'Hormônios, endócrino e obstetrícia', icon: '💉' },
     { id: 'respiratorio', nome: 'Respiratório', icon: '🫁' },
     { id: 'pele', nome: 'Pele, feridas e tópicos', icon: '🩹' },
+    { id: 'onco', nome: 'Oncologia e imunologia', icon: '🎗️' },
+    { id: 'oftalmo', nome: 'Olhos e ouvidos', icon: '👁️' },
     { id: 'outros', nome: 'Vitaminas e outros', icon: '🧴' }
   ];
 
