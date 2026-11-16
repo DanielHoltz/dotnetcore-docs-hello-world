@@ -62,10 +62,11 @@ test('apresentações comerciais: ids válidos, unidades compatíveis e valores 
   const C = require('../../wwwroot/enfermagem/js/calc.js');
   for (const [id, lista] of Object.entries(A.AP)) {
     const d = D.DRUGS.find(x => x.id === id);
-    assert.ok(d, 'apresentação sem medicamento: ' + id);
+    const x = require('../../wwwroot/enfermagem/js/bulario_extra.js').EXTRAS.find(e => e.id === id);
+    assert.ok(d || (x && x.ap), 'apresentação sem medicamento: ' + id);
     for (const [rot, qtd, u, vol] of lista) {
       assert.ok(rot && qtd > 0 && vol > 0, id + ' ' + rot);
-      assert.ok(C.sameClass(u, d.conc.u), id + ' unidade ' + u);
+      assert.ok(C.sameClass(u, d ? d.conc.u : x.ap[0][2]), id + ' unidade ' + u);
     }
   }
   assert.ok(D.DRUGS.filter(d => A.AP[d.id]).length >= 75);
@@ -126,4 +127,32 @@ test('novas fichas: categorias válidas e pele/feridas', () => {
   assert.ok(X.EXTRAS.filter(x => x.cat === 'pele').length >= 8);
   assert.ok(X.EXTRAS.length >= 165);
   const ids = X.EXTRAS.map(x => x.id); assert.strictEqual(new Set(ids).size, ids.length);
+});
+
+test('módulos por área: referências válidas', () => {
+  const MOD = require('../../wwwroot/enfermagem/js/modulos.js');
+  const PR = require('../../wwwroot/enfermagem/js/protocolos.js');
+  const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
+  const ids = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
+  const prot = new Set(PR.PROTOCOLOS.map(p => p.id)), esc = new Set(D.SCALES.map(s => s.id));
+  assert.ok(MOD.MODULOS.length >= 7);
+  for (const m of MOD.MODULOS) {
+    m.drogas.forEach(i => assert.ok(ids.has(i), m.id + ' droga ' + i));
+    m.protocolos.forEach(i => assert.ok(prot.has(i), m.id + ' protocolo ' + i));
+    m.escalas.forEach(i => assert.ok(esc.has(i), m.id + ' escala ' + i));
+    m.atalhos.forEach(a => assert.ok(a[0].startsWith('#/') && a[2]));
+  }
+});
+
+test('apresentações de mercado: listas de seleção e composição de solução', () => {
+  const A = require('../../wwwroot/enfermagem/js/apresentacoes.js');
+  assert.deepStrictEqual(A.diluentesDe('SF 0,9% (somente)'), ['SF 0,9%']);
+  assert.deepStrictEqual(A.diluentesDe('SF 0,9% ou SG 5%'), ['SF 0,9%', 'SG 5%']);
+  assert.ok(A.VOLUMES.includes(0) && A.VOLUMES.includes(100) && A.TEMPOS.includes(30));
+  for (const inf of D.INFUSIONS) {
+    const aps = A.paraInfusao(inf.id);
+    assert.ok(aps.length, 'sem apresentação para a infusão ' + inf.id);
+  }
+  const c = A.compor(A.paraInfusao('noradrenalina'), 16, 'mg');
+  assert.deepStrictEqual(c, { i: 0, n: 4 });
 });
