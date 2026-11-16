@@ -177,5 +177,9 @@ test('catálogo CMED/Anvisa: ≥ 1.400 princípios ativos, sem duplicar fichas d
   assert.ok(CT.mercado('dipirona').marcas.length > 0);
   assert.ok(CT.mercado('losartana').marcas.some(m => m[0] === 'Cozaar' && m[1] === 'R'), 'Cozaar é a referência da losartana');
   assert.ok(CT.mercado('sinvastatina') && CT.mercado('sinvastatina').gen > 0);
+  assert.ok(CT.mercado('losartana').nomes.includes('Losartan'), 'variação Losartan ligada à Losartana');
+  assert.ok(!CT.CAT.some(a => a[1] === 'Losartan'), 'Losartan não vira ficha separada');
+  assert.ok(CT.CAT.some(a => a[1] === 'Cefalexina') || CT.mercado('cefalexina'), 'cefalexina existe');
+  assert.ok(CT.mercado('cefalotina') && !CT.mercado('cefalotina').nomes.some(n => /cefalexina/i.test(n)), 'cefalotina não se mistura com cefalexina');
   assert.match(CT.FONTE.data, /^\d{4}-\d{2}-\d{2}$/);
 });

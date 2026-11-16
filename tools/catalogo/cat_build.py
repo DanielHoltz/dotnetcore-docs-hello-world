@@ -108,12 +108,12 @@ ORD={'R':0,'N':1,'B':2,'E':3,'S':4,'F':5,'O':6,'G':7}
 def marcas_de(prods):
     L=[[titulo(p),'R' if e['ref'] else e['t'].most_common(1)[0][0],e['n']] for p,e in prods.items()]
     L.sort(key=lambda x:(ORD.get(x[1],9),-x[2],x[0]))
-    return [x[:2] for x in L[:12]]
+    return [x[:2] for x in L]
 def pack(b,g,id_=None):
     cl=g['classe'].most_common(1)[0][0]
     return {'id':id_ or mkid(b),'nome':nome_de(b,g),'comp':titulo(b) if len(b.split(' + '))>3 else '','cat':cat_de(cl),'classe':re.sub(r'^\S+\s+-\s+','',cl).capitalize(),
         'tarja':(g['tarja'].most_common(1)[0][0] if g['tarja'] else -1),'tmax':(max(g['tarja']) if g['tarja'] else -1),'hosp':1 if g['hosp']*2>=g['tot'] else 0,'gen':len(g['genlabs']),'labs':len(g['labs']),
-        'marcas':marcas_de(g['prods']),'ap':[a for a,_ in g['ap'].most_common(10)],'o':0 if g['com']>0 else 1}
+        'marcas':marcas_de(g['prods']),'base':b,'nomes':sorted(set(titulo(re.sub(r'\s+',' ',x.strip())) for x in g['subs'] if chave(x)!=chave(b) and ';' not in x)),'ap':[a for a,_ in g['ap'].most_common(10)],'o':0 if g['com']>0 else 1}
 for b,g in sel: out.append(pack(b,g))
 mercado={i:pack(b,G[b],'x') for i,b in link.items()}
 json.dump({'bases':list(G.keys()),'ids':sorted(ids)},open('dl/cmed_meta.json','w'),ensure_ascii=False)

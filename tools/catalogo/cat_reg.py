@@ -35,7 +35,7 @@ def cat_de(cl):
     return 'outros'
 REF=set(open('dl/ref_registros.txt').read().split())
 TIPO={'NOVO':'N','SIMILAR':'S','GENÉRICO':'G','ESPECÍFICO':'E','BIOLÓGICO':'B','FITOTERÁPICO':'F','FITOTER?PICO':'F'}
-G=collections.defaultdict(lambda:{'emp':set(),'genemp':set(),'prods':{},'classe':collections.Counter(),'gen':0,'cats':collections.Counter()})
+G=collections.defaultdict(lambda:{'raw':set(),'emp':set(),'genemp':set(),'prods':{},'classe':collections.Counter(),'gen':0,'cats':collections.Counter()})
 for x in val:
     catr=x['CATEGORIA_REGULATORIA'].upper()
     if 'DINAMIZ' in catr: continue
@@ -43,7 +43,7 @@ for x in val:
     if not pa: continue
     b=base_reg(pa.upper())
     if not b: continue
-    g=G[b]; g['emp'].add(x['EMPRESA_DETENTORA_REGISTRO']); g['cats'][x['CATEGORIA_REGULATORIA']]+=1
+    g=G[b]; g['raw'].add(pa); g['emp'].add(x['EMPRESA_DETENTORA_REGISTRO']); g['cats'][x['CATEGORIA_REGULATORIA']]+=1
     if x['CLASSE_TERAPEUTICA']: g['classe'][x['CLASSE_TERAPEUTICA']]+=1
     pn=x['NOME_PRODUTO'].strip(); ref=x['NUMERO_REGISTRO_PRODUTO'].strip()[:9] in REF
     if catr=='GENÉRICO' and not ref: g['gen']=1; g['genemp'].add(x['EMPRESA_DETENTORA_REGISTRO'])
@@ -53,7 +53,7 @@ ORD={'R':0,'N':1,'B':2,'E':3,'S':4,'F':5,'O':6,'G':7}
 def marcas_de(prods):
     L=[[titulo(p),'R' if e['ref'] else e['t'].most_common(1)[0][0],e['n']] for p,e in prods.items()]
     L.sort(key=lambda x:(ORD.get(x[1],9),-x[2],x[0]))
-    return [x[:2] for x in L[:12]]
+    return [x[:2] for x in L]
 def lev(a,b):
     v=list(range(len(b)+1))
     for i in range(1,len(a)+1):
@@ -67,17 +67,47 @@ def mkid(n):
     i=k;j=2
     while i in ids: i='%s-%d'%(k,j); j+=1
     ids.add(i); return 'r-'+i
+EXC=r'^(TESTE|ÁGUA|AGUA|CELULOSE|LACTOSE|EXCIPIENTE|ASSOCIAÇÕES|ASSOCIACOES|VEÍCULO|ESTEARATO DE MAGNÉSIO|AMIDO|SACAROSE|TALCO)\b'
+def nomes_de(raws,b):
+    out=set()
+    simples='+' not in b
+    for x in raws:
+        partes=[p.strip() for p in re.split(r',\s*|;|\s\+\s',x) if p.strip() and not re.search(EXC,p.strip().upper())]
+        if simples: cand=partes
+        else: cand=[' + '.join(partes)] if len(partes)<=4 else []
+        for p in cand:
+            t=titulo(re.sub(r'\s+',' ',p))
+            if t and chave(t)!=chave(b): out.add(t)
+    return out
+IDX={}
+for c in cat['cat']: IDX.setdefault(ck(c.get('base',c['nome'].upper())),c)
+for i,v in cat['mercado'].items(): IDX.setdefault(ck(v.get('base','')),v)
+def merge(e,b,g):
+    nomes=set(e.get('nomes',[]))|nomes_de(g['raw'],b)
+    if '+' not in b: nomes.add(titulo(b))
+    e['nomes']=sorted(n for n in nomes if chave(n)!=chave(e['nome']))
+    have=set(chave(m[0]) for m in e['marcas'])
+    for m in marcas_de(g['prods']):
+        if chave(m[0]) not in have: e['marcas'].append(m); have.add(chave(m[0]))
+    e['marcas'].sort(key=lambda x:ORD.get(x[1],9))
+    e['gen']=max(e['gen'],len(g['genemp']))
+    e['fab']=max(e.get('labs',0),len(g['emp']))
 for b,g in sorted(G.items()):
-    if ck(b) in conhecidos: continue
-    kb=ck(b)
-    if len(kb)>=6 and any(abs(len(kb)-len(k))<=2 and lev(kb,k)<=2 for k in conhecidos): continue
+    kb=ck(b); alvo=IDX.get(kb)
+    if alvo is None and '+' not in kb and len(kb)>=6:
+        for k,e in IDX.items():
+            if '+' in k: continue
+            if (k.startswith(kb) or kb.startswith(k)) and abs(len(k)-len(kb))<=2: alvo=e; break
+    if alvo is not None:
+        merge(alvo,b,g); continue
+    if kb in conhecidos: continue
     parts=b.split(' + ')
     top=sorted(g['prods'].items(),key=lambda kv:-kv[1]['n'])
     nome=((titulo(top[0][0])+' — ') if top and len(parts)>3 else '')+('associação de %d componentes'%len(parts) if len(parts)>3 else titulo(b))
     cl=g['classe'].most_common(1)[0][0] if g['classe'] else ''
     tipo=g['cats'].most_common(1)[0][0]
     novos.append({'id':mkid(b),'nome':nome,'comp':titulo(b) if len(parts)>3 else '','cat':cat_de(cl+' '+tipo),'classe':(cl.capitalize() if cl else tipo.capitalize()),
-      'tarja':-1,'tmax':-1,'hosp':0,'gen':len(g['genemp']),'labs':len(g['emp']),'marcas':marcas_de(g['prods']),'ap':[],'o':2})
+      'nomes':sorted(nomes_de(g['raw'],b)),'base':b,'tarja':-1,'tmax':-1,'hosp':0,'gen':len(g['genemp']),'labs':len(g['emp']),'marcas':marcas_de(g['prods']),'ap':[],'o':2})
 print('registro: bases',len(G),'novas',len(novos)); print(collections.Counter(n['cat'] for n in novos))
 import random; random.seed(5); print([n['nome'] for n in random.sample(novos,25)])
 cat['cat']+=novos

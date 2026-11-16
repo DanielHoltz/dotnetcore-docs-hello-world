@@ -530,6 +530,16 @@
     var d = D.DRUGS.filter(function (x) { return x.id === id; })[0] || BX.EXTRAS.filter(function (x) { return x.id === id; })[0];
     return d ? d.nome : id;
   }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-scroll]');
+    if (!b) return;
+    var alvo = document.getElementById(b.getAttribute('data-scroll'));
+    if (alvo) {
+      var aba = alvo.closest('[role=tabpanel]');
+      if (aba && aba.hidden) { var t = document.getElementById('tab-' + aba.id.replace('pane-', '')); if (t) t.click(); alvo = document.getElementById(b.getAttribute('data-scroll')); }
+      alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
   // Toque rápido nos valores de mercado e escolha de apresentação (calculadoras)
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('.qchip');
@@ -621,17 +631,22 @@
   var TIPO_ORD = ['R', 'N', 'B', 'E', 'S', 'F', 'O'];
   var TIPO_PLURAL = { N: 'Novos', B: 'Biológicos', E: 'Específicos', S: 'Similares', F: 'Fitoterápicos', O: 'Outros' };
   function nomesMarcas(ms) { return (ms || []).map(function (m) { return m[0]; }); }
-  function marcasDe(id) { var m = CT.mercado(id); return m ? nomesMarcas(m.marcas).join(' ') : ''; }
+  function marcasDe(id) { var m = CT.mercado(id); return (m ? nomesMarcas(m.marcas).concat(m.nomes).join(' ') : '') + ' ' + (R.BUSCA_ANVISA[id] || ''); }
+  function outrosNomesHtml(mk) {
+    return mk && mk.nomes && mk.nomes.length ? '<p class="marcas-linha">🔤 <b>Também chamado:</b> ' + esc(mk.nomes.join(' · ')) + '</p>' : '';
+  }
   function marcasCurtas(ms, n) { return (ms || []).slice(0, n).map(function (m) { return m[0] + (m[1] === 'R' ? ' (ref.)' : ''); }).join(', '); }
   function marcasHtml(mk) {
     var grupos = TIPO_ORD.map(function (t) { return [t, mk.marcas.filter(function (m) { return m[1] === t; })]; }).filter(function (g) { return g[1].length; });
     return '<div class="marcas">' + grupos.map(function (g) {
-      return '<p><span class="tipo tipo-' + g[0] + '">' + (g[0] === 'R' ? '⭐ ' : '') + (g[1].length > 1 && g[0] !== 'R' ? TIPO_PLURAL[g[0]] : TIPO_NOME[g[0]]) + '</span> ' + esc(nomesMarcas(g[1]).join(', ')) + '</p>';
+      var nm = nomesMarcas(g[1]), lab = '<span class="tipo tipo-' + g[0] + '">' + (g[0] === 'R' ? '⭐ ' : '') + (g[1].length > 1 && g[0] !== 'R' ? TIPO_PLURAL[g[0]] : TIPO_NOME[g[0]]) + ' (' + nm.length + ')</span> ';
+      return nm.length > 15 ? '<p>' + lab + esc(nm.slice(0, 15).join(', ')) + '</p><details class="mais"><summary>ver todos os ' + nm.length + '</summary><p>' + esc(nm.join(', ')) + '</p></details>'
+        : '<p>' + lab + esc(nm.join(', ')) + '</p>';
     }).join('') + (mk.gen ? '<p><span class="tipo tipo-G">Genérico</span> ' + mk.gen + ' fabricante' + (mk.gen > 1 ? 's' : '') + ' (o nome na caixa é o do princípio ativo)</p>' : '') + '</div>';
   }
   function marcasLinha(mk) {
-    if (!mk || (!mk.marcas.length && !mk.gen)) return '';
-    return '<p class="marcas-linha">🏷️ <b>Nomes comerciais:</b> ' + esc(marcasCurtas(mk.marcas, 6) || '—') + (mk.marcas.length > 6 ? '…' : '') + (mk.gen ? ' · <span class="tipo tipo-G">Genérico</span>' : '') + '</p>';
+    if (!mk || (!mk.marcas.length && !mk.gen)) return outrosNomesHtml(mk);
+    return '<p class="marcas-linha">🏷️ <b>Nomes comerciais' + (mk.marcas.length > 6 ? ' (' + mk.marcas.length + ')' : '') + ':</b> ' + esc(marcasCurtas(mk.marcas, 6) || '—') + (mk.marcas.length > 6 ? '… <button type="button" class="linklike" data-scroll="mercado">ver todos</button>' : '') + (mk.gen ? ' · <span class="tipo tipo-G">Genérico</span>' : '') + '</p>' + outrosNomesHtml(mk);
   }
   // Busca tolerante a erros de digitação (ex.: "sivastatina" → sinvastatina)
   function lev(a, b) {
@@ -662,8 +677,8 @@
     }
     return tot;
   }
-  function aproximados(lista, txt, words) {
-    return lista.map(function (x) { return [x, parecido(txt(x), words)]; }).filter(function (p) { return p[1] >= 0; })
+  function aproximados(lista, txt, words, nomeDe) {
+    return lista.map(function (x) { var d = parecido(txt(x), words); return [x, d < 0 ? d : d + (nomeDe && nomeDe(x).indexOf('+') >= 0 ? 0.3 : 0)]; }).filter(function (p) { return p[1] >= 0; })
       .sort(function (a, b) { return a[1] - b[1] || txt(a[0]).length - txt(b[0]).length; }).map(function (p) { return p[0]; });
   }
   function allEntries() {
@@ -678,7 +693,7 @@
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     BX.EXTRAS.forEach(function (x) { e.push({ key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula ' + marcasDe(x.id) }); });
-    CT.CAT.forEach(function (a) { var mc = marcasCurtas(a[9], 3); e.push({ key: 'droga:' + a[0], href: '#/droga/' + a[0], icon: '📚', title: a[1], desc: (mc ? '🏷️ ' + mc + ' · ' : '') + a[4] + ' · catálogo', search: a[1] + ' ' + a[2] + ' ' + a[4] + ' ' + nomesMarcas(a[9]).join(' ') }); });
+    CT.CAT.forEach(function (a) { var mc = marcasCurtas(a[9], 3); e.push({ key: 'droga:' + a[0], href: '#/droga/' + a[0], icon: '📚', title: a[1], desc: (mc ? '🏷️ ' + mc + ' · ' : '') + a[4] + ' · catálogo', search: a[1] + ' ' + a[2] + ' ' + a[4] + ' ' + nomesMarcas(a[9]).join(' ') + ' ' + (a[13] || []).join(' ') }); });
     D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') + ' ' + marcasDe(d.id) }); });
     loadMaletas().forEach(function (m) { e.push({ key: 'maleta:' + m.id, href: '#/maleta/' + m.id, icon: m.icon, title: m.nome, desc: 'Maleta · ' + m.itens.length + ' medicamentos', search: m.nome + ' ' + m.local + ' maleta kit' }); });
     D.SCALES.forEach(function (s) { e.push({ key: 'escala:' + s.id, href: '#/escala/' + s.id, icon: '📋', title: s.nome, desc: s.desc, search: s.nome + ' ' + s.desc + ' escala' }); });
@@ -749,7 +764,7 @@
       var words = t.split(/\s+/);
       var hits = entries.filter(function (e) { var s = norm(e.search + ' ' + e.title); return words.every(function (w) { return s.indexOf(w) >= 0; }); });
       var aprox = false;
-      if (!hits.length && t.length >= 4) { hits = aproximados(entries, function (e) { return norm(e.title + ' ' + e.search); }, words); aprox = hits.length > 0; }
+      if (!hits.length && t.length >= 4) { hits = aproximados(entries, function (e) { return norm(e.title + ' ' + e.search); }, words, function (e) { return e.title; }); aprox = hits.length > 0; }
       res.innerHTML = hits.length ? (aprox ? '<div class="alert info">Nenhum resultado exato para “' + esc(q.value.trim()) + '”. Você quis dizer:</div>' : '') + '<div class="list">' + hits.slice(0, 40).map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>'
         : '<p class="empty-msg">Nada encontrado para “' + esc(q.value) + '”.</p>';
     });
@@ -809,9 +824,9 @@
   function viewDrugs() {
     setHeader('Bulário', false);
     var filtro = store.get('bulCat', ''), tipoF = store.get('bulTipo', ''), letraSel = store.get('bulLetra', '');
-    var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + (mk ? ' ' + nomesMarcas(mk.marcas).join(' ') : ''), marcas: mk ? mk.marcas : [], hv: isHV(d), tipo: 'completa' }; })
-      .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + (mk ? ' ' + nomesMarcas(mk.marcas).join(' ') : ''), marcas: mk ? mk.marcas : [], hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
-      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + nomesMarcas(c.marcas).join(' '), marcas: c.marcas, hv: false, tipo: 'catalogo', origem: c.origem }; }))
+    var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + ' ' + marcasDe(d.id), marcas: mk ? mk.marcas : [], nomes: (mk ? mk.nomes : []).concat(R.BUSCA_ANVISA[d.id] ? [R.BUSCA_ANVISA[d.id]] : []), hv: isHV(d), tipo: 'completa' }; })
+      .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + ' ' + marcasDe(x.id), marcas: mk ? mk.marcas : [], nomes: mk ? mk.nomes : [], hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
+      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + nomesMarcas(c.marcas).join(' ') + ' ' + c.nomes.join(' '), marcas: c.marcas, nomes: c.nomes, hv: false, tipo: 'catalogo', origem: c.origem }; }))
       .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
     todos.forEach(function (d) { d.busca = norm(d.nome + ' ' + d.classe + ' ' + d.txt); });
     $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar por nome ou classe…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
@@ -831,7 +846,7 @@
       });
       var aprox = false;
       if (!list.length && t.length >= 4) {
-        list = aproximados(todos.filter(function (d) { return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF); }), function (d) { return norm(d.nome + ' ' + nomesMarcas(d.marcas).join(' ')); }, words);
+        list = aproximados(todos.filter(function (d) { return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF); }), function (d) { return norm(d.nome + ' ' + nomesMarcas(d.marcas).join(' ') + ' ' + (d.nomes || []).join(' ')); }, words, function (d) { return d.nome; });
         aprox = list.length > 0;
       }
       var porLetra = {};
@@ -842,14 +857,30 @@
         dl.innerHTML = '<div class="alert info">Nenhum resultado exato para “' + esc(dq.value.trim()) + '”. Você quis dizer:</div><div class="list">' + list.slice(0, 30).map(linha).join('') + '</div>';
         return;
       }
+      if (t) {   // busca: lista única ordenada por relevância (nome exato, começa com, isolado antes de associação)
+        var rel = function (d) {
+          var nomes = [d.nome].concat(nomesMarcas(d.marcas), d.nomes || []).map(norm);
+          var r = nomes.some(function (n) { return n === t; }) ? 0 : nomes.some(function (n) { return n.indexOf(t) === 0; }) ? 1 : 2;
+          return r * 10 + (d.nome.indexOf('+') >= 0 ? 5 : 0);
+        };
+        list = list.map(function (d) { return [d, rel(d)]; }).sort(function (a, b) { return a[1] - b[1] || a[0].nome.length - b[0].nome.length; }).map(function (x) { return x[0]; });
+        document.getElementById('daz').innerHTML = '';
+        dl.innerHTML = '<p class="note">' + list.length.toLocaleString('pt-BR') + ' resultado' + (list.length > 1 ? 's' : '') + '</p><div class="list">' + list.slice(0, 300).map(linha).join('') + '</div>' +
+          (list.length > 300 ? '<p class="note">Mostrando os 300 mais relevantes. Refine a busca.</p>' : '');
+        return;
+      }
       var paginar = !t && list.length > 250;   // lista grande: mostra uma letra por vez
       if (paginar && letras.indexOf(letraSel) < 0) letraSel = letras[0];
       document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '"' + (paginar && l === letraSel ? ' class="on"' : '') + '>' + l + '</button>'; }).join('') : '';
       var mostrar = paginar ? [letraSel] : letras, limite = 300, n = 0;
       function linha(d) {
         var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
-        var mc = marcasCurtas(d.marcas, 3);
-        var desc = (mc ? '🏷️ ' + mc + ' · ' : '') + d.classe + (d.tipo === 'catalogo' ? (d.origem === 2 ? ' · registro Anvisa' : ' · catálogo') : d.tipo === 'resumo' ? ' · ficha resumida' : '');
+        var mc = marcasCurtas(d.marcas, 3), achou = '';
+        if (words.length && !words.every(function (w) { return norm(d.nome).indexOf(w) >= 0; })) {
+          var alt = nomesMarcas(d.marcas).concat(d.nomes || []).filter(function (n) { var nn = norm(n); return words.every(function (w) { return nn.indexOf(w) >= 0; }); })[0];
+          if (alt) achou = '🔎 ' + alt + ' · ';
+        }
+        var desc = achou + (mc ? '🏷️ ' + mc + ' · ' : '') + d.classe + (d.tipo === 'catalogo' ? (d.origem === 2 ? ' · registro Anvisa' : ' · catálogo') : d.tipo === 'resumo' ? ' · ficha resumida' : '');
         return card('#/droga/' + d.id, d.hv ? '🔴' : d.tipo === 'catalogo' ? '📚' : (cat ? cat.icon : '💊'), d.nome, desc, 'droga:' + d.id);
       }
       dl.innerHTML = (aprox ? '<div class="alert info">Nenhum resultado exato para “' + esc(dq.value.trim()) + '”. Você quis dizer:</div>' : '') +
@@ -877,7 +908,7 @@
   function anvisaBusca(t) { return 'https://consultas.anvisa.gov.br/#/bulario/q/?nomeProduto=' + encodeURIComponent(t); }
   function mercadoHtml(mk, titulo) {
     if (!mk) return '';
-    return '<div class="sec"><h3>🏷️ ' + (titulo || 'No mercado brasileiro') + '</h3>' +
+    return '<div class="sec" id="mercado"><h3>🏷️ ' + (titulo || 'No mercado brasileiro') + '</h3>' +
       '<p class="badges"><span class="badge ' + (mk.tarja >= 3 ? 'bad' : mk.tarja === 2 ? 'warn' : 'info') + '">' + esc(CT.tarjaTxt(mk.tarja)) + '</span>' +
       (mk.hosp ? '<span class="badge">🏥 Uso hospitalar</span>' : '') + (mk.gen ? '<span class="badge ok">Genérico disponível</span>' : '<span class="badge">Sem genérico na lista</span>') +
       '<span class="badge">' + mk.labs + ' fabricante' + (mk.labs > 1 ? 's' : '') + '</span></p>' +
