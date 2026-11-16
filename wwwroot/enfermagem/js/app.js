@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra, PR = window.Protocolos, MOD = window.Modulos;
+  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra, PR = window.Protocolos, MOD = window.Modulos, CT = window.Catalogo;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -616,6 +616,7 @@
       (favKey && isFav(favKey) ? '<span class="star">★</span>' : '') + '<span class="chev">›</span></a>';
   }
 
+  function marcasDe(id) { var m = CT.mercado(id); return m ? m.marcas.join(' ') : ''; }
   function allEntries() {
     var e = [];
     e.push({ key: 'view:pcr', href: '#/pcr', icon: '🚨', title: 'Modo PCR', desc: 'Parada cardiorrespiratória: cronômetro e registro', search: 'pcr parada reanimacao rcp adrenalina choque' });
@@ -627,8 +628,9 @@
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
-    BX.EXTRAS.forEach(function (x) { e.push({ key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula' }); });
-    D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') }); });
+    BX.EXTRAS.forEach(function (x) { e.push({ key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula ' + marcasDe(x.id) }); });
+    CT.CAT.forEach(function (a) { e.push({ key: 'droga:' + a[0], href: '#/droga/' + a[0], icon: '📚', title: a[1], desc: a[4] + ' · catálogo', search: a[1] + ' ' + a[2] + ' ' + a[4] + ' ' + a[9].join(' ') }); });
+    D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') + ' ' + marcasDe(d.id) }); });
     loadMaletas().forEach(function (m) { e.push({ key: 'maleta:' + m.id, href: '#/maleta/' + m.id, icon: m.icon, title: m.nome, desc: 'Maleta · ' + m.itens.length + ' medicamentos', search: m.nome + ' ' + m.local + ' maleta kit' }); });
     D.SCALES.forEach(function (s) { e.push({ key: 'escala:' + s.id, href: '#/escala/' + s.id, icon: '📋', title: s.nome, desc: s.desc, search: s.nome + ' ' + s.desc + ' escala' }); });
     return e;
@@ -662,7 +664,7 @@
     { href: '#/emergencia', icon: '🚨', nome: 'Emergência', desc: 'PCR, pediatria, drogas vasoativas', cls: 'sec-red' },
     { href: '#/maleta/lib/atender', icon: '👤', nome: 'Atendimento', desc: 'Dose e preparo por paciente' },
     { href: '#/calculadoras', icon: '🧮', nome: 'Cálculos', desc: 'Gotejamento, diluição, soros' },
-    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: (window.DATA.DRUGS.length + window.BularioExtra.EXTRAS.length) + ' medicamentos' },
+    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: (window.DATA.DRUGS.length + window.BularioExtra.EXTRAS.length + window.Catalogo.total).toLocaleString('pt-BR') + ' medicamentos' },
     { href: '#/maletas', icon: '🧰', nome: 'Maletas', desc: 'Seus kits de trabalho' },
     { href: '#/escalas', icon: '📋', nome: 'Escalas', desc: 'Glasgow, Braden, NEWS2…' },
     { href: '#/protocolos', icon: '📑', nome: 'Protocolos', desc: window.Protocolos.PROTOCOLOS.length + ' condutas · Manual MSD' },
@@ -755,36 +757,84 @@
   // ---- Bulário ----
   function viewDrugs() {
     setHeader('Bulário', false);
-    var filtro = store.get('bulCat', '');
+    var filtro = store.get('bulCat', ''), tipoF = store.get('bulTipo', ''), letraSel = store.get('bulLetra', '');
+    var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + (mk ? ' ' + mk.marcas.join(' ') : ''), hv: isHV(d), tipo: 'completa' }; })
+      .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + (mk ? ' ' + mk.marcas.join(' ') : ''), hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
+      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + c.marcas.join(' '), marcas: c.marcas, hv: false, tipo: 'catalogo' }; }))
+      .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    todos.forEach(function (d) { d.busca = norm(d.nome + ' ' + d.classe + ' ' + d.txt); });
     $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar por nome ou classe…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
       '<div class="chipnav" id="dcat"><button type="button" class="chipnav-b" data-c="">Todos</button>' +
         B.CATEGORIAS.map(function (c) { return '<button type="button" class="chipnav-b" data-c="' + c.id + '">' + c.icon + ' ' + esc(c.nome) + '</button>'; }).join('') + '</div>' +
+      '<div class="seg" id="dtipo" role="radiogroup" aria-label="Tipo de ficha">' + [['', 'Todas'], ['completa', 'Com preparo'], ['resumo', 'Resumidas'], ['catalogo', 'Catálogo']].map(function (o) {
+        return '<label class="seg-opt"><input type="radio" name="dtipo" value="' + o[0] + '"' + (o[0] === tipoF ? ' checked' : '') + '><span>' + o[1] + '</span></label>'; }).join('') + '</div>' +
       '<div class="az" id="daz"></div><div id="dl"></div>' +
-      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length) + ' medicamentos (' + D.DRUGS.length + ' com preparo e dose; ' + BX.EXTRAS.length + ' em ficha resumida) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
+      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR') + ' medicamentos: ' + D.DRUGS.length + ' com preparo e dose, ' + BX.EXTRAS.length + ' em ficha resumida e ' + CT.total.toLocaleString('pt-BR') + ' no catálogo de mercado (CMED/Anvisa) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
     function render() {
       var t = norm(dq.value.trim());
       document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === filtro); });
-      var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: bu ? bu.ind : '', hv: isHV(d), resumo: false }; })
-        .concat(BX.EXTRAS.map(function (x) { return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via, hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), resumo: true }; }));
-      var list = todos.sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); }).filter(function (d) {
-        return (!filtro || d.cat === filtro) && (!t || norm(d.nome + ' ' + d.classe + ' ' + d.txt).indexOf(t) >= 0);
+      var words = t ? t.split(/\s+/) : [];
+      var list = todos.filter(function (d) {
+        return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF) && words.every(function (w) { return d.busca.indexOf(w) >= 0; });
       });
       var porLetra = {};
       list.forEach(function (d) { var l = norm(d.nome).charAt(0).toUpperCase(); (porLetra[l] = porLetra[l] || []).push(d); });
       var letras = Object.keys(porLetra).sort();
-      document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '">' + l + '</button>'; }).join('') : '';
-      dl.innerHTML = list.length ? letras.map(function (l) {
-        return '<h3 class="az-h" id="az-' + l + '">' + l + '</h3><div class="list">' + porLetra[l].map(function (d) {
-          var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
-          return card('#/droga/' + d.id, d.hv ? '🔴' : (cat ? cat.icon : '💊'), d.nome, d.classe + (d.resumo ? ' · ficha resumida' : ''), 'droga:' + d.id);
-        }).join('') + '</div>';
-      }).join('') : '<p class="empty-msg">Nenhum medicamento encontrado.</p>';
-      document.querySelectorAll('#daz [data-l]').forEach(function (b) { b.onclick = function () { document.getElementById('az-' + b.getAttribute('data-l')).scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
+      var paginar = !t && list.length > 250;   // lista grande: mostra uma letra por vez
+      if (paginar && letras.indexOf(letraSel) < 0) letraSel = letras[0];
+      document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '"' + (paginar && l === letraSel ? ' class="on"' : '') + '>' + l + '</button>'; }).join('') : '';
+      var mostrar = paginar ? [letraSel] : letras, limite = 300, n = 0;
+      function linha(d) {
+        var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
+        var desc = d.tipo === 'catalogo' ? d.classe + (d.marcas.length ? ' · ' + d.marcas.slice(0, 2).join(', ') : '') + ' · catálogo' : d.classe + (d.tipo === 'resumo' ? ' · ficha resumida' : '');
+        return card('#/droga/' + d.id, d.hv ? '🔴' : d.tipo === 'catalogo' ? '📚' : (cat ? cat.icon : '💊'), d.nome, desc, 'droga:' + d.id);
+      }
+      dl.innerHTML = (list.length ? '<p class="note">' + list.length.toLocaleString('pt-BR') + ' resultado' + (list.length > 1 ? 's' : '') + (paginar ? ' · letra ' + letraSel : '') + '</p>' : '') +
+        (list.length ? mostrar.map(function (l) {
+          if (n >= limite) return '';
+          var itens = porLetra[l].slice(0, limite - n); n += itens.length;
+          return '<h3 class="az-h" id="az-' + l + '">' + l + '</h3><div class="list">' + itens.map(linha).join('') + '</div>';
+        }).join('') + (n < list.length && !paginar ? '<p class="note">Mostrando os primeiros ' + limite + '. Refine a busca para ver mais.</p>' : '') : '<p class="empty-msg">Nenhum medicamento encontrado.</p>');
+      document.querySelectorAll('#daz [data-l]').forEach(function (b) {
+        b.onclick = function () {
+          var l = b.getAttribute('data-l');
+          if (paginar) { letraSel = l; store.set('bulLetra', l); render(); window.scrollTo(0, 0); return; }
+          var el = document.getElementById('az-' + l); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+      });
     }
     document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.onclick = function () { filtro = b.getAttribute('data-c'); store.set('bulCat', filtro); render(); }; });
+    document.querySelectorAll('#dtipo input').forEach(function (r) { r.onchange = function () { tipoF = r.value; store.set('bulTipo', tipoF); render(); }; });
     dq.addEventListener('input', render);
     render();
+  }
+
+  // ---- Catálogo de mercado (CMED/Anvisa) ----
+  function anvisaBusca(t) { return 'https://consultas.anvisa.gov.br/#/bulario/q/?nomeProduto=' + encodeURIComponent(t); }
+  function mercadoHtml(mk, titulo) {
+    if (!mk) return '';
+    return '<div class="sec"><h3>🏷️ ' + (titulo || 'No mercado brasileiro') + '</h3>' +
+      '<p class="badges"><span class="badge ' + (mk.tarja >= 3 ? 'bad' : mk.tarja === 2 ? 'warn' : 'info') + '">' + esc(CT.tarjaTxt(mk.tarja)) + '</span>' +
+      (mk.hosp ? '<span class="badge">🏥 Uso hospitalar</span>' : '') + (mk.gen ? '<span class="badge ok">Genérico disponível</span>' : '') +
+      '<span class="badge">' + mk.labs + ' laboratório' + (mk.labs > 1 ? 's' : '') + '</span></p>' +
+      (mk.tmax > mk.tarja ? '<p class="note">⚠️ Algumas apresentações têm tarja mais restritiva: ' + esc(CT.tarjaTxt(mk.tmax)) + '.</p>' : '') +
+      (mk.marcas.length ? '<p><b>Nomes comerciais:</b> ' + esc(mk.marcas.join(', ')) + '</p>' : '') +
+      (mk.ap.length ? '<p><b>Apresentações:</b></p><ul class="fontes">' + mk.ap.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
+      '<p class="note">Fonte: ' + esc(CT.FONTE.nome) + ', ' + esc(fmtData(CT.FONTE.data)) + '. Confira o rótulo do produto em mãos.</p></div>';
+  }
+  function viewCatalogo(c) {
+    setHeader(c.nome, true);
+    var cat = B.CATEGORIAS.filter(function (x) { return x.id === c.cat; })[0];
+    var termo = (c.comp || c.nome).split(' + ')[0].replace(/\s—.*$/, '');
+    $app.innerHTML =
+      '<div class="head-row"><p class="lead">' + esc(c.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + c.id) + '</div>' +
+      '<div class="alert info">📚 Ficha de catálogo com dados oficiais de mercado. <b>Não traz posologia</b>: consulte a bula e a prescrição.</div>' +
+      (c.comp ? '<div class="sec"><h3>🧪 Componentes</h3><p>' + esc(c.comp) + '</p></div>' : '') +
+      mercadoHtml(c) +
+      '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(anvisaBusca(c.marcas[0] || termo)) + '">📄 Bula no Bulário da Anvisa</a>' + msdLinkHtml(termo) +
+      '<a class="btn sm ghost" href="#/calc/dose">💉 Calcular volume a aspirar</a></div>' +
+      '<p class="disclaimer">Catálogo gerado a partir da ' + esc(CT.FONTE.nome) + ' (dados públicos). Classe terapêutica, tarja e apresentações conforme a lista oficial.</p>';
   }
 
   // Interações de um medicamento com toda a biblioteca (aba Bula)
@@ -809,7 +859,7 @@
       (x.hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
       li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('💊 Posologia usual (adulto)', BX.DOSE[x.id]) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
-      confHtml(x.id) + protRelHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' +
+      mercadoHtml(CT.mercado(x.id)) + confHtml(x.id) + protRelHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' +
       (aps.length ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
       refsHtml({ id: x.id, nome: x.nome, classe: x.classe }) +
       '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante.</p>';
@@ -818,7 +868,12 @@
 
   function viewDrug(id) {
     var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
-    if (!d) { var ex = BX.EXTRAS.filter(function (x) { return x.id === id; })[0]; return ex ? viewExtra(ex) : viewNotFound(); }
+    if (!d) {
+      var ex = BX.EXTRAS.filter(function (x) { return x.id === id; })[0];
+      if (ex) return viewExtra(ex);
+      var ca = CT.CAT.filter(function (a) { return a[0] === id; })[0];
+      return ca ? viewCatalogo(CT.item(ca)) : viewNotFound();
+    }
     setHeader(d.nome, true);
     var bu = B.bula(id), cat = B.categoria(id);
     var abas = [['preparo', '💧 Preparo'], ['bula', '📖 Bula'], ['paciente', '👤 Paciente'], ['fontes', '📚 Fontes']];
@@ -840,7 +895,7 @@
           return '<div class="int-item ' + sevClass(i.sev) + '"><b>' + sevIcon(i.sev) + ' ' + esc(i.tipo) + '</b> — ' +
             i.com.map(function (x) { return '<a href="#/droga/' + esc(x) + '">' + esc(nm(x)) + '</a>'; }).join(', ') + '<p>' + esc(i.txt) + '</p></div>';
         }).join('') : '<p class="note">Nenhuma interação cadastrada com outros medicamentos do bulário.</p>') +
-        protRelHtml(id) + '<div class="ref-btns">' + msdLinkHtml(d.nome) + '</div>' +
+        mercadoHtml(CT.mercado(id)) + protRelHtml(id) + '<div class="ref-btns">' + msdLinkHtml(d.nome) + '</div>' +
         '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante. Confira na bula oficial (aba Fontes).</p>')
       : '<p class="empty-msg">Resumo de bula ainda não disponível.</p>';
     var addKit = '<div class="sec addkit"><h3>🧰 Adicionar a uma maleta</h3>' + (ms.length

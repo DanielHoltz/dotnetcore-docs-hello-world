@@ -156,3 +156,22 @@ test('apresentações de mercado: listas de seleção e composição de soluçã
   const c = A.compor(A.paraInfusao('noradrenalina'), 16, 'mg');
   assert.deepStrictEqual(c, { i: 0, n: 4 });
 });
+
+test('catálogo CMED/Anvisa: ≥ 1.400 princípios ativos, sem duplicar fichas do app', () => {
+  const CT = require('../../wwwroot/enfermagem/js/catalogo.js');
+  const B = require('../../wwwroot/enfermagem/js/bulario.js');
+  const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
+  const cats = new Set(B.CATEGORIAS.map(c => c.id));
+  const appIds = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
+  assert.ok(CT.total >= 1400);
+  assert.ok(CT.total + appIds.size >= 1500, 'total de medicamentos');
+  const ids = new Set();
+  for (const a of CT.CAT) {
+    const c = CT.item(a);
+    assert.ok(c.id.startsWith('c-') && !ids.has(c.id) && !appIds.has(c.id), 'id ' + c.id); ids.add(c.id);
+    assert.ok(c.nome && cats.has(c.cat) && [-1, 0, 1, 2, 3].includes(c.tarja) && c.tmax >= c.tarja, c.id);
+    assert.ok(Array.isArray(c.ap) && Array.isArray(c.marcas));
+  }
+  assert.ok(CT.mercado('dipirona').marcas.length > 0);
+  assert.match(CT.FONTE.data, /^\d{4}-\d{2}-\d{2}$/);
+});
