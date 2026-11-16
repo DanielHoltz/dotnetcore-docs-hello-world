@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra, PR = window.Protocolos;
+  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra, PR = window.Protocolos, MOD = window.Modulos;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -56,8 +56,8 @@
   var CALCS = [
     { id: 'gotejamento', cat: 'infusao', icon: '💧', title: 'Gotejamento', desc: 'Gotas/min, microgotas/min e mL/h',
       fields: [
-        { id: 'vol', label: 'Volume a infundir', unit: 'mL', def: 500 },
-        { id: 'h', label: 'Tempo (horas)', unit: 'h', def: 8 },
+        { id: 'vol', label: 'Volume a infundir', unit: 'mL', def: 500, chips: [100, 250, 500, 1000] },
+        { id: 'h', label: 'Tempo (horas)', unit: 'h', def: 8, chips: [1, 2, 4, 6, 8, 12, 24] },
         { id: 'min', label: 'Tempo adicional (minutos)', unit: 'min', def: 0 },
         { id: 'eq', label: 'Equipo', type: 'seg', options: [['20', 'Macrogotas (20 gts/mL)'], ['60', 'Microgotas (60 mcgts/mL)']], def: '20' }
       ],
@@ -76,7 +76,7 @@
 
     { id: 'tempo-infusao', cat: 'infusao', icon: '⏱️', title: 'Tempo de infusão', desc: 'Quanto tempo leva com o gotejamento atual',
       fields: [
-        { id: 'vol', label: 'Volume', unit: 'mL', def: 500 },
+        { id: 'vol', label: 'Volume', unit: 'mL', def: 500, chips: [100, 250, 500, 1000] },
         { id: 'gts', label: 'Gotejamento atual', unit: 'gotas/min', def: 21 },
         { id: 'eq', label: 'Equipo', type: 'seg', options: [['20', 'Macrogotas'], ['60', 'Microgotas']], def: '20' }
       ],
@@ -93,8 +93,8 @@
 
     { id: 'vazao-bomba', cat: 'infusao', icon: '⚙️', title: 'Vazão em bomba (mL/h)', desc: 'Volume e tempo → mL/h',
       fields: [
-        { id: 'vol', label: 'Volume', unit: 'mL', def: 100 },
-        { id: 'min', label: 'Tempo de infusão', unit: 'min', def: 30 }
+        { id: 'vol', label: 'Volume', unit: 'mL', def: 100, chips: [50, 100, 250, 500] },
+        { id: 'min', label: 'Tempo de infusão', unit: 'min', def: 30, chips: [15, 30, 60, 120] }
       ],
       compute: function (v) {
         if (!(v.vol > 0) || !(v.min > 0)) return null;
@@ -108,6 +108,7 @@
 
     { id: 'dose', cat: 'medicacao', icon: '💉', title: 'Dose (regra de três)', desc: 'Quantos mL aspirar da apresentação disponível',
       fields: [
+        { id: 'apr', label: 'Medicamento e apresentação de mercado', type: 'apres', map: 'qtd:qtd,vol:vol' },
         { id: 'dose', label: 'Dose prescrita', units: MASS_UNITS, defU: 'mg', def: 250 },
         { id: 'qtd', label: 'Apresentação: quantidade', units: MASS_UNITS, defU: 'mg', def: 500 },
         { id: 'vol', label: 'Apresentação: em volume de', unit: 'mL', def: 2 }
@@ -126,12 +127,13 @@
 
     { id: 'reconstituicao', cat: 'medicacao', icon: '🧴', title: 'Reconstituição de pó', desc: 'Frasco-ampola: concentração, volume e infusão',
       fields: [
+        { id: 'apr', label: 'Frasco-ampola de mercado', type: 'apres', map: 'qtd:qtd,vol:dil', po: true },
         { id: 'qtd', label: 'Conteúdo do frasco', units: MASS_UNITS, defU: 'mg', def: 1000 },
-        { id: 'dil', label: 'Diluente adicionado', unit: 'mL', def: 10 },
+        { id: 'dil', label: 'Diluente adicionado', unit: 'mL', def: 10, chips: [2, 3, 5, 10, 20] },
         { id: 'desl', label: 'Volume ocupado pelo pó (se informado na bula)', unit: 'mL', def: 0, hint: 'Deixe 0 se desconhecido' },
         { id: 'dose', label: 'Dose prescrita', units: MASS_UNITS, defU: 'mg', def: 500 },
-        { id: 'diluir', label: 'Diluir depois em (opcional)', unit: 'mL', def: 100, optional: true },
-        { id: 'tempo', label: 'Tempo de infusão (opcional)', unit: 'min', def: 30, optional: true }
+        { id: 'diluir', label: 'Diluir depois em (opcional)', unit: 'mL', def: 100, optional: true, chips: [50, 100, 250] },
+        { id: 'tempo', label: 'Tempo de infusão (opcional)', unit: 'min', def: 30, optional: true, chips: [15, 30, 60, 120] }
       ],
       compute: function (v) {
         if (!C.sameClass(v.dose_u, v.qtd_u)) return { error: 'Unidades incompatíveis entre dose e frasco.' };
@@ -161,7 +163,7 @@
     { id: 'penicilina', cat: 'medicacao', icon: '🧫', title: 'Penicilina cristalina', desc: 'Frasco em UI com volume do pó',
       fields: [
         { id: 'ui', label: 'Frasco', type: 'select', options: [['5000000', '5.000.000 UI'], ['10000000', '10.000.000 UI'], ['1000000', '1.000.000 UI']], def: '5000000' },
-        { id: 'dil', label: 'Diluente (AD)', unit: 'mL', def: 8 },
+        { id: 'dil', label: 'Diluente (AD)', unit: 'mL', def: 8, chips: [6, 8, 10] },
         { id: 'desl', label: 'Volume ocupado pelo pó', unit: 'mL', def: 2, hint: '≈ 2 mL no frasco de 5.000.000 UI (confira a bula)' },
         { id: 'dose', label: 'Dose prescrita', unit: 'UI', def: 2000000 }
       ],
@@ -179,11 +181,11 @@
 
     { id: 'transformacao-soro', cat: 'solucoes', icon: '🔬', title: 'Transformação de soro', desc: 'Ex.: SG 5% → SG 10% com glicose 50%',
       fields: [
-        { id: 'vol', label: 'Volume do soro disponível', unit: 'mL', def: 500 },
-        { id: 'c1', label: 'Concentração atual', unit: '%', def: 5 },
-        { id: 'c2', label: 'Concentração desejada', unit: '%', def: 10 },
-        { id: 'ca', label: 'Concentração da ampola', unit: '%', def: 50 },
-        { id: 'va', label: 'Volume de cada ampola', unit: 'mL', def: 10 },
+        { id: 'vol', label: 'Volume do soro disponível', unit: 'mL', def: 500, chips: [250, 500, 1000] },
+        { id: 'c1', label: 'Concentração atual', unit: '%', def: 5, chips: [5, 10] },
+        { id: 'c2', label: 'Concentração desejada', unit: '%', def: 10, chips: [7.5, 10, 12.5, 15, 20] },
+        { id: 'ca', label: 'Concentração da ampola', unit: '%', def: 50, chips: [25, 50] },
+        { id: 'va', label: 'Volume de cada ampola', unit: 'mL', def: 10, chips: [10, 20] },
         { id: 'met', label: 'Método', type: 'seg', options: [['adicionar', 'Apenas adicionar'], ['substituir', 'Desprezar e repor']], def: 'adicionar' }
       ],
       compute: function (v) {
@@ -219,8 +221,8 @@
 
     { id: 'percentual', cat: 'solucoes', icon: '％', title: 'Solução percentual', desc: '% → mg/mL e gramas no volume',
       fields: [
-        { id: 'pct', label: 'Concentração', unit: '%', def: 0.9 },
-        { id: 'vol', label: 'Volume', unit: 'mL', def: 500 }
+        { id: 'pct', label: 'Concentração', unit: '%', def: 0.9, chips: [0.45, 0.9, 3, 5, 10, 20, 50] },
+        { id: 'vol', label: 'Volume', unit: 'mL', def: 500, chips: [100, 250, 500, 1000] }
       ],
       compute: function (v) {
         if (!(v.pct > 0)) return null;
@@ -231,10 +233,11 @@
 
     { id: 'dose-peso', cat: 'pediatria', icon: '⚖️', title: 'Dose por peso (mg/kg)', desc: 'Dose pediátrica e volume a administrar',
       fields: [
+        { id: 'apr', label: 'Medicamento e apresentação de mercado', type: 'apres', map: 'qtd:qtd,vol:vol', soMg: true },
         { id: 'peso', label: 'Peso', unit: 'kg', def: 12 },
         { id: 'dpk', label: 'Dose prescrita/recomendada', unit: 'mg/kg', def: 15 },
         { id: 'tipo', label: 'A dose em mg/kg é', type: 'seg', options: [['dose', 'Por dose'], ['dia', 'Por dia (dividir)']], def: 'dose' },
-        { id: 'nx', label: 'Doses por dia', unit: 'vezes', def: 4 },
+        { id: 'nx', label: 'Doses por dia', unit: 'vezes', def: 4, chips: [1, 2, 3, 4, 6] },
         { id: 'qtd', label: 'Apresentação: mg', unit: 'mg', def: 200 },
         { id: 'vol', label: 'Apresentação: em mL', unit: 'mL', def: 5 },
         { id: 'max', label: 'Dose máxima por dose (opcional)', unit: 'mg', optional: true }
@@ -434,7 +437,7 @@
         { id: 'cap', label: 'Capacidade hidráulica do cilindro', unit: 'L', def: 10, hint: 'Volume interno (água) — veja o cilindro' },
         { id: 'p', label: 'Pressão no manômetro', unit: 'kgf/cm²', def: 150 },
         { id: 'res', label: 'Reserva de segurança', unit: 'kgf/cm²', def: 20 },
-        { id: 'fl', label: 'Fluxo', unit: 'L/min', def: 5 }
+        { id: 'fl', label: 'Fluxo', unit: 'L/min', def: 5, chips: [1, 2, 3, 5, 10, 15] }
       ],
       compute: function (v) {
         var r = C.oxigenioCilindro(v.cap, v.p, v.res, v.fl);
@@ -502,6 +505,16 @@
         f.options.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === f.def ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') +
         '</select></div>';
     }
+    if (f.type === 'apres') {
+      var grupos = Object.keys(AP.AP).map(function (k) { return { id: k, nome: nomeMed(k), l: AP.lista(k) }; })
+        .concat(BX.EXTRAS.filter(function (x) { return x.ap && !AP.AP[x.id]; }).map(function (x) { return { id: x.id, nome: x.nome, l: x.ap.map(function (a) { return { rot: a[0], qtd: a[1], u: a[2], vol: a[3] }; }) }; }))
+        .map(function (g) { g.l = g.l.filter(function (a) { return (!f.soMg || a.u === 'mg') && (!f.po || /p[óo]|FA /i.test(a.rot)); }); return g; })
+        .filter(function (g) { return g.l.length; }).sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+      return '<div class="field">' + lab + '<select id="' + id + '" data-apres="' + esc(f.map) + '"><option value="">— Escolher (ou digite abaixo) —</option>' +
+        grupos.map(function (g) {
+          return '<optgroup label="' + esc(g.nome) + '">' + g.l.map(function (a) { return '<option value="' + esc(JSON.stringify([a.qtd, a.u, a.vol])) + '">' + esc(g.nome + ' — ' + a.rot) + '</option>'; }).join('') + '</optgroup>';
+        }).join('') + '</select><small>Preenche a apresentação automaticamente. Confira o rótulo do produto.</small></div>';
+    }
     if (f.type === 'date' || f.type === 'time') {
       return '<div class="field">' + lab + '<input type="' + f.type + '" id="' + id + '" data-k="' + f.id + '" value="' + esc(f.def || '') + '"></div>';
     }
@@ -510,12 +523,41 @@
       : (f.unit ? '<span class="unit">' + esc(f.unit) + '</span>' : '');
     return '<div class="field">' + lab + '<div class="input-wrap"><input id="' + id + '" data-k="' + f.id + '" type="text" inputmode="decimal" autocomplete="off" value="' +
       (f.def != null ? esc(String(f.def).replace('.', ',')) : '') + '" placeholder="' + (f.optional ? 'opcional' : '') + '">' + unit + '</div>' +
+      (f.chips ? '<div class="qchips">' + f.chips.map(function (c) { return '<button type="button" class="qchip" data-qv="' + c + '">' + esc(fmt(c, 2)) + '</button>'; }).join('') + '</div>' : '') +
       (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '</div>';
   }
+  function nomeMed(id) {
+    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0] || BX.EXTRAS.filter(function (x) { return x.id === id; })[0];
+    return d ? d.nome : id;
+  }
+  // Toque rápido nos valores de mercado e escolha de apresentação (calculadoras)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.qchip');
+    if (!b) return;
+    var inp = b.closest('.field').querySelector('input[type=text]');
+    inp.value = fmtIn(+b.getAttribute('data-qv'));
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  document.addEventListener('change', function (e) {
+    var sel = e.target;
+    if (!sel.matches || !sel.matches('select[data-apres]') || !sel.value) return;
+    var a = JSON.parse(sel.value), form = sel.form || sel.closest('form');
+    sel.getAttribute('data-apres').split(',').forEach(function (par) {
+      var kv = par.split(':'), alvo = form.querySelector('input[data-k="' + kv[1] + '"]');
+      if (!alvo) return;
+      alvo.value = fmtIn(kv[0] === 'qtd' ? a[0] : a[2]);
+      if (kv[0] === 'qtd') {
+        var u = form.querySelector('[data-k="' + kv[1] + '_u"]');
+        if (u && Array.prototype.some.call(u.options, function (o) { return o.value === a[1] || o.text === a[1]; })) u.value = a[1];
+      }
+    });
+    form.dispatchEvent(new Event('input'));
+  });
 
   function readValues(form, fields) {
     var v = {};
     fields.forEach(function (f) {
+      if (f.type === 'apres') return;
       if (f.type === 'seg') {
         var r = form.querySelector('input[data-k="' + f.id + '"]:checked');
         v[f.id] = r ? r.value : f.def;
@@ -579,6 +621,7 @@
     e.push({ key: 'view:pcr', href: '#/pcr', icon: '🚨', title: 'Modo PCR', desc: 'Parada cardiorrespiratória: cronômetro e registro', search: 'pcr parada reanimacao rcp adrenalina choque' });
     e.push({ key: 'view:emergped', href: '#/emergencia-ped', icon: '👶', title: 'Emergência pediátrica', desc: 'Doses e materiais por peso/idade', search: 'pediatria pals crianca tubo canula desfibrilacao peso estimado' });
     e.push({ key: 'view:compat', href: '#/compatibilidade', icon: '🔗', title: 'Interações e compatibilidade', desc: 'Checar medicamentos juntos', search: 'interacao compatibilidade y incompatibilidade' });
+    MOD.MODULOS.forEach(function (m) { e.push({ key: 'mod:' + m.id, href: '#/modulo/' + m.id, icon: m.icon, title: 'Módulo ' + m.nome, desc: m.desc, search: 'modulo area ' + m.nome + ' ' + m.desc }); });
     PR.PROTOCOLOS.forEach(function (p) { e.push({ key: 'prot:' + p.id, href: '#/protocolo/' + p.id, icon: '📑', title: p.nome, desc: 'Protocolo · ' + p.resumo, search: p.nome + ' ' + p.resumo + ' protocolo conduta' }); });
     e.push({ key: 'view:sri', href: '#/sri', icon: '🫁', title: 'Intubação — sequência rápida', desc: 'Doses por peso em mg e mL', search: 'intubacao sri iot etomidato cetamina rocuronio succinilcolina via aerea' });
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
@@ -635,7 +678,10 @@
       '<div class="search"><input id="q" type="search" placeholder="Buscar cálculo, medicamento ou escala…" autocomplete="off" aria-label="Buscar"></div>' +
       '<div id="search-res"></div>' +
       '<div id="home-main">' + homePaciente() +
-      '<div class="hub">' + SECOES.map(function (s) {
+      '<h2 class="hub-h">🗂️ Módulos por área</h2><div class="hub mod-hub">' + MOD.MODULOS.map(function (m) {
+        return '<a class="hub-tile" href="#/modulo/' + m.id + '"><span class="hub-ic">' + m.icon + '</span><b>' + esc(m.nome) + '</b><small>' + esc(m.desc) + '</small></a>';
+      }).join('') + '</div>' +
+      '<h2 class="hub-h">🧭 Ferramentas gerais</h2><div class="hub">' + SECOES.map(function (s) {
         return '<a class="hub-tile ' + (s.cls || '') + '" href="' + s.href + '"><span class="hub-ic">' + s.icon + '</span><b>' + esc(s.nome) + '</b><small>' + esc(s.desc) + '</small></a>';
       }).join('') + '</div>' +
       homeRecentes(entries) +
@@ -890,9 +936,15 @@
         '<div class="field"><label for="i-preset">Medicamento</label><select id="i-preset">' +
           presets.map(function (x) { return '<option value="' + x.id + '"' + (x.id === p.id ? ' selected' : '') + '>' + esc(x.nome) + '</option>'; }).join('') +
           '<option value="custom">Personalizado…</option></select><small id="i-sol"></small></div>' +
+        '<div class="field"><label for="i-ap">Apresentação (ampola/frasco)</label><select id="i-ap"></select></div>' +
+        '<div class="row2"><div class="field"><label for="i-n">Quantidade</label><select id="i-n">' +
+          [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20].map(function (n) { return '<option value="' + n + '">' + n + (n > 1 ? ' unidades' : ' unidade') + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label for="i-vf">Volume final da solução</label><select id="i-vf">' + optsHtml(AP.VOL_FINAL, null, labVF) + '</select></div></div>' +
+        '<div class="comp" id="i-comp" aria-live="polite"></div>' +
+        '<details id="i-man"><summary>✏️ Digitar a solução manualmente</summary>' +
         '<div class="field"><label for="i-qtd">Quantidade de droga na solução</label><div class="input-wrap"><input id="i-qtd" type="text" inputmode="decimal">' +
           '<select class="unit" id="i-qtdu">' + ['mcg', 'mg', 'g', 'UI'].map(function (u) { return '<option>' + u + '</option>'; }).join('') + '</select></div></div>' +
-        '<div class="field"><label for="i-vol">Volume total da solução</label><div class="input-wrap"><input id="i-vol" type="text" inputmode="decimal"><span class="unit">mL</span></div></div>' +
+        '<div class="field"><label for="i-vol">Volume total da solução</label><div class="input-wrap"><input id="i-vol" type="text" inputmode="decimal"><span class="unit">mL</span></div></div></details>' +
         '<div class="field"><label for="i-peso">Peso do paciente</label><div class="input-wrap"><input id="i-peso" type="text" inputmode="decimal" value="' + esc(String(peso).replace('.', ',')) + '"><span class="unit">kg</span></div></div>' +
         '<div class="field"><label for="i-du">Unidade da dose</label><select id="i-du">' + doseUnits.map(function (u) { return '<option>' + u + '</option>'; }).join('') + '</select></div>' +
         '<div class="field"><span class="lbl">Calcular</span><div class="seg">' +
@@ -904,9 +956,28 @@
     var $ = function (id) { return document.getElementById(id); };
     var cur = p;
 
+    var aps = [];
+    function fillAp(x) {
+      aps = x ? AP.paraInfusao(x.id) : [];
+      $('i-ap').innerHTML = aps.map(function (a, i) { return '<option value="' + i + '">' + esc(a.rot) + '</option>'; }).join('') + '<option value="m">Outra (digitar)</option>';
+    }
+    function fromSel() {
+      var v = $('i-ap').value, comp = $('i-comp');
+      var auto = v !== 'm';
+      $('i-n').closest('.field').hidden = !auto; $('i-vf').closest('.field').hidden = !auto;
+      if (!auto) { $('i-man').open = true; comp.innerHTML = ''; return; }
+      if ($('i-vf').value === 'outro') return;
+      var a = aps[+v], n = +$('i-n').value, vf = num($('i-vf').value);
+      $('i-qtd').value = fmtIn(a.qtd * n); $('i-qtdu').value = a.u; $('i-vol').value = fmtIn(vf);
+      var asp = a.vol * n, dil = vf - asp;
+      comp.innerHTML = dil < 0 ? '<div class="alert warn">⚠️ O volume das ampolas (' + fmt(asp, 1) + ' mL) passa do volume final escolhido.</div>'
+        : '🧪 <b>Preparo:</b> aspirar ' + fmt(asp, 1) + ' mL (' + n + ' × ' + esc(a.rot) + ' = ' + fmt(a.qtd * n, 3) + ' ' + esc(a.u) + ')' +
+          (dil > 0 ? ' + ' + fmt(dil, 1) + ' mL de diluente' : '') + ' → <b>' + fmt(vf, 0) + ' mL</b>';
+    }
     function applyPreset(x) {
       cur = x;
-      if (!x) { $('i-sol').textContent = 'Informe a solução preparada.'; return; }
+      fillAp(x);
+      if (!x) { $('i-sol').textContent = 'Informe a solução preparada.'; $('i-ap').value = 'm'; fromSel(); return; }
       $('i-qtd').value = String(x.qtd).replace('.', ',');
       $('i-qtdu').value = x.u;
       $('i-vol').value = x.vol;
@@ -914,6 +985,10 @@
       $('i-val').value = String(x.dose).replace('.', ',');
       document.querySelector('input[name=i-modo][value=dose]').checked = true;
       $('i-sol').textContent = 'Solução padrão: ' + x.solucao + ' (ajuste ao protocolo da sua instituição).';
+      var c = AP.compor(aps, x.qtd, x.u);
+      if (c) { $('i-ap').value = String(c.i); $('i-n').value = String(c.n); setSel($('i-vf'), x.vol, AP.VOL_FINAL, labVF); $('i-man').open = false; }
+      else $('i-ap').value = 'm';
+      fromSel();
     }
 
     function run() {
@@ -967,6 +1042,8 @@
       run();
     });
     var form = $('inf-form');
+    ['i-ap', 'i-n', 'i-vf'].forEach(function (k) { $(k).addEventListener('change', fromSel); });
+    bindOutro($('i-vf'), 'mL', AP.VOL_FINAL, labVF, function () { fromSel(); run(); });
     form.addEventListener('input', function (e) { if (e.target.id !== 'i-preset') run(); });
     form.addEventListener('change', function (e) { if (e.target.id !== 'i-preset') run(); });
     applyPreset(p);
@@ -993,11 +1070,46 @@
   // Apresentação escolhida pelo usuário (lembrada por medicamento)
   function apPref(id) { var p = store.get('apPref', {}); var c = p && p[id]; return c && c.qtd > 0 && c.vol > 0 && C.UNITS[c.u] ? c : null; }
   function apSet(id, a) { var p = store.get('apPref', {}) || {}; p[id] = { qtd: a.qtd, u: a.u, vol: a.vol, rot: a.rot }; store.set('apPref', p); }
+  function mesmaConc(a, b) { return !!(a && b && a.u === b.u && Math.abs(a.qtd / a.vol - b.qtd / b.vol) <= 1e-9 * Math.max(1, a.qtd / a.vol)); }
   function apChipsHtml(lista, atual, attr) {
     if (!lista.length) return '';
+    var sel = -1;
+    lista.forEach(function (a, i) { if (sel < 0 && AP.igual(a, atual)) sel = i; });
+    if (sel < 0) lista.forEach(function (a, i) { if (sel < 0 && mesmaConc(a, atual)) sel = i; });
     return '<div class="ap-box"><span class="lbl">Sua ampola / frasco — toque para escolher</span><div class="ap-chips">' + lista.map(function (a, i) {
-      return '<button type="button" class="ap-chip' + (AP.igual(a, atual) ? ' on' : '') + '" ' + attr + '="' + i + '">' + esc(a.rot) + '</button>';
+      return '<button type="button" class="ap-chip' + (i === sel ? ' on' : '') + '" ' + attr + '="' + i + '">' + esc(a.rot) + '</button>';
     }).join('') + '</div></div>';
+  }
+
+  // ---- Listas de seleção (valores de mercado) com opção "Outro valor…" ----
+  function fmtIn(n) { return String(+(+n).toPrecision(10)).replace('.', ','); }
+  function labVol(x) { return x === 0 ? 'Sem diluir (EV direto)' : fmt(x, 0) + ' mL' + (x <= 20 ? ' (seringa)' : ' (bolsa/frasco)'); }
+  function labVF(x) { return fmt(x, 0) + ' mL' + (x <= 50 ? ' (seringa)' : ' (bolsa)'); }
+  function labTempo(x) { return x === 0 ? 'Bolus' : fmtTempo(x); }
+  function optsHtml(vals, cur, lab) {
+    var v = vals.slice();
+    if (cur != null && isFinite(cur) && v.indexOf(cur) < 0) { v.push(cur); v.sort(function (a, b) { return a - b; }); }
+    return v.map(function (x) { return '<option value="' + x + '"' + (x === cur ? ' selected' : '') + '>' + esc(lab(x)) + '</option>'; }).join('') +
+      '<option value="outro">Outro valor…</option>';
+  }
+  function setSel(sel, v, vals, lab) {
+    if (!sel || v == null || !isFinite(v)) return;
+    var has = Array.prototype.some.call(sel.options, function (o) { return o.value === String(v); });
+    if (!has) sel.innerHTML = optsHtml(vals, v, lab);
+    sel.value = String(v); sel.setAttribute('data-prev', String(v));
+  }
+  function bindOutro(sel, unidade, vals, lab, done) {
+    if (!sel) return;
+    if (!sel.getAttribute('data-prev')) sel.setAttribute('data-prev', sel.value);
+    sel.addEventListener('change', function () {
+      if (sel.value !== 'outro') { sel.setAttribute('data-prev', sel.value); return; }
+      var prev = sel.getAttribute('data-prev');
+      ask({ titulo: 'Outro valor', msg: 'Informe o valor em ' + unidade + '.', input: true, ph: 'ex.: 75', ok: 'Usar' }).then(function (r) {
+        var n = r == null ? NaN : num(r);
+        if (isFinite(n) && n >= 0) setSel(sel, n, vals, lab); else sel.value = prev;
+        done();
+      });
+    });
   }
 
   function bindDrugCalc(d) {
@@ -1016,8 +1128,23 @@
     var box = document.createElement('div');
     box.innerHTML = apChipsHtml(lista, pref || d.conc, 'data-ap');
     form.parentNode.insertBefore(box, form);
+    var manual = !lista.length || !lista.some(function (a) { return mesmaConc(a, pref || d.conc); });
+    function mostrarManual(on) {
+      ['qtd', 'vol'].forEach(function (k) { var f = form.querySelector('[data-k=' + k + ']'); if (f) f.closest('.field').hidden = !on; });
+      var bo = box.querySelector('[data-outra]'); if (bo) bo.classList.toggle('on', on);
+    }
+    var chips = box.querySelector('.ap-chips');
+    if (chips) {
+      chips.insertAdjacentHTML('beforeend', '<button type="button" class="ap-chip" data-outra>✏️ Outra apresentação</button>');
+      box.querySelector('[data-outra]').onclick = function () {
+        box.querySelectorAll('.ap-chip').forEach(function (x) { x.classList.remove('on'); });
+        mostrarManual(true); form.querySelector('[data-k=qtd]').focus();
+      };
+    }
+    mostrarManual(manual);
     box.querySelectorAll('[data-ap]').forEach(function (b) {
       b.onclick = function () {
+        mostrarManual(false);
         var a = lista[+b.getAttribute('data-ap')];
         form.querySelector('[data-k=qtd]').value = String(a.qtd).replace('.', ',');
         var su = form.querySelector('[data-k=qtd_u]'); if (su) su.value = a.u;
@@ -1678,8 +1805,11 @@
         '<h2>🧪 Preparo para este paciente</h2>' + apChipsHtml(listaAp, d.conc, 'data-apa') + '<form class="form" id="prf" onsubmit="return false" autocomplete="off">' +
           '<div class="field"><label for="pr-dose">Dose prescrita</label><div class="input-wrap"><input id="pr-dose" type="text" inputmode="decimal" value="' + (sug && sug.valor != null ? esc(String(sug.valor).replace('.', ',')) : '') + '" placeholder="informe a dose"><span class="unit">' + esc(d.conc.u) + '</span></div>' +
           '<small>Apresentação: ' + esc(concTxt(d.conc)) + (it.conc ? ' (da sua maleta)' : '') + '</small></div>' +
-          (pronto || im ? '' : '<div class="field"><label for="pr-dil">Diluir em' + (dd && dd.diluente ? ' (' + esc(dd.diluente) + ')' : '') + '</label><div class="input-wrap"><input id="pr-dil" type="text" inputmode="decimal"><span class="unit">mL</span></div><small>0 = sem diluição em bolsa (EV direto)</small></div>') +
-          (im ? '' : '<div class="field"><label for="pr-t">Tempo de administração</label><div class="input-wrap"><input id="pr-t" type="text" inputmode="decimal"><span class="unit">min</span></div><small>0 = bolus</small></div>') +
+          (pronto || im ? '' : '<div class="row2"><div class="field"><label for="pr-diltipo">Diluente</label><select id="pr-diltipo">' +
+            AP.diluentesDe(dd && dd.diluente).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('') + '</select></div>' +
+            '<div class="field"><label for="pr-dil">Volume do diluente</label><select id="pr-dil">' + optsHtml(AP.VOLUMES, null, labVol) + '</select></div></div>' +
+            (dd && dd.diluente ? '<small class="hint-sel">Compatível pela ficha: ' + esc(dd.diluente) + '</small>' : '')) +
+          (im ? '' : '<div class="field"><label for="pr-t">Tempo de administração</label><select id="pr-t">' + optsHtml(AP.TEMPOS, null, labTempo) + '</select></div>') +
         '</form><div id="prep" aria-live="polite"></div><button class="btn" id="reg-btn" type="button">✓ Registrar administração agora</button>') +
       (m.lib ? '<a class="btn ghost" href="#/compatibilidade">🔗 Checar interações com outros medicamentos</a><div hidden>' : '<div>') +
       '<h2>🔗 Interações com esta maleta</h2>' +
@@ -1690,7 +1820,8 @@
       '<details class="sheet-box"><summary>📄 Ficha completa e referências</summary>' + drugSheetHtml(d, true) + refsHtml(d, it) + '</details>';
 
     if (cont || !d.conc) return;
-    var $d = document.getElementById('pr-dose'), $dil = document.getElementById('pr-dil'), $t = document.getElementById('pr-t');
+    var $d = document.getElementById('pr-dose'), $dil = document.getElementById('pr-dil'), $t = document.getElementById('pr-t'), $tipo = document.getElementById('pr-diltipo');
+    function dilNome() { return $tipo ? $tipo.value : ((dd && dd.diluente) || 'diluente'); }
     $app.querySelectorAll('[data-apa]').forEach(function (b) {
       b.onclick = function () {
         var a = listaAp[+b.getAttribute('data-apa')];
@@ -1702,8 +1833,8 @@
     var dirtyDil = false, dirtyT = false, ultimo = null;
     function defaults() {
       var pad = P.preparoPadrao(did, num($d.value), d.conc, pf, DB);
-      if ($dil && !dirtyDil) $dil.value = pad.diluenteMl;
-      if ($t && !dirtyT) $t.value = String(pad.tempo).replace('.', ',');
+      if ($dil && !dirtyDil) setSel($dil, pad.diluenteMl, AP.VOLUMES, labVol);
+      if ($t && !dirtyT) setSel($t, pad.tempo, AP.TEMPOS, labTempo);
     }
     function run() {
       var dose = num($d.value), out = document.getElementById('prep');
@@ -1714,7 +1845,7 @@
       if (rec) steps.push('<b>Reconstituir:</b> ' + esc(rec));
       steps.push(r.via === 'pronto' ? '<b>Separar</b> <span class="big">' + fmt(r.aspirar, 1) + ' mL</span> da bolsa pronta (' + esc(concTxt(d.conc)) + ')'
         : '<b>Aspirar</b> <span class="big">' + fmt(r.aspirar, 2) + ' mL</span>' + (r.unidades > 1.0001 ? ' (' + fmt(r.unidades, 2) + ' unidades)' : ''));
-      if (r.diluenteMl > 0) steps.push('<b>Diluir</b> em ' + fmt(r.diluenteMl, 0) + ' mL de ' + esc((dd && dd.diluente) || 'diluente') + ' → volume final <b>' + fmt(r.total, 1) + ' mL</b> (' + fmt(r.concFinal, 3) + ' ' + esc(d.conc.u) + '/mL)');
+      if (r.diluenteMl > 0) steps.push('<b>Diluir</b> em ' + fmt(r.diluenteMl, 0) + ' mL de ' + esc(dilNome()) + ' → volume final <b>' + fmt(r.total, 1) + ' mL</b> (' + fmt(r.concFinal, 3) + ' ' + esc(d.conc.u) + '/mL)');
       if (r.via === 'im') steps.push('<b>Aplicar</b> por via ' + esc(dd.viaTxt || 'IM/SC'));
       else if (r.tempo > 0) {
         steps.push((r.diluenteMl > 0 || r.via === 'pronto' ? '<b>Infundir</b> em ' : '<b>Administrar EV lento</b> em ') + fmtTempo(r.tempo) +
@@ -1726,7 +1857,7 @@
       if (sug && sug.valor != null && (dose > sug.valor * 2 || dose < sug.valor / 2)) av.push('Dose muito diferente da sugestão (' + fmt(sug.valor, 3) + ' ' + d.conc.u + '). Confira a prescrição e a unidade.');
       ultimo = { dose: fmt(dose, 3) + ' ' + d.conc.u, prep: (r.via === 'im' ? 'aspirar ' + fmt(r.aspirar, 2) + ' mL; via ' + (dd.viaTxt || 'IM/SC')
         : (r.via === 'pronto' ? fmt(r.aspirar, 1) + ' mL da bolsa' : 'aspirar ' + fmt(r.aspirar, 2) + ' mL') +
-          (r.diluenteMl > 0 ? '; diluir em ' + fmt(r.diluenteMl, 0) + ' mL de ' + ((dd && dd.diluente) || 'diluente') : '') +
+          (r.diluenteMl > 0 ? '; diluir em ' + fmt(r.diluenteMl, 0) + ' mL de ' + dilNome() : '') +
           (r.tempo > 0 ? '; ' + (r.diluenteMl > 0 || r.via === 'pronto' ? 'infundir' : 'EV lento') + ' em ' + fmtTempo(r.tempo) + (r.mlh && (r.diluenteMl > 0 || r.via === 'pronto') ? ' (' + fmt(r.mlh, 1) + ' mL/h)' : '') : '; bolus')) };
       out.innerHTML = '<ol class="steps">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
         av.map(function (a) { return '<div class="alert warn">⚠️ ' + esc(a) + '</div>'; }).join('');
@@ -1743,8 +1874,9 @@
       });
     };
     $d.addEventListener('input', function () { defaults(); run(); });
-    if ($dil) $dil.addEventListener('input', function () { dirtyDil = true; run(); });
-    if ($t) $t.addEventListener('input', function () { dirtyT = true; run(); });
+    if ($dil) { $dil.addEventListener('change', function () { dirtyDil = true; run(); }); bindOutro($dil, 'mL', AP.VOLUMES, labVol, run); }
+    if ($t) { $t.addEventListener('change', function () { dirtyT = true; run(); }); bindOutro($t, 'minutos', AP.TEMPOS, labTempo, run); }
+    if ($tipo) $tipo.addEventListener('change', run);
     defaults(); run();
   }
 
@@ -2315,6 +2447,38 @@
     return '<a class="btn sm ghost" target="_blank" rel="noopener" href="' + esc(PR.buscaMsd(termo)) + '">📘 Buscar no Manual MSD</a>';
   }
 
+  // ---- Módulos por área ----
+  function drogaInfo(id) {
+    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
+    if (d) return { id: id, nome: d.nome, desc: d.classe, ic: '💊' };
+    var x = BX.EXTRAS.filter(function (e) { return e.id === id; })[0];
+    return x ? { id: id, nome: x.nome, desc: x.classe, ic: '📄' } : null;
+  }
+  function viewModulo(id) {
+    var m = MOD.MODULOS.filter(function (x) { return x.id === id; })[0];
+    if (!m) return viewNotFound();
+    setHeader(m.nome, true);
+    var ps = m.protocolos.map(function (k) { return PR.PROTOCOLOS.filter(function (p) { return p.id === k; })[0]; }).filter(Boolean);
+    var cs = m.calcs.map(function (k) { return CALCS.filter(function (c) { return c.id === k; })[0]; }).filter(Boolean);
+    var es = m.escalas.map(function (k) { return D.SCALES.filter(function (sc) { return sc.id === k; })[0]; }).filter(Boolean);
+    var ids = m.drogas.slice();
+    (m.cats || []).forEach(function (c) { BX.EXTRAS.forEach(function (x) { if (x.cat === c && ids.indexOf(x.id) < 0) ids.push(x.id); }); });
+    var ds = ids.map(drogaInfo).filter(Boolean).sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+    var secs = [['m-atalhos', '⚡ Atalhos', m.atalhos.length], ['m-prot', '📑 Protocolos', ps.length], ['m-calc', '🧮 Cálculos', cs.length], ['m-drog', '💊 Medicamentos', ds.length], ['m-esc', '📋 Escalas', es.length]]
+      .filter(function (x) { return x[2]; });
+    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(m.desc) + '.</p>' + favButton('mod:' + m.id) + '</div>' +
+      '<div class="chipnav">' + secs.map(function (x) { return '<button type="button" class="chipnav-b" data-go="' + x[0] + '">' + x[1] + ' (' + x[2] + ')</button>'; }).join('') + '</div>' +
+      (m.atalhos.length ? '<h2 id="m-atalhos">⚡ Atalhos</h2><div class="list">' + m.atalhos.map(function (a) { return card(a[0], a[1], a[2], a[3]); }).join('') + '</div>' : '') +
+      (ps.length ? '<h2 id="m-prot">📑 Protocolos</h2><div class="list">' + ps.map(function (p) { return card('#/protocolo/' + p.id, p.icon, p.nome, p.resumo, 'prot:' + p.id); }).join('') + '</div>' : '') +
+      (cs.length ? '<h2 id="m-calc">🧮 Cálculos</h2><div class="list">' + cs.map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>' : '') +
+      (ds.length ? '<h2 id="m-drog">💊 Medicamentos</h2><div class="list">' + ds.map(function (d) { return card('#/droga/' + d.id, d.ic, d.nome, d.desc, 'droga:' + d.id); }).join('') + '</div>' : '') +
+      (es.length ? '<h2 id="m-esc">📋 Escalas</h2><div class="list">' + es.map(function (sc) { return card('#/escala/' + sc.id, '📋', sc.nome, sc.desc, 'escala:' + sc.id); }).join('') + '</div>' : '') +
+      '<p class="disclaimer">Seleção do módulo; todo o conteúdo continua disponível nas abas Cálculos, Bulário e Protocolos.</p>';
+    $app.querySelectorAll('[data-go]').forEach(function (b) {
+      b.onclick = function () { var t = document.getElementById(b.getAttribute('data-go')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    });
+  }
+
   function viewProtocolos() {
     setHeader('Protocolos', false);
     $app.innerHTML = '<p class="lead">Condutas resumidas para a enfermagem, com passo a passo, medicamentos e link para o Manual MSD.</p>' +
@@ -2432,7 +2596,7 @@
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao' }[parts[0]];
+    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1] }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -2448,6 +2612,7 @@
       case 'pcr': viewPCR(); break;
       case 'emergencia': viewEmergencia(); break;
       case 'protocolos': viewProtocolos(); break;
+      case 'modulo': viewModulo(parts[1]); break;
       case 'conferencia': viewConferencia(); break;
       case 'protocolo': viewProtocolo(parts[1]); break;
       case 'sri': viewSRI(); break;

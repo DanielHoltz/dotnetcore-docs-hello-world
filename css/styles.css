@@ -504,3 +504,20 @@ h2[id^="g-"] { scroll-margin-top: 120px; }
 .sri-steps li.now { background: var(--warn-bg); font-weight: 600; }
 .sri-steps li.done { color: var(--muted); }
 .sri-steps li .btn.sm { margin: 6px 0 0; display: inline-block; width: auto; padding: 4px 10px; }
+
+/* Seleção de valores de mercado */
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.row2 > .field[hidden] { display: none; }
+.field[hidden] { display: none; }
+.qchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.qchip { min-width: 44px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; font-size: .82rem; cursor: pointer; }
+.qchip:active { background: var(--primary-soft); border-color: var(--primary); }
+.qchip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.hint-sel { display: block; margin: -4px 0 10px; color: var(--muted); font-size: .8rem; }
+.comp { margin: 2px 0 12px; font-size: .9rem; line-height: 1.45; }
+#i-man { margin: 0 0 12px; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; }
+#i-man summary { cursor: pointer; color: var(--primary); font-weight: 600; font-size: .88rem; }
+#i-man[open] summary { margin-bottom: 8px; }
+.hub-h { margin: 18px 4px 0; font-size: 1rem; color: var(--muted); font-weight: 700; }
+.hub-h + .hub { margin-top: 8px; }
+h2[id^="m-"] { scroll-margin-top: 120px; }

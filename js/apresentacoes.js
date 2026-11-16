@@ -30,6 +30,7 @@
     'clindamicina': [['Ampola 600 mg/4 mL', 600, 'mg', 4], ['Ampola 300 mg/2 mL', 300, 'mg', 2], ['Ampola 900 mg/6 mL', 900, 'mg', 6]],
     'cloreto-potassio': [['Ampola 19,1% 10 mL (25,6 mEq)', 25.6, 'mEq', 10], ['Ampola 10% 10 mL (13,4 mEq)', 13.4, 'mEq', 10]],
     'dexametasona': [['Ampola 4 mg/mL (2,5 mL = 10 mg)', 4, 'mg', 1], ['Ampola 2 mg/mL (1 mL)', 2, 'mg', 1]],
+    'dexmedetomidina': [['Frasco 200 mcg/2 mL (100 mcg/mL)', 200, 'mcg', 2]],
     'diazepam': [['Ampola 10 mg/2 mL', 10, 'mg', 2]],
     'dipirona': [['Ampola 1 g/2 mL (500 mg/mL)', 1000, 'mg', 2], ['Ampola 2,5 g/5 mL', 2500, 'mg', 5]],
     'dobutamina': [['Ampola 250 mg/20 mL', 250, 'mg', 20]],
@@ -88,6 +89,41 @@
     'vasopressina': [['Ampola 20 UI/mL', 20, 'UI', 1]]
   };
 
+  // Opções de mercado para escolher (em vez de digitar)
+  var DILUENTES = ['SF 0,9%', 'SG 5%', 'Ringer lactato', 'Água destilada (AD)'];
+  var VOLUMES = [0, 5, 10, 20, 50, 100, 125, 250, 500, 1000];      // volume de diluente (0 = sem diluir)
+  var VOL_FINAL = [20, 50, 100, 250, 500, 1000];                  // seringa de 20/50 mL ou bolsa
+  var TEMPOS = [0, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 360]; // minutos (0 = bolus)
+  var INF_AP = { insulina: 'insulina-regular' };                   // predefinição de infusão → apresentação
+
+  // Diluentes compatíveis a partir do texto da ficha (ex.: "SF 0,9% ou SG 5%", "SF 0,9% (somente)")
+  function diluentesDe(txt) {
+    if (!txt) return DILUENTES.slice(0, 2);
+    var t = txt.toLowerCase();
+    if (/somente|não usar glicose|nao usar glicose/.test(t)) return ['SF 0,9%'];
+    var r = [];
+    if (/sf|soro fisiol|nacl/.test(t)) r.push('SF 0,9%');
+    if (/sg|glicos/.test(t)) r.push('SG 5%');
+    if (/\brl\b|ringer/.test(t)) r.push('Ringer lactato');
+    if (/\bad\b|água destilada|agua destilada/.test(t)) r.push('Água destilada (AD)');
+    return r.length ? r : DILUENTES.slice(0, 2);
+  }
+  // Apresentações próprias para preparar infusão contínua (exclui as já diluídas)
+  function paraInfusao(presetId) {
+    var id = INF_AP[presetId] || presetId;
+    return lista(id).filter(function (a) { return !/^(Diluída|Solução)/.test(a.rot); });
+  }
+  // Escolhe apresentação e nº de ampolas que somam a quantidade da solução padrão
+  function compor(aps, qtd, u) {
+    var best = null;
+    for (var i = 0; i < aps.length; i++) {
+      var a = aps[i]; if (a.u !== u) continue;
+      var n = qtd / a.qtd;
+      if (n >= 0.999 && n <= 20 && Math.abs(n - Math.round(n)) < 1e-6 && (!best || Math.round(n) < best.n)) best = { i: i, n: Math.round(n) };
+    }
+    return best;  // menor número de ampolas/frascos
+  }
+
   function lista(id, concPadrao) {
     var l = (AP[id] || []).map(function (a) { return { rot: a[0], qtd: a[1], u: a[2], vol: a[3] }; });
     if (!l.length && concPadrao) l.push({ rot: concPadrao.qtd + ' ' + concPadrao.u + ' / ' + concPadrao.vol + ' mL', qtd: concPadrao.qtd, u: concPadrao.u, vol: concPadrao.vol });
@@ -95,7 +131,7 @@
   }
   function igual(a, b) { return a && b && a.u === b.u && Math.abs(a.qtd / a.vol - b.qtd / b.vol) < 1e-9 && Math.abs(a.vol - b.vol) < 1e-9; }
 
-  var api = { AP: AP, lista: lista, igual: igual };
+  var api = { AP: AP, lista: lista, igual: igual, DILUENTES: DILUENTES, VOLUMES: VOLUMES, VOL_FINAL: VOL_FINAL, TEMPOS: TEMPOS, diluentesDe: diluentesDe, paraInfusao: paraInfusao, compor: compor };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Apresentacoes = api;
 })(this);
