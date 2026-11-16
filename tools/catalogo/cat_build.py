@@ -3,7 +3,7 @@ JSDIR=_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),'..','..','wwwr
 import sys,os,re,json,pickle,collections,subprocess
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 from cat_norm import base,titulo,chave
-JS=JSDIR
+JS=''+JSDIR+''
 H,rows=pickle.load(open('dl/cmed.pkl','rb')); ix={h:i for i,h in enumerate(H)}
 FORM=[(r'\bCOM REV\b','comprimido revestido'),(r'\bCOM EFEV\b','comprimido efervescente'),(r'\bCOM MAST\b','comprimido mastigável'),(r'\bCOM ORODISP\b','comprimido orodispersível'),
 (r'\bCOM SUBL\b','comprimido sublingual'),(r'\bCOM\b','comprimido'),(r'\bCAP DURA\b','cápsula'),(r'\bCAP MOLE\b','cápsula mole'),(r'\bCAP\b','cápsula'),
@@ -43,18 +43,20 @@ def cat_de(cl):
     if c.startswith('V3'): return 'antidoto'
     if c.startswith('M1') : return 'analgesia'
     return {'A':'gastro','B':'hemato','C':'cardio','D':'pele','G':'hormonio','H':'hormonio','J':'antimicrobiano','K':'eletrolito','L':'onco','M':'outros','N':'analgesia','P':'antimicrobiano','R':'respiratorio','S':'oftalmo','T':'outros','V':'outros'}.get(c[:1],'outros')
+REF=set(open('dl/ref_registros.txt').read().split())
+TIPO={'Novo':'N','Similar':'S','Genérico':'G','Específico':'E','Biológico':'B','Fitoterápico':'F'}
 TARJA={'Tarja Preta':3,'Tarja Vermelha sob restrição':2,'Tarja Vermelha':1}
-G=collections.defaultdict(lambda:{'subs':collections.Counter(),'labs':set(),'prods':collections.Counter(),'ap':collections.Counter(),'classe':collections.Counter(),'tarja':collections.Counter(),'hosp':0,'tot':0,'gen':0,'com':0,'tipos':collections.Counter()})
+G=collections.defaultdict(lambda:{'subs':collections.Counter(),'labs':set(),'prods':{},'genlabs':set(),'ap':collections.Counter(),'classe':collections.Counter(),'tarja':collections.Counter(),'hosp':0,'tot':0,'gen':0,'com':0,'tipos':collections.Counter()})
 for r in rows:
     s=r[ix['SUBSTÂNCIA']]
     if not s: continue
     b=base(s); g=G[b]
     g['subs'][s.strip()]+=1; g['labs'].add(r[ix['LABORATÓRIO']]); g['tot']+=1
     tipo=str(r[ix['TIPO DE PRODUTO (STATUS DO PRODUTO)']]); g['tipos'][tipo]+=1
-    if tipo=='Genérico': g['gen']=1
-    else:
-        pn=str(r[ix['PRODUTO']]).strip()
-        if pn and chave(pn)!=chave(b) and chave(pn)!=chave(s): g['prods'][pn]+=1
+    pn=str(r[ix['PRODUTO']]).strip(); ref=str(r[ix['REGISTRO']] or '')[:9] in REF
+    if tipo=='Genérico' and not ref: g['gen']=1; g['genlabs'].add(r[ix['LABORATÓRIO']])
+    elif pn and (ref or (chave(pn)!=chave(b) and chave(pn)!=chave(s))):
+        e=g['prods'].setdefault(pn,{'n':0,'t':collections.Counter(),'ref':False}); e['n']+=1; e['t'][TIPO.get(tipo,'O')]+=1; e['ref']=e['ref'] or ref
     a=apres(r[ix['APRESENTAÇÃO']]); 
     if a: g['ap'][a]+=1
     g['classe'][str(r[ix['CLASSE TERAPÊUTICA']])]+=1
@@ -64,7 +66,7 @@ for r in rows:
     if r[ix['COMERCIALIZAÇÃO 2025']]=='Sim': g['com']+=1
 # app drugs to link
 app=json.loads(subprocess.run(['node','-e',"const D=require('%sdata.js'),X=require('%sbulario_extra.js'),R=require('%srevisoes.js');console.log(JSON.stringify([...D.DRUGS.map(d=>[d.id,d.nome,R.BUSCA_ANVISA[d.id]||'']),...X.EXTRAS.map(x=>[x.id,x.nome,''])]))"%(JS,JS,JS)],capture_output=True,text=True).stdout)
-SIN={'cefalotina':'CEFALOTINA SODICA','heparina':'HEPARINA SÓDICA SUÍNA','nitroprussiato':'NITROPRUSSETO','fentanil':'FENTANILA','fentanil-transdermico':'FENTANILA','escopolamina':'BUTILBROMETO DE ESCOPOLAMINA',
+SIN={'imipenem':'CILASTATINA + IMIPENÉM','cefalotina':'CEFALOTINA SODICA','heparina':'HEPARINA SÓDICA SUÍNA','nitroprussiato':'NITROPRUSSETO','fentanil':'FENTANILA','fentanil-transdermico':'FENTANILA','escopolamina':'BUTILBROMETO DE ESCOPOLAMINA',
 'vasopressina':'VASOPRESSINA SINTETICA','cetamina':'ESCETAMINA','rocuronio':'BROMETO DE ROCURÔNIO','succinilcolina':'CLORETO DE SUXAMETÔNIO','cetorolaco':'CETOROLACO TROMETAMINA','valproato':'VALPROATO',
 'isossorbida':'MONONITRATO DE ISOSSORBIDA','sinvastatina':'SINVASTATINA','apixabana':'APIXABANA','glibenclamida':'GLIBENCLAMIDA','insulina-glargina':'INSULINA GLARGINA','insulina-rapida':'INSULINA ASPARTE',
 'prednisona':'PREDNISONA','budesonida':'BUDESONIDA','salbutamol':'SALBUTAMOL','albumina':'ALBUMINA HUMANA','carvao-ativado':'CARVÃO VEGETAL ATIVADO','cianocobalamina':'CIANOCOBALAMINA','manitol':'MANITOL',
@@ -93,7 +95,7 @@ print('catálogo candidatos:',len(sel))
 def nome_de(b,g):
     parts=b.split(' + ')
     if len(parts)>3:
-        top=g['prods'].most_common(1)
+        top=sorted(g['prods'].items(),key=lambda kv:-kv[1]['n'])[:1]
         return (titulo(top[0][0])+' — ' if top else '')+'associação de %d componentes'%len(parts)
     return titulo(b)
 out=[];ids=set()
@@ -102,11 +104,16 @@ def mkid(n):
     i=k;j=2
     while i in ids: i='%s-%d'%(k,j); j+=1
     ids.add(i); return 'c-'+i
+ORD={'R':0,'N':1,'B':2,'E':3,'S':4,'F':5,'O':6,'G':7}
+def marcas_de(prods):
+    L=[[titulo(p),'R' if e['ref'] else e['t'].most_common(1)[0][0],e['n']] for p,e in prods.items()]
+    L.sort(key=lambda x:(ORD.get(x[1],9),-x[2],x[0]))
+    return [x[:2] for x in L[:12]]
 def pack(b,g,id_=None):
     cl=g['classe'].most_common(1)[0][0]
     return {'id':id_ or mkid(b),'nome':nome_de(b,g),'comp':titulo(b) if len(b.split(' + '))>3 else '','cat':cat_de(cl),'classe':re.sub(r'^\S+\s+-\s+','',cl).capitalize(),
-        'tarja':(g['tarja'].most_common(1)[0][0] if g['tarja'] else -1),'tmax':(max(g['tarja']) if g['tarja'] else -1),'hosp':1 if g['hosp']*2>=g['tot'] else 0,'gen':g['gen'],'labs':len(g['labs']),
-        'marcas':[titulo(p) for p,_ in g['prods'].most_common(10)],'ap':[a for a,_ in g['ap'].most_common(10)],'o':0 if g['com']>0 else 1}
+        'tarja':(g['tarja'].most_common(1)[0][0] if g['tarja'] else -1),'tmax':(max(g['tarja']) if g['tarja'] else -1),'hosp':1 if g['hosp']*2>=g['tot'] else 0,'gen':len(g['genlabs']),'labs':len(g['labs']),
+        'marcas':marcas_de(g['prods']),'ap':[a for a,_ in g['ap'].most_common(10)],'o':0 if g['com']>0 else 1}
 for b,g in sel: out.append(pack(b,g))
 mercado={i:pack(b,G[b],'x') for i,b in link.items()}
 json.dump({'bases':list(G.keys()),'ids':sorted(ids)},open('dl/cmed_meta.json','w'),ensure_ascii=False)

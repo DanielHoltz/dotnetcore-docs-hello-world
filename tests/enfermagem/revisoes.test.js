@@ -171,8 +171,11 @@ test('catálogo CMED/Anvisa: ≥ 1.400 princípios ativos, sem duplicar fichas d
     const c = CT.item(a);
     assert.ok(/^[cr]-/.test(c.id) && !ids.has(c.id) && !appIds.has(c.id), 'id ' + c.id); ids.add(c.id);
     assert.ok(c.nome && cats.has(c.cat) && [-1, 0, 1, 2, 3].includes(c.tarja) && c.tmax >= c.tarja, c.id);
-    assert.ok(Array.isArray(c.ap) && Array.isArray(c.marcas));
+    assert.ok(Array.isArray(c.ap) && Array.isArray(c.marcas) && Number.isInteger(c.gen));
+    for (const m of c.marcas) assert.ok(m[0] && 'RNBESFOG'.includes(m[1]), c.id + ' marca ' + m);
   }
   assert.ok(CT.mercado('dipirona').marcas.length > 0);
+  assert.ok(CT.mercado('losartana').marcas.some(m => m[0] === 'Cozaar' && m[1] === 'R'), 'Cozaar é a referência da losartana');
+  assert.ok(CT.mercado('sinvastatina') && CT.mercado('sinvastatina').gen > 0);
   assert.match(CT.FONTE.data, /^\d{4}-\d{2}-\d{2}$/);
 });

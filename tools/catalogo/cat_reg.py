@@ -3,7 +3,7 @@ JSDIR=_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),'..','..','wwwr
 import sys,os,re,json,pickle,collections,subprocess,unicodedata
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 from cat_norm import base1,titulo,chave
-JS=JSDIR
+JS=''+JSDIR+''
 val=pickle.load(open('dl/reg_val.pkl','rb'))
 meta=json.load(open('dl/cmed_meta.json')); cat=json.load(open('catalogo.json'))
 def nucleo(p): return ' '.join(re.findall(r'[a-z0-9]+',unicodedata.normalize('NFD',p.lower()).encode('ascii','ignore').decode())[:2])
@@ -33,7 +33,9 @@ def cat_de(cl):
     for k,p in R:
         if re.search(p,c): return k
     return 'outros'
-G=collections.defaultdict(lambda:{'emp':set(),'prods':collections.Counter(),'classe':collections.Counter(),'gen':0,'cats':collections.Counter()})
+REF=set(open('dl/ref_registros.txt').read().split())
+TIPO={'NOVO':'N','SIMILAR':'S','GENÉRICO':'G','ESPECÍFICO':'E','BIOLÓGICO':'B','FITOTERÁPICO':'F','FITOTER?PICO':'F'}
+G=collections.defaultdict(lambda:{'emp':set(),'genemp':set(),'prods':{},'classe':collections.Counter(),'gen':0,'cats':collections.Counter()})
 for x in val:
     catr=x['CATEGORIA_REGULATORIA'].upper()
     if 'DINAMIZ' in catr: continue
@@ -43,10 +45,22 @@ for x in val:
     if not b: continue
     g=G[b]; g['emp'].add(x['EMPRESA_DETENTORA_REGISTRO']); g['cats'][x['CATEGORIA_REGULATORIA']]+=1
     if x['CLASSE_TERAPEUTICA']: g['classe'][x['CLASSE_TERAPEUTICA']]+=1
-    if catr=='GENÉRICO': g['gen']=1
-    else:
-        pn=x['NOME_PRODUTO'].strip()
-        if pn and chave(pn)!=chave(b) and chave(pn) not in chave(pa): g['prods'][pn]+=1
+    pn=x['NOME_PRODUTO'].strip(); ref=x['NUMERO_REGISTRO_PRODUTO'].strip()[:9] in REF
+    if catr=='GENÉRICO' and not ref: g['gen']=1; g['genemp'].add(x['EMPRESA_DETENTORA_REGISTRO'])
+    elif pn and (ref or (chave(pn)!=chave(b) and chave(pn) not in chave(pa))):
+        e=g['prods'].setdefault(pn,{'n':0,'t':collections.Counter(),'ref':False}); e['n']+=1; e['t'][TIPO.get(catr,'O')]+=1; e['ref']=e['ref'] or ref
+ORD={'R':0,'N':1,'B':2,'E':3,'S':4,'F':5,'O':6,'G':7}
+def marcas_de(prods):
+    L=[[titulo(p),'R' if e['ref'] else e['t'].most_common(1)[0][0],e['n']] for p,e in prods.items()]
+    L.sort(key=lambda x:(ORD.get(x[1],9),-x[2],x[0]))
+    return [x[:2] for x in L[:12]]
+def lev(a,b):
+    v=list(range(len(b)+1))
+    for i in range(1,len(a)+1):
+        prev=v[0]; v[0]=i
+        for j in range(1,len(b)+1):
+            tmp=v[j]; v[j]=min(v[j]+1,v[j-1]+1,prev+(a[i-1]!=b[j-1])); prev=tmp
+    return v[len(b)]
 ids=set(meta['ids']); novos=[]
 def mkid(n):
     k=re.sub(r'-+','-',re.sub(r'[^a-z0-9]+','-',unicodedata.normalize('NFD',n.lower()).encode('ascii','ignore').decode())).strip('-')[:48]
@@ -55,12 +69,15 @@ def mkid(n):
     ids.add(i); return 'r-'+i
 for b,g in sorted(G.items()):
     if ck(b) in conhecidos: continue
+    kb=ck(b)
+    if len(kb)>=6 and any(abs(len(kb)-len(k))<=2 and lev(kb,k)<=2 for k in conhecidos): continue
     parts=b.split(' + ')
-    nome=((titulo(g['prods'].most_common(1)[0][0])+' — ') if g['prods'] and len(parts)>3 else '')+('associação de %d componentes'%len(parts) if len(parts)>3 else titulo(b))
+    top=sorted(g['prods'].items(),key=lambda kv:-kv[1]['n'])
+    nome=((titulo(top[0][0])+' — ') if top and len(parts)>3 else '')+('associação de %d componentes'%len(parts) if len(parts)>3 else titulo(b))
     cl=g['classe'].most_common(1)[0][0] if g['classe'] else ''
     tipo=g['cats'].most_common(1)[0][0]
     novos.append({'id':mkid(b),'nome':nome,'comp':titulo(b) if len(parts)>3 else '','cat':cat_de(cl+' '+tipo),'classe':(cl.capitalize() if cl else tipo.capitalize()),
-      'tarja':-1,'tmax':-1,'hosp':0,'gen':g['gen'],'labs':len(g['emp']),'marcas':[titulo(p) for p,_ in g['prods'].most_common(10)],'ap':[],'o':2})
+      'tarja':-1,'tmax':-1,'hosp':0,'gen':len(g['genemp']),'labs':len(g['emp']),'marcas':marcas_de(g['prods']),'ap':[],'o':2})
 print('registro: bases',len(G),'novas',len(novos)); print(collections.Counter(n['cat'] for n in novos))
 import random; random.seed(5); print([n['nome'] for n in random.sample(novos,25)])
 cat['cat']+=novos
