@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes;
+  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -540,7 +540,7 @@
     e.push({ key: 'view:compat', href: '#/compatibilidade', icon: '🔗', title: 'Interações e compatibilidade', desc: 'Checar medicamentos juntos', search: 'interacao compatibilidade y incompatibilidade' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
-    D.DRUGS.forEach(function (d) { e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao' }); });
+    D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') }); });
     loadMaletas().forEach(function (m) { e.push({ key: 'maleta:' + m.id, href: '#/maleta/' + m.id, icon: m.icon, title: m.nome, desc: 'Maleta · ' + m.itens.length + ' medicamentos', search: m.nome + ' ' + m.local + ' maleta kit' }); });
     D.SCALES.forEach(function (s) { e.push({ key: 'escala:' + s.id, href: '#/escala/' + s.id, icon: '📋', title: s.nome, desc: s.desc, search: s.nome + ' ' + s.desc + ' escala' }); });
     return e;
@@ -569,6 +569,18 @@
       (pf.completo ? esc(pacienteResumo(pf)) + ' · toque para doses e preparos' : 'Informe peso e idade e veja dose, diluição e alertas de qualquer medicamento') + '</small></span><span class="chev">›</span></a>';
   }
 
+  // ---- Início: painel de seções ----
+  var SECOES = [
+    { href: '#/emergencia', icon: '🚨', nome: 'Emergência', desc: 'PCR, pediatria, drogas vasoativas', cls: 'sec-red' },
+    { href: '#/maleta/lib/atender', icon: '👤', nome: 'Atendimento', desc: 'Dose e preparo por paciente' },
+    { href: '#/calculadoras', icon: '🧮', nome: 'Cálculos', desc: 'Gotejamento, diluição, soros' },
+    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: '75 medicamentos' },
+    { href: '#/maletas', icon: '🧰', nome: 'Maletas', desc: 'Seus kits de trabalho' },
+    { href: '#/escalas', icon: '📋', nome: 'Escalas', desc: 'Glasgow, Braden, NEWS2…' },
+    { href: '#/compatibilidade', icon: '🔗', nome: 'Interações', desc: 'Checar medicamentos juntos' },
+    { href: '#/ferramentas', icon: '⚙️', nome: 'Ferramentas', desc: 'Revisão, backup, sobre' }
+  ];
+
   function viewHome() {
     setHeader('EnfCalc', false);
     var entries = allEntries();
@@ -577,25 +589,13 @@
     $app.innerHTML =
       '<div class="search"><input id="q" type="search" placeholder="Buscar cálculo, medicamento ou escala…" autocomplete="off" aria-label="Buscar"></div>' +
       '<div id="search-res"></div>' +
-      '<div id="home-main">' + homeMaletas() + homePaciente() + homeRecentes(entries) +
-      '<div class="quick">' +
-        '<a href="#/calc/gotejamento" class="qk"><span>💧</span>Gotejamento</a>' +
-        '<a href="#/infusao" class="qk"><span>🫀</span>Drogas vasoativas</a>' +
-        '<a href="#/drogas" class="qk"><span>💊</span>Diluições</a>' +
-        '<a href="#/calc/dose" class="qk"><span>💉</span>Regra de três</a>' +
-        '<a href="#/escalas" class="qk"><span>📋</span>Escalas</a>' +
-        '<a href="#/calc/transformacao-soro" class="qk"><span>🔬</span>Transformar soro</a>' +
-        '<a href="#/pcr" class="qk qk-red"><span>🚨</span>Modo PCR</a>' +
-        '<a href="#/emergencia-ped" class="qk"><span>👶</span>Emergência pediátrica</a>' +
-        '<a href="#/compatibilidade" class="qk"><span>🔗</span>Interações</a>' +
-      '</div>' +
+      '<div id="home-main">' + homePaciente() +
+      '<div class="hub">' + SECOES.map(function (s) {
+        return '<a class="hub-tile ' + (s.cls || '') + '" href="' + s.href + '"><span class="hub-ic">' + s.icon + '</span><b>' + esc(s.nome) + '</b><small>' + esc(s.desc) + '</small></a>';
+      }).join('') + '</div>' +
+      homeRecentes(entries) +
       (favEntries.length ? '<h2>★ Favoritos</h2><div class="list">' + favEntries.map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>' : '') +
-      CATS.map(function (cat) {
-        var items = CALCS.filter(function (c) { return c.cat === cat.id; });
-        var extra = cat.id === 'infusao' ? card('#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h com predefinições', 'view:infusao') : '';
-        return '<h2>' + cat.icon + ' ' + esc(cat.nome) + '</h2><div class="list">' + extra +
-          items.map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>';
-      }).join('') +
+      homeMaletas() +
       '<p class="disclaimer">Ferramenta de apoio. Confira sempre a prescrição, a bula e os protocolos da instituição. <a href="#/sobre">Sobre</a></p>' +
       '</div>';
 
@@ -611,17 +611,165 @@
     });
   }
 
-  function viewCalcList() {
-    setHeader('Calculadoras', false);
-    $app.innerHTML = '<h2>🚨 Emergência</h2><div class="list">' + card('#/pcr', '🚨', 'Modo PCR', 'Cronômetro, ciclos, adrenalina e registro', 'view:pcr') +
-      card('#/emergencia-ped', '👶', 'Emergência pediátrica', 'Doses, cânula e energia por idade/peso', 'view:emergped') +
-      card('#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar 2+ medicamentos', 'view:compat') + '</div>' +
-      '<h2>💧 Infusão</h2><div class="list">' + card('#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h', 'view:infusao') + '</div>' +
-      CATS.map(function (cat) {
-        return '<h2>' + cat.icon + ' ' + esc(cat.nome) + '</h2><div class="list">' +
-          CALCS.filter(function (c) { return c.cat === cat.id; }).map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>';
-      }).join('');
+  // ---- Hub de emergência ----
+  function viewEmergencia() {
+    setHeader('Emergência', true);
+    $app.innerHTML =
+      '<a class="btn pcr-start" href="#/pcr">🚨 MODO PCR</a>' +
+      '<h2>Suporte imediato</h2><div class="list">' +
+        card('#/emergencia-ped', '👶', 'Emergência pediátrica', 'Doses, cânula e energia por idade/peso', 'view:emergped') +
+        card('#/infusao', '🫀', 'Drogas vasoativas e sedação', 'mcg/kg/min ↔ mL/h', 'view:infusao') +
+        card('#/maleta/lib/atender', '👤', 'Dose por paciente', 'Qualquer medicamento do bulário') + '</div>' +
+      '<h2>Avaliação rápida</h2><div class="list">' +
+        ['glasgow', 'news2', 'qsofa', 'rass'].map(function (id) { var s = D.SCALES.filter(function (x) { return x.id === id; })[0]; return card('#/escala/' + s.id, '📋', s.nome, s.desc, 'escala:' + s.id); }).join('') + '</div>' +
+      '<h2>Medicamentos de emergência</h2><div class="list">' +
+        ['adrenalina', 'amiodarona', 'atropina', 'adenosina', 'naloxona', 'flumazenil', 'glicose-50', 'gluconato-calcio', 'bicarbonato'].map(function (id) {
+          var d = D.DRUGS.filter(function (x) { return x.id === id; })[0]; return card('#/droga/' + d.id, '💊', d.nome, d.classe, 'droga:' + d.id);
+        }).join('') + '</div>';
   }
+
+  // ---- Ferramentas ----
+  function viewFerramentas() {
+    setHeader('Ferramentas', true);
+    $app.innerHTML = '<div class="list">' +
+      card('#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar 2+ medicamentos ou uma maleta', 'view:compat') +
+      card('#/revisao', '📚', 'Referências e revisão das fichas', 'Fontes, bulas Anvisa, ficha de conferência') +
+      card('#/sobre', 'ℹ️', 'Sobre, backup e dados', 'Exportar/restaurar maletas, aviso legal') + '</div>';
+  }
+
+  function viewCalcList() {
+    setHeader('Cálculos', false);
+    var grupos = [{ id: 'g-infusao', icon: '💧', nome: 'Infusão' }].concat(CATS.filter(function (c) { return c.id !== 'infusao'; }).map(function (c) { return { id: 'g-' + c.id, icon: c.icon, nome: c.nome, cat: c.id }; }));
+    $app.innerHTML =
+      '<div class="chipnav" role="navigation" aria-label="Categorias">' + grupos.map(function (g) { return '<button type="button" class="chipnav-b" data-go="' + g.id + '">' + g.icon + ' ' + esc(g.nome.split(' ')[0]) + '</button>'; }).join('') + '</div>' +
+      '<h2 id="g-infusao">💧 Infusão e gotejamento</h2><div class="list">' + card('#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h com predefinições', 'view:infusao') +
+        CALCS.filter(function (c) { return c.cat === 'infusao'; }).map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>' +
+      grupos.slice(1).map(function (g) {
+        return '<h2 id="' + g.id + '">' + g.icon + ' ' + esc(g.nome) + '</h2><div class="list">' +
+          CALCS.filter(function (c) { return c.cat === g.cat; }).map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>';
+      }).join('');
+    $app.querySelectorAll('[data-go]').forEach(function (b) {
+      b.onclick = function () { var el = document.getElementById(b.getAttribute('data-go')); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    });
+  }
+
+  // ---- Bulário ----
+  function viewDrugs() {
+    setHeader('Bulário', false);
+    var filtro = store.get('bulCat', '');
+    $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar por nome ou classe…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
+      '<div class="chipnav" id="dcat"><button type="button" class="chipnav-b" data-c="">Todos</button>' +
+        B.CATEGORIAS.map(function (c) { return '<button type="button" class="chipnav-b" data-c="' + c.id + '">' + c.icon + ' ' + esc(c.nome) + '</button>'; }).join('') + '</div>' +
+      '<div class="az" id="daz"></div><div id="dl"></div>' +
+      '<p class="disclaimer">' + D.DRUGS.length + ' medicamentos · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a></p>';
+    var dl = document.getElementById('dl'), dq = document.getElementById('dq');
+    function render() {
+      var t = norm(dq.value.trim());
+      document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === filtro); });
+      var list = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); }).filter(function (d) {
+        var bu = B.bula(d.id);
+        return (!filtro || (bu && bu.cat === filtro)) && (!t || norm(d.nome + ' ' + d.classe + ' ' + (bu ? bu.ind : '')).indexOf(t) >= 0);
+      });
+      var porLetra = {};
+      list.forEach(function (d) { var l = norm(d.nome).charAt(0).toUpperCase(); (porLetra[l] = porLetra[l] || []).push(d); });
+      var letras = Object.keys(porLetra).sort();
+      document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '">' + l + '</button>'; }).join('') : '';
+      dl.innerHTML = list.length ? letras.map(function (l) {
+        return '<h3 class="az-h" id="az-' + l + '">' + l + '</h3><div class="list">' + porLetra[l].map(function (d) {
+          var cat = B.categoria(d.id);
+          return card('#/droga/' + d.id, isHV(d) ? '🔴' : (cat ? cat.icon : '💊'), d.nome, d.classe, 'droga:' + d.id);
+        }).join('') + '</div>';
+      }).join('') : '<p class="empty-msg">Nenhum medicamento encontrado.</p>';
+      document.querySelectorAll('#daz [data-l]').forEach(function (b) { b.onclick = function () { document.getElementById('az-' + b.getAttribute('data-l')).scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
+    }
+    document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.onclick = function () { filtro = b.getAttribute('data-c'); store.set('bulCat', filtro); render(); }; });
+    dq.addEventListener('input', render);
+    render();
+  }
+
+  // Interações de um medicamento com toda a biblioteca (aba Bula)
+  function interacoesBiblioteca(id) {
+    var out = [];
+    DB.INTERACOES.forEach(function (r) {
+      var parc = [];
+      if (r.a.indexOf(id) >= 0) r.b.forEach(function (x) { if (x !== id && parc.indexOf(x) < 0) parc.push(x); });
+      if (r.b.indexOf(id) >= 0) r.a.forEach(function (x) { if (x !== id && parc.indexOf(x) < 0) parc.push(x); });
+      if (parc.length) out.push({ sev: r.sev, tipo: r.tipo, txt: r.txt, com: parc });
+    });
+    return out.sort(function (a, b) { return (a.sev === 'grave' ? 0 : 1) - (b.sev === 'grave' ? 0 : 1); });
+  }
+
+  function viewDrug(id) {
+    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
+    if (!d) return viewNotFound();
+    setHeader(d.nome, true);
+    var bu = B.bula(id), cat = B.categoria(id);
+    var abas = [['preparo', '💧 Preparo'], ['bula', '📖 Bula'], ['paciente', '👤 Paciente'], ['fontes', '📚 Fontes']];
+    var aba = store.get('drugTab', 'preparo');
+    if (!abas.some(function (a) { return a[0] === aba; })) aba = 'preparo';
+    function li(t, v) { return v ? '<div class="sec"><h3>' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
+    var ints = interacoesBiblioteca(id);
+    var ant = DB.ANTIDOTOS[id], rev = Object.keys(DB.ANTIDOTOS).filter(function (k) { return DB.ANTIDOTOS[k] === id; });
+    var ms = loadMaletas(), pf = P.perfil(loadPaciente());
+    var bulaHtml = bu ? (
+        li('🎯 Indicações', bu.ind) + li('⛔ Contraindicações', bu.contra) + li('⚠️ Efeitos adversos principais', bu.adv) +
+        li('🩺 Cuidados de enfermagem', bu.enf) + li('🤰 Gestação e lactação', bu.gest) +
+        (DB.VIA_EXCLUSIVA[id] ? li('🚫 Via exclusiva', DB.VIA_EXCLUSIVA[id]) : '') +
+        (ant ? li('🛟 Antídoto / reversor', typeof ant === 'string' ? NOMES[ant] : ant.nome) : '') +
+        (rev.length ? li('🛟 É antídoto de', rev.map(nm).join(', ')) : '') +
+        '<h3 class="sub-h">🔗 Interações e incompatibilidades</h3>' +
+        (ints.length ? ints.map(function (i) {
+          return '<div class="int-item ' + sevClass(i.sev) + '"><b>' + sevIcon(i.sev) + ' ' + esc(i.tipo) + '</b> — ' +
+            i.com.map(function (x) { return '<a href="#/droga/' + esc(x) + '">' + esc(nm(x)) + '</a>'; }).join(', ') + '<p>' + esc(i.txt) + '</p></div>';
+        }).join('') : '<p class="note">Nenhuma interação cadastrada com outros medicamentos do bulário.</p>') +
+        '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante. Confira na bula oficial (aba Fontes).</p>')
+      : '<p class="empty-msg">Resumo de bula ainda não disponível.</p>';
+    var addKit = '<div class="sec addkit"><h3>🧰 Adicionar a uma maleta</h3>' + (ms.length
+      ? '<div class="row"><select id="kit-sel" aria-label="Maleta">' + ms.map(function (m) {
+          return '<option value="' + esc(m.id) + '"' + (M.temDroga(m, d.id) ? ' disabled' : '') + '>' + esc(m.icon + ' ' + m.nome) + (M.temDroga(m, d.id) ? ' (já contém)' : '') + '</option>';
+        }).join('') + '</select><button class="btn sm" id="kit-add" type="button">Adicionar</button></div>'
+      : '<p>Você ainda não tem maletas. <a href="#/maletas/nova/' + esc(d.id) + '">Criar uma maleta com este medicamento</a></p>') + '</div>';
+    var pacHtml = '<div class="sec"><h3>👤 Dose e preparo para um paciente</h3><p>' +
+      (pf.completo ? 'Paciente em atendimento: <b>' + esc(pacienteResumo(pf)) + '</b>.' : 'Informe peso e idade para ver a dose sugerida, o preparo passo a passo e os alertas de alergia, idade e função renal.') +
+      '</p><a class="btn" href="#/maleta/lib/atender/' + esc(d.id) + '">' + (pf.completo ? 'Calcular para este paciente' : 'Informar paciente e calcular') + '</a></div>' +
+      (DB.DOSES[id] ? '<div class="sec"><h3>💊 Dose de referência</h3><p><b>Adulto:</b> ' + esc((DB.DOSES[id].adulto && DB.DOSES[id].adulto.txt) || '—') + '</p><p><b>Pediatria:</b> ' + esc(DB.DOSES[id].ped ? DB.DOSES[id].ped.txt : 'sem dose pediátrica de referência') + '</p>' +
+        (DB.DOSES[id].freq ? '<p><b>Intervalo usual:</b> ' + esc(DB.DOSES[id].freq) + '</p>' : '') + '</div>' : '') + addKit;
+
+    $app.innerHTML =
+      '<div class="head-row"><p class="lead">' + esc(d.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + d.id) + '</div>' +
+      (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
+      '<div class="tabs" role="tablist">' + abas.map(function (a) {
+        return '<button type="button" role="tab" class="tab" id="tab-' + a[0] + '" aria-controls="pane-' + a[0] + '" data-tab="' + a[0] + '">' + a[1] + '</button>';
+      }).join('') + '</div>' +
+      '<div class="pane" role="tabpanel" id="pane-preparo">' + drugSheetHtml(d).replace('<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>', '') + '</div>' +
+      '<div class="pane" role="tabpanel" id="pane-bula">' + bulaHtml + '</div>' +
+      '<div class="pane" role="tabpanel" id="pane-paciente">' + pacHtml + '</div>' +
+      '<div class="pane" role="tabpanel" id="pane-fontes">' + refsHtml(d) + '</div>';
+    bindDrugCalc(d);
+    function mostrar(t) {
+      aba = t; store.set('drugTab', t);
+      abas.forEach(function (a) {
+        var on = a[0] === t;
+        document.getElementById('tab-' + a[0]).setAttribute('aria-selected', on);
+        document.getElementById('pane-' + a[0]).hidden = !on;
+      });
+    }
+    $app.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { mostrar(b.getAttribute('data-tab')); }; });
+    mostrar(aba);
+    var btn = document.getElementById('kit-add');
+    if (btn) {
+      var sel = document.getElementById('kit-sel');
+      var first = [].filter.call(sel.options, function (o) { return !o.disabled; })[0];
+      if (first) sel.value = first.value; else btn.disabled = true;
+      btn.onclick = function () {
+        var m = getMaleta(sel.value);
+        if (!m || M.temDroga(m, d.id)) return;
+        M.adicionarDrogas(m, [d.id]);
+        if (saveMaleta(m)) { toast('Adicionado a “' + m.nome + '”'); viewDrug(id); }
+      };
+    }
+  }
+
 
   function viewCalc(id) {
     var c = CALCS.filter(function (x) { return x.id === id; })[0];
@@ -753,21 +901,6 @@
   }
 
   // ---- Medicamentos ----
-  function viewDrugs() {
-    setHeader('Diluições', false);
-    $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar medicamento…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
-      '<a class="card solo" href="#/revisao"><span class="card-ic">📚</span><span class="card-t"><b>Referências e revisão das fichas</b><small>' + D.DRUGS.filter(function (d) { return R.revisao(d.id); }).length + ' de ' + D.DRUGS.length + ' revisadas · bulas Anvisa · ficha de conferência</small></span><span class="chev">›</span></a>' +
-      '<div class="list" id="dl"></div><p class="disclaimer">' + D.DRUGS.length + ' medicamentos. Informações de referência — confira a bula do fabricante e o protocolo institucional.</p>';
-    var dl = document.getElementById('dl'), dq = document.getElementById('dq');
-    function render() {
-      var t = norm(dq.value.trim());
-      var list = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); }).filter(function (d) { return !t || norm(d.nome + ' ' + d.classe).indexOf(t) >= 0; });
-      dl.innerHTML = list.length ? list.map(function (d) { return card('#/droga/' + d.id, d.classe.indexOf('ALTA VIGILÂNCIA') >= 0 ? '🔴' : '💊', d.nome, d.classe, 'droga:' + d.id); }).join('')
-        : '<p class="empty-msg">Nenhum medicamento encontrado.</p>';
-    }
-    dq.addEventListener('input', render);
-    render();
-  }
 
   // ---- Ficha do medicamento (biblioteca e maletas) ----
   function concTxt(c) { return c ? fmt(c.qtd, 4) + ' ' + c.u + ' / ' + fmt(c.vol, 2) + ' mL' : ''; }
@@ -802,31 +935,6 @@
     }, document.getElementById('dout'));
   }
 
-  function viewDrug(id) {
-    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
-    if (!d) return viewNotFound();
-    setHeader(d.nome, true);
-    var ms = loadMaletas();
-    var add = '<div class="sec addkit"><h3>🧰 Adicionar a uma maleta</h3>' + (ms.length
-      ? '<div class="row"><select id="kit-sel" aria-label="Maleta">' + ms.map(function (m) {
-          return '<option value="' + esc(m.id) + '"' + (M.temDroga(m, d.id) ? ' disabled' : '') + '>' + esc(m.icon + ' ' + m.nome) + (M.temDroga(m, d.id) ? ' (já contém)' : '') + '</option>';
-        }).join('') + '</select><button class="btn sm" id="kit-add" type="button">Adicionar</button></div>'
-      : '<p>Você ainda não tem maletas. <a href="#/maletas/nova/' + esc(d.id) + '">Criar uma maleta com este medicamento</a></p>') + '</div>';
-    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(d.classe) + '</p>' + favButton('droga:' + d.id) + '</div>' + '<a class="btn" href="#/maleta/lib/atender/' + esc(d.id) + '">👤 Calcular dose e preparo para um paciente</a>' + drugSheetHtml(d) + refsHtml(d) + add;
-    bindDrugCalc(d);
-    var btn = document.getElementById('kit-add');
-    if (btn) {
-      var sel = document.getElementById('kit-sel');
-      var first = [].filter.call(sel.options, function (o) { return !o.disabled; })[0];
-      if (first) sel.value = first.value; else btn.disabled = true;
-      btn.onclick = function () {
-        var m = getMaleta(sel.value);
-        if (!m || M.temDroga(m, d.id)) return;
-        M.adicionarDrogas(m, [d.id]);
-        if (saveMaleta(m)) { toast('Adicionado a “' + m.nome + '”'); viewDrug(id); }
-      };
-    }
-  }
 
   // ---- Maletas: persistência ----
   function loadMaletas() { var a = store.get('maletas', []); return Array.isArray(a) ? a : []; }
@@ -1922,6 +2030,8 @@
       case 'sobre': viewAbout(); break;
       case 'revisao': viewRevisao(parts[1]); break;
       case 'pcr': viewPCR(); break;
+      case 'emergencia': viewEmergencia(); break;
+      case 'ferramentas': viewFerramentas(); break;
       case 'atender': viewAtender('lib'); break;
       case 'emergencia-ped': viewEmergPed(); break;
       case 'compatibilidade': viewCompat(parts[1]); break;

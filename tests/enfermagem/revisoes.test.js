@@ -44,3 +44,15 @@ test('piperacilina+tazobactam usa volume final de ~23 mL', () => {
   const pt = D.DRUGS.find(d => d.id === 'pipe-tazo');
   assert.equal(pt.conc.vol, 23);
 });
+
+test('bulário: todos os medicamentos têm resumo completo e categoria válida', () => {
+  const B = require('../../wwwroot/enfermagem/js/bulario.js');
+  const cats = new Set(B.CATEGORIAS.map(c => c.id));
+  for (const d of D.DRUGS) {
+    const b = B.bula(d.id);
+    assert.ok(b, 'sem bula: ' + d.id);
+    assert.ok(cats.has(b.cat), d.id + ' categoria');
+    for (const k of ['ind', 'contra', 'adv', 'enf', 'gest']) assert.ok(b[k] && b[k].length > 10, d.id + ' campo ' + k);
+  }
+  assert.equal(Object.keys(B.BULA).length, D.DRUGS.length);
+});
