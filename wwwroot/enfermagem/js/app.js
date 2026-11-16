@@ -957,8 +957,30 @@
       (mk.ap.length ? '<p><b>Apresentações:</b></p><ul class="fontes">' + mk.ap.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
       '<p class="note">Fonte: ' + esc(mk.origem === 2 ? CT.FONTE_REG.nome : CT.FONTE.nome) + ', ' + esc(fmtData(mk.origem === 2 ? CT.FONTE_REG.data : CT.FONTE.data)) + '. Confira o rótulo do produto em mãos.</p></div>';
   }
+  // Apresentações líquidas do catálogo → [{rot, qtd, u, vol}] para calcular o volume a aspirar
+  function apsCatalogo(lista) {
+    var out = [], vistos = {};
+    (lista || []).forEach(function (a) {
+      if (/OFT|colírio|creme|pomada|gel|spray|nasal|inal|aerossol|capilar|tópic|vaginal|otológ|xampu|loção|DERM/i.test(a)) return;
+      var m = a.match(/^\s*(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|UI|mEq)\s*\/\s*(\d+(?:[.,]\d+)?)?\s*mL\b/i);
+      if (!m || /\+/.test(a.split(' ')[0])) return;
+      var u = m[2].toLowerCase() === 'ui' ? 'UI' : m[2].toLowerCase() === 'meq' ? 'mEq' : m[2].toLowerCase();
+      if (!C.UNITS[u]) return;
+      var conc = num(m[1]) / (m[3] ? num(m[3]) : 1);
+      var v = a.match(/—\s*(?:ampola|frasco-ampola|frasco|seringa|bolsa|caneta)\s+(\d+(?:[.,]\d+)?)\s*mL/i);
+      var vol = v ? num(v[1]) : 1;
+      if (!(conc > 0) || !(vol > 0)) return;
+      var k = u + conc + '/' + vol;
+      if (vistos[k]) return; vistos[k] = 1;
+      out.push({ rot: a.replace(/\s+\(hosp\.\)$/, '') + (v ? '' : ' (por mL)'), qtd: +(conc * vol).toPrecision(10), u: u, vol: vol, porMl: !v });
+    });
+    out = out.filter(function (x) { return !x.porMl || !out.some(function (y) { return !y.porMl && y.u === x.u && Math.abs(y.qtd / y.vol - x.qtd) < 1e-9; }); });
+    return out.slice(0, 10);
+  }
+
   function viewCatalogo(c, alias) {
     setHeader(alias || c.nome, true);
+    var apsCat = apsCatalogo(c.ap);
     var cat = B.CATEGORIAS.filter(function (x) { return x.id === c.cat; })[0];
     var termo = (c.comp || c.nome).split(' + ')[0].replace(/\s—.*$/, '');
     $app.innerHTML =
@@ -969,8 +991,10 @@
       (c.comp ? '<div class="sec"><h3>🧪 Componentes</h3><p>' + esc(c.comp) + '</p></div>' : '') +
       mercadoHtml(c) +
       '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(anvisaBusca((c.marcas[0] && c.marcas[0][0]) || termo)) + '">📄 Bula no Bulário da Anvisa</a>' + msdLinkHtml(termo) +
-      '<a class="btn sm ghost" href="#/calc/dose">💉 Calcular volume a aspirar</a></div>' +
+      (apsCat.length ? '' : '<a class="btn sm ghost" href="#/calc/dose/' + esc(c.id) + '">💉 Calcular dose (regra de três)</a>') + '</div>' +
+      (apsCat.length ? '<h2>💉 Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
       '<p class="disclaimer">Catálogo gerado a partir da ' + esc(CT.FONTE.nome) + ' (dados públicos). Classe terapêutica, tarja e apresentações conforme a lista oficial.</p>';
+    if (apsCat.length) bindDrugCalc({ conc: apsCat[0], aps: apsCat, semAviso: apsCat[0].porMl });
   }
 
   // Interações de um medicamento com toda a biblioteca (aba Bula)
@@ -989,6 +1013,7 @@
     setHeader(alias || x.nome, true);
     var cat = B.CATEGORIAS.filter(function (c) { return c.id === x.cat; })[0];
     var aps = (x.ap || []).map(function (a) { return { rot: a[0], qtd: a[1], u: a[2], vol: a[3] }; });
+    if (!aps.length && CT.mercado(x.id)) aps = apsCatalogo(CT.mercado(x.id).ap);
     function li(t, v) { return v ? '<div class="sec"><h3>' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
     $app.innerHTML =
       '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' + aliasTopo(alias, x.nome, CT.mercado(x.id)) + marcasLinha(CT.mercado(x.id)) +
@@ -996,10 +1021,10 @@
       '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
       li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('💊 Posologia usual (adulto)', BX.DOSE[x.id]) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
       mercadoHtml(CT.mercado(x.id)) + confHtml(x.id) + protRelHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' +
-      (aps.length ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
+      (aps.length ? '<h2>💉 Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '<div class="ref-btns"><a class="btn sm ghost" href="#/calc/dose/' + esc(x.id) + '">💉 Calcular dose (regra de três)</a></div>') +
       refsHtml({ id: x.id, nome: x.nome, classe: x.classe }) +
       '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante.</p>';
-    if (aps.length) bindDrugCalc({ conc: { qtd: aps[0].qtd, u: aps[0].u, vol: aps[0].vol }, aps: aps });
+    if (aps.length) bindDrugCalc({ conc: { qtd: aps[0].qtd, u: aps[0].u, vol: aps[0].vol }, aps: aps, semAviso: aps[0].porMl });
   }
 
   function viewDrug(id, alias) {
@@ -1081,16 +1106,24 @@
   }
 
 
-  function viewCalc(id) {
+  function viewCalc(id, drugId) {
     var c = CALCS.filter(function (x) { return x.id === id; })[0];
     if (!c) return viewNotFound();
     setHeader(c.title, true);
+    var med = drugId ? nomeMed(drugId) : '';
+    if (med === drugId) { var ca = CT.CAT.filter(function (a) { return a[0] === drugId; })[0]; med = ca ? ca[1] : ''; }
     $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(c.desc) + '</p>' + favButton('calc:' + c.id) + '</div>' +
+      (med ? '<div class="alias-box">💊 <b>' + esc(med) + '</b><br><small>Informe a apresentação que você tem em mãos (veja o rótulo). <a href="#/droga/' + esc(drugId) + '">Voltar à ficha</a></small></div>' : '') +
       '<form class="form" id="calc-form" autocomplete="off" onsubmit="return false">' + c.fields.map(function (f) { return fieldHtml(f); }).join('') + '</form>' +
       '<div id="calc-out" aria-live="polite"></div>' +
       '<button class="btn ghost" id="btn-clear" type="button">Limpar campos</button>';
     var form = document.getElementById('calc-form');
     var run = bindLiveForm(form, c.fields, c.compute, document.getElementById('calc-out'));
+    if (drugId) {   // pré-seleciona a apresentação de mercado do medicamento, se houver
+      var sel = form.querySelector('select[data-apres]');
+      var grp = sel && Array.prototype.filter.call(sel.querySelectorAll('optgroup'), function (g) { return g.label === nomeMed(drugId); })[0];
+      if (grp && grp.querySelector('option')) { sel.value = grp.querySelector('option').value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
     document.getElementById('btn-clear').onclick = function () {
       form.querySelectorAll('input[type=text],input[type=date],input[type=time]').forEach(function (i) { i.value = ''; });
       run();
@@ -1349,7 +1382,7 @@
       var ml = C.volumeDose(v.dose, v.dose_u, v.qtd, v.qtd_u, v.vol);
       if (ml == null) return null;
       return { results: [{ label: 'Aspirar', value: fmt(ml, 2), unit: 'mL', main: true }],
-        warns: ml > v.vol ? ['A dose excede uma unidade da apresentação (' + fmt(ml / v.vol, 2) + ' unidades).'] : [] };
+        warns: ml > v.vol && !(d.semAviso && v.vol === 1) ? ['A dose excede uma unidade da apresentação (' + fmt(ml / v.vol, 2) + ' unidades).'] : [] };
     }, document.getElementById('dout'));
   }
 
@@ -2792,7 +2825,7 @@
     switch (parts[0]) {
       case '': viewHome(); break;
       case 'calculadoras': viewCalcList(); break;
-      case 'calc': viewCalc(parts[1]); break;
+      case 'calc': viewCalc(parts[1], parts[2]); break;
       case 'infusao': viewInfusao(parts[1]); break;
       case 'drogas': viewDrugs(); break;
       case 'droga': viewDrug(parts[1], parts[2] ? decodeURIComponent(parts[2]) : ''); break;
