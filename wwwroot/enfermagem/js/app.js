@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra;
+  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra, PR = window.Protocolos;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -331,6 +331,47 @@
         ], notes: ['Fórmula de Ganzoni: peso × (Hb alvo − Hb atual) × 2,4 + reservas. A dose por aplicação e o intervalo seguem a prescrição e a bula.'] };
       } },
 
+    { id: 'adrogue', cat: 'solucoes', icon: '🧂', title: 'Correção de sódio (Adrogué-Madias)', desc: 'Quanto 1 L de cada solução muda o sódio sérico',
+      fields: [
+        { id: 'na', label: 'Sódio sérico atual', unit: 'mEq/L', def: 118 },
+        { id: 'peso', label: 'Peso', unit: 'kg', def: 70 },
+        { id: 'pac', label: 'Paciente', type: 'select', def: '0.6', options: [['0.6', 'Homem adulto / criança (60%)'], ['0.5', 'Mulher adulta ou homem idoso (50%)'], ['0.45', 'Mulher idosa (45%)']] },
+        { id: 'sol', label: 'Solução', type: 'select', def: '513', options: [['513', 'NaCl 3% (513 mEq/L)'], ['154', 'SF 0,9% (154 mEq/L)'], ['130', 'Ringer lactato (130 mEq/L)'], ['77', 'NaCl 0,45% (77 mEq/L)'], ['0', 'SG 5% (0 mEq/L)']] },
+        { id: 'k', label: 'Potássio adicionado por litro (opcional)', unit: 'mEq/L', def: 0, optional: true }
+      ],
+      compute: function (v) {
+        var r = C.adrogueMadias(v.na, +v.sol, v.k || 0, v.peso, +v.pac);
+        if (!r) return null;
+        var warns = [];
+        if (Math.abs(r.deltaPorLitro) * 1 > 8) warns.push('Um litro já ultrapassaria 8 mEq/L — fracionar e infundir lentamente.');
+        return { results: [
+          { label: 'Variação do Na com 1 L', value: (r.deltaPorLitro > 0 ? '+' : '') + fmt(r.deltaPorLitro, 1), unit: 'mEq/L', main: true },
+          { label: 'Volume que muda o Na em 8 mEq/L (limite de 24 h)', value: r.litrosPara8 ? fmt(r.litrosPara8 * 1000, 0) : '—', unit: 'mL' },
+          { label: 'Água corporal total estimada', value: fmt(r.act, 1), unit: 'L' }
+        ], warns: warns, notes: ['Limite de correção: até 8 mEq/L nas primeiras 24 h (risco de desmielinização osmótica). A fórmula é estimativa — dosar o sódio a cada 2–4 h. Fonte: Manual MSD — Hiponatremia.'] };
+      } },
+
+    { id: 'sodio-corrigido', cat: 'clinico', icon: '🍭', title: 'Sódio corrigido pela glicemia', desc: 'Hiperglicemia (cetoacidose, estado hiperosmolar)',
+      fields: [{ id: 'na', label: 'Sódio medido', unit: 'mEq/L', def: 130 }, { id: 'gli', label: 'Glicemia', unit: 'mg/dL', def: 600 }],
+      compute: function (v) {
+        var r = C.sodioCorrigido(v.na, v.gli);
+        if (!r) return null;
+        return { results: [{ label: 'Sódio corrigido (Katz, 1,6)', value: fmt(r.katz, 1), unit: 'mEq/L', main: true }, { label: 'Sódio corrigido (Hillier, 2,4)', value: fmt(r.hillier, 1), unit: 'mEq/L' }],
+          notes: ['Soma 1,6 (Katz) ou 2,4 (Hillier) mEq/L para cada 100 mg/dL de glicose acima de 100. Fonte: Manual MSD — Complicações agudas do diabetes.'] };
+      } },
+
+    { id: 'anion-gap', cat: 'clinico', icon: '⚖️', title: 'Ânion gap', desc: 'Investigação de acidose metabólica',
+      fields: [{ id: 'na', label: 'Sódio', unit: 'mEq/L', def: 140 }, { id: 'cl', label: 'Cloro', unit: 'mEq/L', def: 100 }, { id: 'hco3', label: 'Bicarbonato', unit: 'mEq/L', def: 14 },
+        { id: 'alb', label: 'Albumina (opcional)', unit: 'g/dL', optional: true }],
+      compute: function (v) {
+        var r = C.anionGap(v.na, v.cl, v.hco3, v.alb);
+        if (!r) return null;
+        var ref = r.corrigido != null ? r.corrigido : r.ag;
+        return { results: [{ label: 'Ânion gap', value: fmt(r.ag, 1), unit: 'mEq/L', main: true, sub: ref > 12 ? 'Elevado (referência usual 8–12)' : 'Dentro da referência usual (8–12)' }]
+          .concat(r.corrigido != null ? [{ label: 'Corrigido pela albumina', value: fmt(r.corrigido, 1), unit: 'mEq/L' }] : []),
+          notes: ['AG = Na − (Cl + HCO₃). Elevado sugere cetoacidose, acidose lática, insuficiência renal ou intoxicações. Referência varia entre laboratórios.'] };
+      } },
+
     { id: 'balanco', cat: 'clinico', icon: '📊', title: 'Balanço hídrico', desc: 'Entradas − saídas',
       fields: [
         { id: 'ev', label: 'Entradas: endovenosas', unit: 'mL', def: 1500 },
@@ -538,6 +579,7 @@
     e.push({ key: 'view:pcr', href: '#/pcr', icon: '🚨', title: 'Modo PCR', desc: 'Parada cardiorrespiratória: cronômetro e registro', search: 'pcr parada reanimacao rcp adrenalina choque' });
     e.push({ key: 'view:emergped', href: '#/emergencia-ped', icon: '👶', title: 'Emergência pediátrica', desc: 'Doses e materiais por peso/idade', search: 'pediatria pals crianca tubo canula desfibrilacao peso estimado' });
     e.push({ key: 'view:compat', href: '#/compatibilidade', icon: '🔗', title: 'Interações e compatibilidade', desc: 'Checar medicamentos juntos', search: 'interacao compatibilidade y incompatibilidade' });
+    PR.PROTOCOLOS.forEach(function (p) { e.push({ key: 'prot:' + p.id, href: '#/protocolo/' + p.id, icon: '📑', title: p.nome, desc: 'Protocolo · ' + p.resumo, search: p.nome + ' ' + p.resumo + ' protocolo conduta' }); });
     e.push({ key: 'view:sri', href: '#/sri', icon: '🫁', title: 'Intubação — sequência rápida', desc: 'Doses por peso em mg e mL', search: 'intubacao sri iot etomidato cetamina rocuronio succinilcolina via aerea' });
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
@@ -580,8 +622,8 @@
     { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: (window.DATA.DRUGS.length + window.BularioExtra.EXTRAS.length) + ' medicamentos' },
     { href: '#/maletas', icon: '🧰', nome: 'Maletas', desc: 'Seus kits de trabalho' },
     { href: '#/escalas', icon: '📋', nome: 'Escalas', desc: 'Glasgow, Braden, NEWS2…' },
-    { href: '#/compatibilidade', icon: '🔗', nome: 'Interações', desc: 'Checar medicamentos juntos' },
-    { href: '#/ferramentas', icon: '⚙️', nome: 'Ferramentas', desc: 'Hipodermóclise, revisão, backup' }
+    { href: '#/protocolos', icon: '📑', nome: 'Protocolos', desc: window.Protocolos.PROTOCOLOS.length + ' condutas · Manual MSD' },
+    { href: '#/ferramentas', icon: '⚙️', nome: 'Ferramentas', desc: 'Interações, hipodermóclise, backup' }
   ];
 
   function viewHome() {
@@ -624,6 +666,9 @@
         card('#/emergencia-ped', '👶', 'Emergência pediátrica', 'Doses, cânula e energia por idade/peso', 'view:emergped') +
         card('#/infusao', '🫀', 'Drogas vasoativas e sedação', 'mcg/kg/min ↔ mL/h', 'view:infusao') +
         card('#/maleta/lib/atender', '👤', 'Dose por paciente', 'Qualquer medicamento do bulário') + '</div>' +
+      '<h2>Protocolos de emergência</h2><div class="list">' + ['sepse', 'anafilaxia', 'sca', 'avc', 'convulsao', 'hiperk', 'cad', 'intox'].map(function (id) {
+        var p = PR.PROTOCOLOS.filter(function (x) { return x.id === id; })[0]; return card('#/protocolo/' + p.id, p.icon, p.nome, p.resumo, 'prot:' + p.id); }).join('') +
+        card('#/protocolos', '📑', 'Todos os protocolos', PR.PROTOCOLOS.length + ' condutas') + '</div>' +
       '<h2>Avaliação rápida</h2><div class="list">' +
         ['glasgow', 'news2', 'qsofa', 'rass'].map(function (id) { var s = D.SCALES.filter(function (x) { return x.id === id; })[0]; return card('#/escala/' + s.id, '📋', s.nome, s.desc, 'escala:' + s.id); }).join('') + '</div>' +
       '<h2>Medicamentos de emergência</h2><div class="list">' +
@@ -654,6 +699,8 @@
         return '<h2 id="' + g.id + '">' + g.icon + ' ' + esc(g.nome) + '</h2><div class="list">' +
           CALCS.filter(function (c) { return c.cat === g.cat; }).map(function (c) { return card('#/calc/' + c.id, c.icon, c.title, c.desc, 'calc:' + c.id); }).join('') + '</div>';
       }).join('');
+    $app.insertAdjacentHTML('beforeend', '<h2 id="g-escalas">📋 Escalas</h2><div class="list">' + D.SCALES.map(function (s) { return card('#/escala/' + s.id, '📋', s.nome, s.desc, 'escala:' + s.id); }).join('') + '</div>');
+    var nav = $app.querySelector('.chipnav'); if (nav) nav.insertAdjacentHTML('beforeend', '<button type="button" class="chipnav-b" data-go="g-escalas">📋 Escalas</button>');
     $app.querySelectorAll('[data-go]').forEach(function (b) {
       b.onclick = function () { var el = document.getElementById(b.getAttribute('data-go')); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
     });
@@ -715,7 +762,8 @@
       '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' +
       (x.hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
-      li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
+      li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('💊 Posologia usual (adulto)', BX.DOSE[x.id]) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
+      protRelHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' +
       (aps.length ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
       refsHtml({ id: x.id, nome: x.nome, classe: x.classe }) +
       '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante.</p>';
@@ -746,6 +794,7 @@
           return '<div class="int-item ' + sevClass(i.sev) + '"><b>' + sevIcon(i.sev) + ' ' + esc(i.tipo) + '</b> — ' +
             i.com.map(function (x) { return '<a href="#/droga/' + esc(x) + '">' + esc(nm(x)) + '</a>'; }).join(', ') + '<p>' + esc(i.txt) + '</p></div>';
         }).join('') : '<p class="note">Nenhuma interação cadastrada com outros medicamentos do bulário.</p>') +
+        protRelHtml(id) + '<div class="ref-btns">' + msdLinkHtml(d.nome) + '</div>' +
         '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante. Confira na bula oficial (aba Fontes).</p>')
       : '<p class="empty-msg">Resumo de bula ainda não disponível.</p>';
     var addKit = '<div class="sec addkit"><h3>🧰 Adicionar a uma maleta</h3>' + (ms.length
@@ -2208,6 +2257,64 @@
     });
   }
 
+  // ---- Protocolos ----
+  var CALC_PROT = { sepse: ['#/infusao/noradrenalina', '🫀 Noradrenalina em mL/h'], cad: ['#/infusao/insulina', '🫀 Insulina em bomba'], hipona: ['#/calc/adrogue', '🧂 Correção de sódio'],
+    queimados: ['#/calc/parkland', '🔥 Calculadora de Parkland'], 'choque-hipo': ['#/calc/vazao-bomba', '⚙️ Vazão em bomba'], convulsao: ['#/emergencia-ped', '👶 Doses pediátricas de emergência'],
+    tep: ['#/infusao/heparina', '🫀 Heparina em bomba'], 'emerg-has': ['#/infusao/nitroprussiato', '🫀 Nitroprussiato em mL/h'], eap: ['#/infusao/nitroglicerina', '🫀 Nitroglicerina em mL/h'],
+    hipok: ['#/calc/eletrolitos', '⚡ Eletrólitos mEq ↔ mL'], intox: ['#/compatibilidade', '🔗 Interações'] };
+  function nomeMed(id) {
+    var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
+    if (d) return d.nome;
+    var x = BX.EXTRAS.filter(function (e) { return e.id === id; })[0];
+    return x ? x.nome : id;
+  }
+  function protocolosDoMed(id) {
+    return PR.PROTOCOLOS.filter(function (p) { return p.secoes.some(function (s) { return s.tipo === 'meds' && s.itens.some(function (i) { return i[0] === id; }); }); });
+  }
+  function protRelHtml(id) {
+    var ps = protocolosDoMed(id);
+    return ps.length ? '<div class="sec"><h3>📑 Protocolos em que aparece</h3><p>' + ps.map(function (p) { return '<a href="#/protocolo/' + p.id + '">' + esc(p.nome) + '</a>'; }).join(' · ') + '</p></div>' : '';
+  }
+  function msdLinkHtml(nome) {
+    var termo = String(nome).replace(/\(.*?\)/g, '').replace(/\s[\d,]+\s?%/, '').trim();
+    return '<a class="btn sm ghost" target="_blank" rel="noopener" href="' + esc(PR.buscaMsd(termo)) + '">📘 Buscar no Manual MSD</a>';
+  }
+
+  function viewProtocolos() {
+    setHeader('Protocolos', false);
+    $app.innerHTML = '<p class="lead">Condutas resumidas para a enfermagem, com passo a passo, medicamentos e link para o Manual MSD.</p>' +
+      '<div class="search"><input id="pq" type="search" placeholder="Buscar protocolo…" aria-label="Buscar protocolo"></div><div id="pl"></div>' +
+      '<p class="disclaimer">Texto próprio, elaborado a partir do Manual MSD (edição profissional) e de diretrizes consolidadas. Siga o protocolo da sua instituição.</p>';
+    var pq = document.getElementById('pq');
+    function render() {
+      var t = norm(pq.value.trim());
+      document.getElementById('pl').innerHTML = PR.GRUPOS.map(function (g) {
+        var ps = PR.PROTOCOLOS.filter(function (p) { return p.grupo === g.id && (!t || norm(p.nome + ' ' + p.resumo).indexOf(t) >= 0); });
+        return ps.length ? '<h2>' + g.icon + ' ' + esc(g.nome) + '</h2><div class="list">' + ps.map(function (p) { return card('#/protocolo/' + p.id, p.icon, p.nome, p.resumo, 'prot:' + p.id); }).join('') + '</div>' : '';
+      }).join('') || '<p class="empty-msg">Nenhum protocolo encontrado.</p>';
+    }
+    pq.oninput = render; render();
+  }
+
+  function viewProtocolo(id) {
+    var p = PR.PROTOCOLOS.filter(function (x) { return x.id === id; })[0];
+    if (!p) return viewNotFound();
+    setHeader(p.nome, true);
+    var calc = CALC_PROT[p.id];
+    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(p.resumo) + '</p>' + favButton('prot:' + p.id) + '</div>' +
+      (calc ? '<a class="btn" href="' + calc[0] + '">' + esc(calc[1]) + '</a>' : '') +
+      p.secoes.map(function (s) {
+        if (s.tipo === 'passos') return '<h2>' + esc(s.t) + '</h2><ol class="steps">' + s.itens.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ol>';
+        if (s.tipo === 'meds') return '<h2>💊 ' + esc(s.t) + '</h2><div class="list">' + s.itens.map(function (i) {
+          return i[0] ? '<a class="card" href="#/droga/' + esc(i[0]) + '"><span class="card-ic">💊</span><span class="card-t"><b>' + esc(nomeMed(i[0])) + '</b><small>' + esc(i[1]) + '</small></span><span class="chev">›</span></a>'
+                      : '<div class="card"><span class="card-ic">💊</span><span class="card-t"><small>' + esc(i[1]) + '</small></span></div>';
+        }).join('') + '</div>';
+        return '<div class="sec"><h3>' + esc(s.t) + '</h3><ul class="howto">' + s.itens.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>';
+      }).join('') +
+      '<div class="sec refs"><h3>📘 Manual MSD</h3><ul class="fontes">' + p.msd.map(function (m) { return '<li><a target="_blank" rel="noopener" href="' + esc(PR.urlMsd(m[1])) + '">' + esc(m[0]) + '</a></li>'; }).join('') + '</ul>' +
+      '<p class="note">Resumo próprio para consulta rápida; o tópico do MSD traz a explicação completa. Doses e condutas variam com o protocolo institucional e a prescrição.</p></div>';
+  }
+
   // ---- Escalas ----
   function viewScales() {
     setHeader('Escalas', false);
@@ -2290,7 +2397,7 @@
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao' }[parts[0]];
+    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao' }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -2305,6 +2412,8 @@
       case 'revisao': viewRevisao(parts[1]); break;
       case 'pcr': viewPCR(); break;
       case 'emergencia': viewEmergencia(); break;
+      case 'protocolos': viewProtocolos(); break;
+      case 'protocolo': viewProtocolo(parts[1]); break;
       case 'sri': viewSRI(); break;
       case 'hipodermoclise': viewHipo(); break;
       case 'ferramentas': viewFerramentas(); break;

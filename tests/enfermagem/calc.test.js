@@ -128,3 +128,14 @@ test('Ganzoni: 70 kg, Hb 9 → 15 = 1508 mg; criança 20 kg usa 15 mg/kg de rese
   near(C.ganzoni(20, 8, 13).total, 20 * 5 * 2.4 + 300);
   near(C.ganzoni(70, 16, 15).total, 500);
 });
+
+test('Adrogué-Madias, sódio corrigido e ânion gap', () => {
+  const r = C.adrogueMadias(118, 513, 0, 70, 0.6);   // NaCl 3%, 70 kg homem → ACT 42 L
+  near(r.deltaPorLitro, (513 - 118) / 43, 1e-9);
+  near(r.litrosPara8, 8 / ((513 - 118) / 43), 1e-9);
+  assert.ok(C.adrogueMadias(118, 0, 0, 70, 0.6).deltaPorLitro < 0);  // SG 5% reduz o sódio
+  near(C.sodioCorrigido(130, 600).katz, 138); near(C.sodioCorrigido(130, 600).hillier, 142);
+  near(C.sodioCorrigido(130, 80).katz, 130);
+  assert.equal(C.anionGap(140, 100, 14).ag, 26);
+  near(C.anionGap(140, 100, 14, 2).corrigido, 31);
+});

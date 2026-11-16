@@ -217,6 +217,27 @@
     return { hb: hb, reservas: reservas, total: hb + reservas };
   }
 
+  // Adrogué-Madias: variação do Na sérico com 1 L da solução infundida
+  // ACT = peso × fator (homem 0,6; mulher 0,5; idoso homem 0,5; idosa 0,45; criança 0,6)
+  function adrogueMadias(naSerico, naSolucao, kSolucao, pesoKg, fatorACT) {
+    if (!(naSerico > 0) || !(pesoKg > 0) || !(fatorACT > 0) || !(naSolucao >= 0)) return null;
+    var act = pesoKg * fatorACT;
+    var delta = ((naSolucao + (kSolucao || 0)) - naSerico) / (act + 1);
+    return { act: act, deltaPorLitro: delta, litrosPara8: delta !== 0 ? 8 / Math.abs(delta) : null };
+  }
+  // Sódio corrigido pela glicemia (Katz: 1,6 mEq/L para cada 100 mg/dL acima de 100; Hillier: 2,4)
+  function sodioCorrigido(na, glicemia) {
+    if (!(na > 0) || !(glicemia > 0)) return null;
+    var exc = Math.max(0, glicemia - 100) / 100;
+    return { katz: na + 1.6 * exc, hillier: na + 2.4 * exc };
+  }
+  // Ânion gap = Na − (Cl + HCO3); corrigido pela albumina: + 2,5 × (4 − albumina g/dL)
+  function anionGap(na, cl, hco3, albumina) {
+    if (!(na > 0) || !(cl > 0) || !(hco3 >= 0)) return null;
+    var ag = na - (cl + hco3);
+    return { ag: ag, corrigido: albumina > 0 ? ag + 2.5 * (4 - albumina) : null };
+  }
+
   function celsiusParaF(c) { return c * 9 / 5 + 32; }
   function fParaCelsius(f) { return (f - 32) * 5 / 9; }
 
@@ -230,7 +251,7 @@
     transformacaoSoro: transformacaoSoro, holliday: holliday,
     imc: imc, classificaImc: classificaImc, superficieCorporal: superficieCorporal,
     pam: pam, cockcroftGault: cockcroftGault, parkland: parkland, naegele: naegele,
-    oxigenioCilindro: oxigenioCilindro, aprazamento: aprazamento, hhmm: hhmm, ganzoni: ganzoni, celsiusParaF: celsiusParaF, fParaCelsius: fParaCelsius
+    oxigenioCilindro: oxigenioCilindro, aprazamento: aprazamento, hhmm: hhmm, ganzoni: ganzoni, adrogueMadias: adrogueMadias, sodioCorrigido: sodioCorrigido, anionGap: anionGap, celsiusParaF: celsiusParaF, fParaCelsius: fParaCelsius
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

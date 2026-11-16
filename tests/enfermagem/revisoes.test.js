@@ -84,3 +84,22 @@ test('bulário ampliado: fichas resumidas válidas e sem conflito de id', () => 
   }
   assert.ok(X.length + D.DRUGS.length >= 170);
 });
+
+test('protocolos: estrutura, medicamentos existentes e links do Manual MSD', () => {
+  const PR = require('../../wwwroot/enfermagem/js/protocolos.js');
+  const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
+  const ids = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
+  const grupos = new Set(PR.GRUPOS.map(g => g.id)), vistos = new Set();
+  assert.ok(PR.PROTOCOLOS.length >= 20);
+  for (const p of PR.PROTOCOLOS) {
+    assert.ok(!vistos.has(p.id), 'id repetido ' + p.id); vistos.add(p.id);
+    assert.ok(grupos.has(p.grupo), p.id + ' grupo');
+    assert.ok(p.msd.length && p.msd.every(([t, c]) => t && c.startsWith('/pt/profissional/')), p.id + ' msd');
+    assert.ok(p.secoes.some(s => s.tipo === 'meds'), p.id + ' sem medicamentos');
+    for (const s of p.secoes) {
+      assert.ok(['lista', 'passos', 'meds'].includes(s.tipo) && s.itens.length, p.id + ' seção');
+      if (s.tipo === 'meds') for (const [id, txt] of s.itens) assert.ok((id === null || ids.has(id)) && txt, p.id + ' med ' + id);
+    }
+  }
+  assert.ok(X.EXTRAS.every(x => X.DOSE[x.id]), 'toda ficha resumida tem posologia');
+});
