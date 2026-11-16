@@ -686,6 +686,44 @@
       estabilidade: 'Conforme fabricante (ampola sob refrigeração).',
       obs: 'Monitorar perfusão periférica, diurese e sódio.',
       conc: { qtd: 20, u: 'UI', vol: 1 }, infusao: 'vasopressina' }
+,
+
+    // ---------- Sequência rápida de intubação ----------
+    { id: 'cetamina', nome: 'Cetamina (escetamina/cetamina)', classe: 'Anestésico dissociativo',
+      apresentacao: 'Frasco 500 mg/10 mL (50 mg/mL); confira se é cetamina racêmica ou escetamina (doses diferentes)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Indução: sem diluir. Analgesia/sedação: diluir conforme protocolo (ex.: 10 mg/mL).',
+      administracao: 'EV em cerca de 1 min (bolus muito rápido pode causar apneia). Também IM.',
+      estabilidade: 'Usar logo após aspirar/diluir.',
+      obs: 'Mantém drive respiratório e PA; broncodilatadora. Reação de emergência (alucinações), hipersalivação, aumento de PA e FC. Substância controlada.',
+      conc: { qtd: 500, u: 'mg', vol: 10 } },
+
+    { id: 'etomidato', nome: 'Etomidato', classe: 'Hipnótico (indutor anestésico)',
+      apresentacao: 'Ampola 20 mg/10 mL (2 mg/mL)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Não diluir.',
+      administracao: 'EV em 30–60 s, somente para indução (não usar em infusão contínua).',
+      estabilidade: 'Usar logo após aspirar.',
+      obs: 'Estabilidade hemodinâmica. Mioclonias, dor à injeção, náuseas; supressão adrenal transitória (cautela no choque séptico).',
+      conc: { qtd: 20, u: 'mg', vol: 10 } },
+
+    { id: 'rocuronio', nome: 'Rocurônio', classe: 'Bloqueador neuromuscular — ALTA VIGILÂNCIA',
+      apresentacao: 'Ampola 50 mg/5 mL (10 mg/mL)',
+      reconstituicao: 'Solução pronta.',
+      diluicao: 'Não diluir no bolus.',
+      administracao: 'EV em bolus, sempre após sedação adequada. Início em ~60 s; duração de 30–60 min.',
+      estabilidade: 'Armazenar sob refrigeração (2–8 °C); fora da geladeira, validade reduzida conforme fabricante.',
+      obs: 'Paralisa a respiração: usar só com equipe e material de via aérea prontos. Armazenamento segregado e identificado. Reversor: sugamadex.',
+      conc: { qtd: 50, u: 'mg', vol: 5 } },
+
+    { id: 'succinilcolina', nome: 'Succinilcolina (suxametônio)', classe: 'Bloqueador neuromuscular despolarizante — ALTA VIGILÂNCIA',
+      apresentacao: 'Frasco-ampola 100 mg e 500 mg (pó)',
+      reconstituicao: '100 mg em 5 mL de AD (20 mg/mL) ou 10 mL (10 mg/mL).',
+      diluicao: 'Não diluir no bolus.',
+      administracao: 'EV em bolus após o indutor. Início em 30–60 s (fasciculações); duração de 5–10 min.',
+      estabilidade: 'Usar logo após reconstituir; frasco sob refrigeração conforme fabricante.',
+      obs: 'CONTRAINDICADA: hipercalemia, queimadura ou trauma por esmagamento após 24–72 h, rabdomiólise, doença neuromuscular, imobilização prolongada, história pessoal/familiar de hipertermia maligna. Pode causar bradicardia (crianças, 2ª dose).',
+      conc: { qtd: 100, u: 'mg', vol: 5 } }
   ];
 
   // Presets para infusão contínua (bomba)

@@ -216,6 +216,14 @@
       via: 'bolus', tempo: 2 },
     'tranexamico': { freq: 'a cada 6–8 h', adulto: { valor: 1000, txt: '500–1000 mg EV lenta a cada 6–8 h' }, ped: { txt: 'Conforme protocolo (mg/kg)' },
       via: 'bolus', tempo: 10, vmax: 50, renal: { clcr: 50, txt: 'Insuficiência renal: reduzir a dose.' } },
+    'cetamina': { freq: 'dose única (indução); repetir conforme protocolo', adulto: { porKg: 1.5, max: 200, txt: 'Cetamina racêmica — indução: 1–2 mg/kg EV; analgesia/sedação: 0,1–0,5 mg/kg. ESCETAMINA (S+): usar cerca de METADE da dose (0,5–1 mg/kg na indução)' },
+      ped: { porKg: 1.5, max: 200, txt: 'Racêmica: 1–2 mg/kg EV (escetamina: metade da dose)' }, via: 'bolus', tempo: 1, obs: 'A sugestão de dose é para cetamina RACÊMICA. Com escetamina (Ketamin S+), usar cerca de metade.' },
+    'etomidato': { freq: 'dose única (indução)', adulto: { porKg: 0.3, max: 40, txt: '0,2–0,3 mg/kg EV (indução)' },
+      ped: { porKg: 0.3, max: 40, txt: '0,2–0,3 mg/kg EV (indução)' }, via: 'bolus', tempo: 0.5 },
+    'rocuronio': { freq: 'dose única (intubação); manutenção conforme prescrição', adulto: { porKg: 1.2, max: 200, txt: 'SRI: 1–1,2 mg/kg EV; manutenção 0,1–0,2 mg/kg' },
+      ped: { porKg: 1.2, max: 200, txt: 'SRI: 1–1,2 mg/kg EV' }, via: 'bolus', tempo: 0 },
+    'succinilcolina': { freq: 'dose única (intubação)', adulto: { porKg: 1.5, max: 200, txt: '1–1,5 mg/kg EV' },
+      ped: { porKg: 1.5, max: 200, txt: '1–1,5 mg/kg EV (lactentes: 2 mg/kg)' }, via: 'bolus', tempo: 0 },
     'vasopressina': { via: 'continua', infusao: 'vasopressina', adulto: { txt: 'Choque: 0,01–0,04 UI/min em bomba (dose fixa)' }, ped: { txt: 'Conforme protocolo' } }
   };
 
@@ -266,7 +274,8 @@
     'sulfato-magnesio': 'gluconato-calcio',
     'insulina-regular': 'glicose-50',
     heparina: { nome: 'Protamina' },
-    enoxaparina: { nome: 'Protamina (reversão parcial)' }
+    enoxaparina: { nome: 'Protamina (reversão parcial)' },
+    rocuronio: { nome: 'Sugamadex' }
   };
 
   var OPIOIDES = GRUPOS.opioide, BZD = GRUPOS.benzodiazepinico, AMINO = GRUPOS.aminoglicosideo;

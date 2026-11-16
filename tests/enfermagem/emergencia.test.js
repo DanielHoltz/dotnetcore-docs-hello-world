@@ -90,3 +90,13 @@ test('hipodermóclise: marcações referem medicamentos do bulário', () => {
     assert.ok(['sim', 'nao', 'diverge'].includes(h.st), id);
   }
 });
+
+test('ventilação inicial: peso predito e volume corrente', () => {
+  assert.ok(Math.abs(E.pesoPredito(170, 'm') - 66.02) < 0.01);
+  assert.ok(Math.abs(E.pesoPredito(160, 'f') - 52.42) < 0.01);
+  const v = E.ventInicial({ ped: false, altura: 170, sexo: 'm' });
+  assert.equal(Math.round(v.vcProtetor), 396); assert.deepEqual(v.fr, [12, 16]); assert.equal(v.peep, 5);
+  assert.equal(E.ventInicial({ ped: false, altura: 170 }), null);
+  const p = E.ventInicial({ ped: true, peso: 20, idadeMeses: 72 });
+  assert.equal(p.vc[0], 120); assert.deepEqual(p.fr, [16, 24]);
+});

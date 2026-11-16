@@ -485,3 +485,22 @@ h2[id^="g-"] { scroll-margin-top: 120px; }
 .modal-box { max-height: 90vh; overflow-y: auto; }
 .tbl tr.sri-r td { border-bottom: 0; padding-bottom: 2px; }
 .tbl tr.sri-obs td { text-align: left; font-size: .78rem; color: var(--muted); padding-top: 0; }
+
+/* ---------- Apresentações (escolher a ampola) e SRI guiada ---------- */
+.ap-box { margin: 6px 0 10px; }
+.ap-box .lbl { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+.ap-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ap-chip { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-size: .85rem; cursor: pointer; text-align: left; }
+.ap-chip.on { border: 2px solid var(--primary); background: var(--primary-soft); font-weight: 600; }
+.ap-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sri-g .seg { margin: 6px 0; }
+.sri-dose { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; background: var(--primary-soft); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.sri-dose b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.sri-dose small { display: block; color: var(--muted); font-size: .78rem; }
+.sri-ml { text-align: right; }
+.sri-ml b { color: var(--primary); }
+.sri-steps li { padding-right: 12px; }
+.sri-steps li small { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.sri-steps li.now { background: var(--warn-bg); font-weight: 600; }
+.sri-steps li.done { color: var(--muted); }
+.sri-steps li .btn.sm { margin: 6px 0 0; display: inline-block; width: auto; padding: 4px 10px; }

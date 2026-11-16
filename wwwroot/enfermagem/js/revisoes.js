@@ -24,6 +24,8 @@
     'insulina-regular': 'insulina humana',
     'heparina': 'heparina sódica',
     'nitroprussiato': 'nitroprussiato de sódio',
+    'succinilcolina': 'suxametônio',
+    'cetamina': 'cetamina',
     'paracetamol-ev': 'paracetamol',
     'azitromicina-ev': 'azitromicina',
     'cetoprofeno-ev': 'cetoprofeno',
@@ -158,7 +160,11 @@
     'teicoplanina': [F.hsl('teicoplanina'), F.bula('Teicoplanina BioChimico', 'https://bula.com.br/teicoplanina-biochimico/posologia-como-usar')],
     'tenoxicam': [{ t: 'Bula profissional tenoxicam — Eurofarma', url: 'https://cdn.eurofarma.com.br//wp-content/uploads/2016/09/Bula_Tenoxicam_Profissional.pdf' }],
     'tranexamico': [{ t: 'Bula profissional ácido tranexâmico — Fresenius Kabi', url: 'https://www.fresenius-kabi.com/content/dam/fresenius-kabi/br/documents/bulas/medicamentos/%C3%81cido%20Tranex%C3%A2mico%20-%20Bula%20Profissional%20da%20Sa%C3%BAde.pdf.coredownload.inline.pdf' }],
-    'vasopressina': [F.scGuia(4366), F.incorCrit]
+    'vasopressina': [F.scGuia(4366), F.incorCrit],
+    'cetamina': [{ t: 'Medicamentos para ajudar a intubação — MSD Manuals', url: 'https://www.msdmanuals.com/pt/profissional/medicina-de-cuidados-cr%C3%ADticos/parada-respirat%C3%B3ria/medicamentos-para-ajudar-a-intuba%C3%A7%C3%A3o' }, { t: 'Protocolo de via aérea na emergência — HCFMUSP', url: 'https://sanarmed.com/protocolo-de-via-aerea-na-emergencia-hcfmusp-2019-ligas/' }],
+    'etomidato': [{ t: 'Medicamentos para ajudar a intubação — MSD Manuals', url: 'https://www.msdmanuals.com/pt/profissional/medicina-de-cuidados-cr%C3%ADticos/parada-respirat%C3%B3ria/medicamentos-para-ajudar-a-intuba%C3%A7%C3%A3o' }, { t: 'Indução em sequência rápida — Tutoriais de Anestesia UFSC', url: 'https://tutoriaisdeanestesia.paginas.ufsc.br/files/2016/07/331-Indu%C3%A7%C3%A3o-de-Sequ%C3%AAncia-R%C3%A1pida.pdf' }],
+    'rocuronio': [{ t: 'Medicamentos para ajudar a intubação — MSD Manuals', url: 'https://www.msdmanuals.com/pt/profissional/medicina-de-cuidados-cr%C3%ADticos/parada-respirat%C3%B3ria/medicamentos-para-ajudar-a-intuba%C3%A7%C3%A3o' }, { t: 'Rapid sequence intubation — WikEM', url: 'https://wikem.org/wiki/Rapid_sequence_intubation' }],
+    'succinilcolina': [{ t: 'Medicamentos para ajudar a intubação — MSD Manuals', url: 'https://www.msdmanuals.com/pt/profissional/medicina-de-cuidados-cr%C3%ADticos/parada-respirat%C3%B3ria/medicamentos-para-ajudar-a-intuba%C3%A7%C3%A3o' }, { t: 'Protocolo de via aérea na emergência — HCFMUSP', url: 'https://sanarmed.com/protocolo-de-via-aerea-na-emergencia-hcfmusp-2019-ligas/' }]
   };
   function verificacao(id) { return VERIFICACOES[id] ? { data: DATA_CONF, fontes: VERIFICACOES[id] } : null; }
 

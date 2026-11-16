@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario;
+  var C = window.Calc, D = window.DATA, M = window.Maletas, P = window.Paciente, DB = window.DOSES, R = window.Revisoes, B = window.Bulario, AP = window.Apresentacoes, BX = window.BularioExtra;
   var $app = document.getElementById('app');
   var $title = document.getElementById('page-title');
   var $back = document.getElementById('btn-back');
@@ -542,6 +542,7 @@
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
+    BX.EXTRAS.forEach(function (x) { e.push({ key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula' }); });
     D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') }); });
     loadMaletas().forEach(function (m) { e.push({ key: 'maleta:' + m.id, href: '#/maleta/' + m.id, icon: m.icon, title: m.nome, desc: 'Maleta · ' + m.itens.length + ' medicamentos', search: m.nome + ' ' + m.local + ' maleta kit' }); });
     D.SCALES.forEach(function (s) { e.push({ key: 'escala:' + s.id, href: '#/escala/' + s.id, icon: '📋', title: s.nome, desc: s.desc, search: s.nome + ' ' + s.desc + ' escala' }); });
@@ -576,7 +577,7 @@
     { href: '#/emergencia', icon: '🚨', nome: 'Emergência', desc: 'PCR, pediatria, drogas vasoativas', cls: 'sec-red' },
     { href: '#/maleta/lib/atender', icon: '👤', nome: 'Atendimento', desc: 'Dose e preparo por paciente' },
     { href: '#/calculadoras', icon: '🧮', nome: 'Cálculos', desc: 'Gotejamento, diluição, soros' },
-    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: '75 medicamentos' },
+    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: (window.DATA.DRUGS.length + window.BularioExtra.EXTRAS.length) + ' medicamentos' },
     { href: '#/maletas', icon: '🧰', nome: 'Maletas', desc: 'Seus kits de trabalho' },
     { href: '#/escalas', icon: '📋', nome: 'Escalas', desc: 'Glasgow, Braden, NEWS2…' },
     { href: '#/compatibilidade', icon: '🔗', nome: 'Interações', desc: 'Checar medicamentos juntos' },
@@ -666,14 +667,15 @@
       '<div class="chipnav" id="dcat"><button type="button" class="chipnav-b" data-c="">Todos</button>' +
         B.CATEGORIAS.map(function (c) { return '<button type="button" class="chipnav-b" data-c="' + c.id + '">' + c.icon + ' ' + esc(c.nome) + '</button>'; }).join('') + '</div>' +
       '<div class="az" id="daz"></div><div id="dl"></div>' +
-      '<p class="disclaimer">' + D.DRUGS.length + ' medicamentos · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a></p>';
+      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length) + ' medicamentos (' + D.DRUGS.length + ' com preparo e dose; ' + BX.EXTRAS.length + ' em ficha resumida) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a></p>';
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
     function render() {
       var t = norm(dq.value.trim());
       document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === filtro); });
-      var list = D.DRUGS.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); }).filter(function (d) {
-        var bu = B.bula(d.id);
-        return (!filtro || (bu && bu.cat === filtro)) && (!t || norm(d.nome + ' ' + d.classe + ' ' + (bu ? bu.ind : '')).indexOf(t) >= 0);
+      var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: bu ? bu.ind : '', hv: isHV(d), resumo: false }; })
+        .concat(BX.EXTRAS.map(function (x) { return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via, hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), resumo: true }; }));
+      var list = todos.sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); }).filter(function (d) {
+        return (!filtro || d.cat === filtro) && (!t || norm(d.nome + ' ' + d.classe + ' ' + d.txt).indexOf(t) >= 0);
       });
       var porLetra = {};
       list.forEach(function (d) { var l = norm(d.nome).charAt(0).toUpperCase(); (porLetra[l] = porLetra[l] || []).push(d); });
@@ -681,8 +683,8 @@
       document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '">' + l + '</button>'; }).join('') : '';
       dl.innerHTML = list.length ? letras.map(function (l) {
         return '<h3 class="az-h" id="az-' + l + '">' + l + '</h3><div class="list">' + porLetra[l].map(function (d) {
-          var cat = B.categoria(d.id);
-          return card('#/droga/' + d.id, isHV(d) ? '🔴' : (cat ? cat.icon : '💊'), d.nome, d.classe, 'droga:' + d.id);
+          var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
+          return card('#/droga/' + d.id, d.hv ? '🔴' : (cat ? cat.icon : '💊'), d.nome, d.classe + (d.resumo ? ' · ficha resumida' : ''), 'droga:' + d.id);
         }).join('') + '</div>';
       }).join('') : '<p class="empty-msg">Nenhum medicamento encontrado.</p>';
       document.querySelectorAll('#daz [data-l]').forEach(function (b) { b.onclick = function () { document.getElementById('az-' + b.getAttribute('data-l')).scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
@@ -704,9 +706,25 @@
     return out.sort(function (a, b) { return (a.sev === 'grave' ? 0 : 1) - (b.sev === 'grave' ? 0 : 1); });
   }
 
+  function viewExtra(x) {
+    setHeader(x.nome, true);
+    var cat = B.CATEGORIAS.filter(function (c) { return c.id === x.cat; })[0];
+    var aps = (x.ap || []).map(function (a) { return { rot: a[0], qtd: a[1], u: a[2], vol: a[3] }; });
+    function li(t, v) { return v ? '<div class="sec"><h3>' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
+    $app.innerHTML =
+      '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' +
+      (x.hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
+      '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
+      li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
+      (aps.length ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
+      refsHtml({ id: x.id, nome: x.nome, classe: x.classe }) +
+      '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante.</p>';
+    if (aps.length) bindDrugCalc({ conc: { qtd: aps[0].qtd, u: aps[0].u, vol: aps[0].vol }, aps: aps });
+  }
+
   function viewDrug(id) {
     var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
-    if (!d) return viewNotFound();
+    if (!d) { var ex = BX.EXTRAS.filter(function (x) { return x.id === id; })[0]; return ex ? viewExtra(ex) : viewNotFound(); }
     setHeader(d.nome, true);
     var bu = B.bula(id), cat = B.categoria(id);
     var abas = [['preparo', '💧 Preparo'], ['bula', '📖 Bula'], ['paciente', '👤 Paciente'], ['fontes', '📚 Fontes']];
@@ -923,6 +941,16 @@
       '<p class="disclaimer">' + (d.personalizado ? 'Ficha criada por você.' : 'Dados de referência; podem variar entre fabricantes.') + ' Confira a bula e o protocolo da instituição.</p>';
   }
 
+  // Apresentação escolhida pelo usuário (lembrada por medicamento)
+  function apPref(id) { var p = store.get('apPref', {}); var c = p && p[id]; return c && c.qtd > 0 && c.vol > 0 && C.UNITS[c.u] ? c : null; }
+  function apSet(id, a) { var p = store.get('apPref', {}) || {}; p[id] = { qtd: a.qtd, u: a.u, vol: a.vol, rot: a.rot }; store.set('apPref', p); }
+  function apChipsHtml(lista, atual, attr) {
+    if (!lista.length) return '';
+    return '<div class="ap-box"><span class="lbl">Sua ampola / frasco — toque para escolher</span><div class="ap-chips">' + lista.map(function (a, i) {
+      return '<button type="button" class="ap-chip' + (AP.igual(a, atual) ? ' on' : '') + '" ' + attr + '="' + i + '">' + esc(a.rot) + '</button>';
+    }).join('') + '</div></div>';
+  }
+
   function bindDrugCalc(d) {
     var form = document.getElementById('dform');
     if (!form || !d.conc) return;
@@ -932,7 +960,24 @@
       { id: 'qtd', label: 'Apresentação: quantidade', units: units, defU: d.conc.u, def: d.conc.qtd },
       { id: 'vol', label: 'Apresentação: em volume de', unit: 'mL', def: d.conc.vol }
     ];
+    var lista = d.id ? AP.lista(d.id, d.conc) : (d.aps || []);
+    var pref = d.id && !d.concBiblioteca ? apPref(d.id) : null;
+    if (pref && C.sameClass(pref.u, d.conc.u)) { fields[1].def = pref.qtd; fields[1].defU = pref.u; fields[2].def = pref.vol; }
     form.innerHTML = fields.map(function (f) { return fieldHtml(f, 'd'); }).join('');
+    var box = document.createElement('div');
+    box.innerHTML = apChipsHtml(lista, pref || d.conc, 'data-ap');
+    form.parentNode.insertBefore(box, form);
+    box.querySelectorAll('[data-ap]').forEach(function (b) {
+      b.onclick = function () {
+        var a = lista[+b.getAttribute('data-ap')];
+        form.querySelector('[data-k=qtd]').value = String(a.qtd).replace('.', ',');
+        var su = form.querySelector('[data-k=qtd_u]'); if (su) su.value = a.u;
+        form.querySelector('[data-k=vol]').value = String(a.vol).replace('.', ',');
+        if (d.id) apSet(d.id, a);
+        box.querySelectorAll('.ap-chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+        form.dispatchEvent(new Event('input'));
+      };
+    });
     bindLiveForm(form, fields, function (v) {
       var ml = C.volumeDose(v.dose, v.dose_u, v.qtd, v.qtd_u, v.vol);
       if (ml == null) return null;
@@ -1544,6 +1589,8 @@
     if (!d) return viewNotFound();
     var pf = P.perfil(loadPaciente());
     if (!pf.completo) { location.replace('#/maleta/' + id + '/atender'); return; }
+    if (m.lib && it.drugId) { var prefAp = apPref(it.drugId); if (prefAp && d.conc && C.sameClass(prefAp.u, d.conc.u)) d.conc = prefAp; }
+    var listaAp = it.drugId ? AP.lista(it.drugId, d.conc) : [];
     setHeader(d.nome, true);
     var did = it.drugId, dd = did ? DB.DOSES[did] : null, ids = kitDrugIds(m);
     var sug = did && d.conc ? P.doseSugerida(did, pf, DB, d.conc.u) : null;
@@ -1579,7 +1626,7 @@
       '</div>' +
       (cont ? '<a class="btn" href="#/infusao/' + esc(dd.infusao) + '">🫀 Calcular infusão contínua (' + esc(fmt(pf.peso, 1)) + ' kg)</a>' :
         !d.conc ? '<div class="alert warn">Cadastre a apresentação (quantidade em mL) deste medicamento na maleta para calcular o preparo.</div>' :
-        '<h2>🧪 Preparo para este paciente</h2><form class="form" id="prf" onsubmit="return false" autocomplete="off">' +
+        '<h2>🧪 Preparo para este paciente</h2>' + apChipsHtml(listaAp, d.conc, 'data-apa') + '<form class="form" id="prf" onsubmit="return false" autocomplete="off">' +
           '<div class="field"><label for="pr-dose">Dose prescrita</label><div class="input-wrap"><input id="pr-dose" type="text" inputmode="decimal" value="' + (sug && sug.valor != null ? esc(String(sug.valor).replace('.', ',')) : '') + '" placeholder="informe a dose"><span class="unit">' + esc(d.conc.u) + '</span></div>' +
           '<small>Apresentação: ' + esc(concTxt(d.conc)) + (it.conc ? ' (da sua maleta)' : '') + '</small></div>' +
           (pronto || im ? '' : '<div class="field"><label for="pr-dil">Diluir em' + (dd && dd.diluente ? ' (' + esc(dd.diluente) + ')' : '') + '</label><div class="input-wrap"><input id="pr-dil" type="text" inputmode="decimal"><span class="unit">mL</span></div><small>0 = sem diluição em bolsa (EV direto)</small></div>') +
@@ -1595,6 +1642,14 @@
 
     if (cont || !d.conc) return;
     var $d = document.getElementById('pr-dose'), $dil = document.getElementById('pr-dil'), $t = document.getElementById('pr-t');
+    $app.querySelectorAll('[data-apa]').forEach(function (b) {
+      b.onclick = function () {
+        var a = listaAp[+b.getAttribute('data-apa')];
+        if (m.lib) apSet(it.drugId, a);
+        else { it.conc = M.cleanConc(a); saveMaleta(m); toast('Apresentação salva na maleta.'); }
+        viewAtenderItem(id, itemId);
+      };
+    });
     var dirtyDil = false, dirtyT = false, ultimo = null;
     function defaults() {
       var pad = P.preparoPadrao(did, num($d.value), d.conc, pf, DB);
@@ -1948,43 +2003,148 @@
   function viewSRI() {
     setHeader('Intubação (SRI)', true);
     var E = window.Emergencia, pac = loadPaciente();
-    var conc = store.get('sriConc', {});
+    var sel = store.get('sri', { pre: 'fentanil', ind: 'etomidato', bnm: 'rocuronio' });
+    var concSel = store.get('sriConc', {});
+    var seq = store.get('sriSeq', null);
+    var GR = [
+      { k: 'pre', titulo: 'Pré-tratamento', ops: [['fentanil', 'Fentanil'], ['', 'Nenhum']], dica: 'Atenua a resposta simpática; omitir em hipotensão/choque.' },
+      { k: 'ind', titulo: 'Indutor', ops: [['etomidato', 'Etomidato'], ['cetamina', 'Cetamina'], ['propofol', 'Propofol'], ['midazolam', 'Midazolam']], dica: 'Instável/choque: cetamina ou etomidato. Broncoespasmo: cetamina. Estável: propofol.' },
+      { k: 'bnm', titulo: 'Bloqueador neuromuscular', ops: [['rocuronio', 'Rocurônio'], ['succinilcolina', 'Succinilcolina']], dica: 'Hipercalemia, queimado/esmagamento > 24 h, doença neuromuscular: usar rocurônio.' }
+    ];
     $app.innerHTML =
-      '<p class="lead">Doses por peso das medicações da sequência rápida de intubação, em mg e mL. Ajuste a concentração à ampola disponível.</p>' +
+      '<p class="lead">Escolha as drogas e as ampolas disponíveis: o app calcula dose e volume e guia a sequência com cronômetro.</p>' +
       '<form class="form" id="sri-f" onsubmit="return false" autocomplete="off">' +
-        '<div class="field"><label for="sri-p">Peso</label><div class="input-wrap"><input id="sri-p" type="text" inputmode="decimal" value="' + (pac.peso ? esc(String(pac.peso).replace('.', ',')) : '70') + '"><span class="unit">kg</span></div></div>' +
+        '<div class="field two"><div><label for="sri-p">Peso</label><div class="input-wrap"><input id="sri-p" type="text" inputmode="decimal" value="' + (pac.peso ? esc(String(pac.peso).replace('.', ',')) : '70') + '"><span class="unit">kg</span></div></div>' +
+        '<div><label for="sri-a">Altura</label><div class="input-wrap"><input id="sri-a" type="text" inputmode="decimal" value="' + (pac.altura ? esc(String(pac.altura).replace('.', ',')) : '') + '" placeholder="p/ ventilação"><span class="unit">cm</span></div></div></div>' +
         '<div class="field"><span class="lbl">Paciente</span><div class="seg"><label class="seg-opt"><input type="radio" name="sri-m" value="a" checked><span>Adulto</span></label><label class="seg-opt"><input type="radio" name="sri-m" value="p"><span>Pediátrico</span></label></div></div>' +
-      '</form><div id="sri-out" aria-live="polite"></div>' +
-      '<details class="sec chk" open><summary><h3>✅ Antes de intubar (SOAP-ME)</h3></summary><div class="chips col">' +
+        '<div class="field" id="sri-sx"><span class="lbl">Sexo (peso predito)</span><div class="seg"><label class="seg-opt"><input type="radio" name="sri-s" value="m"' + (pac.sexo === 'm' ? ' checked' : '') + '><span>Masculino</span></label><label class="seg-opt"><input type="radio" name="sri-s" value="f"' + (pac.sexo === 'f' ? ' checked' : '') + '><span>Feminino</span></label></div></div>' +
+        '<div class="field" id="sri-idw" hidden><label for="sri-id">Idade</label><div class="input-wrap"><input id="sri-id" type="text" inputmode="decimal" value=""><span class="unit">anos</span></div></div>' +
+      '</form>' +
+      '<h2>1 · Preparar (SOAP-ME)</h2><div class="sec chk"><div class="chips col">' +
         ['Sucção testada e ao alcance', 'Oxigênio: pré-oxigenação por 3 min (máscara com reservatório ou VNI)', 'Via aérea: laringoscópio testado, cânulas (tamanho e ½ menor), fio-guia, bougie, dispositivo supraglótico de resgate',
          'Posição: alinhamento orelha–esterno, cabeceira elevada', 'Monitorização: ECG, PA, SpO₂ e capnografia', 'Medicações aspiradas, rotuladas e acesso venoso pérvio; vasopressor à mão'].map(function (t, i) {
-          return '<label class="chk-i"><input type="checkbox" id="sri-c' + i + '"><span>' + esc(t) + '</span></label>'; }).join('') + '</div></details>' +
-      '<details class="sec chk"><summary><h3>🫁 Depois de intubar</h3></summary><ul class="howto">' +
+          return '<label class="chk-i"><input type="checkbox" id="sri-c' + i + '"><span>' + esc(t) + '</span></label>'; }).join('') + '</div></div>' +
+      '<h2>2 · Escolher drogas e ampolas</h2><div id="sri-esc"></div>' +
+      '<h2>3 · Sequência</h2><div id="sri-seq"></div>' +
+      '<h2>4 · Ventilação mecânica inicial</h2><div id="sri-vent"></div>' +
+      '<h2>5 · Depois de intubar</h2><div class="sec"><ul class="howto">' +
         '<li>Confirmar com capnografia (onda contínua) e ausculta; observar expansão torácica.</li><li>Fixar a cânula e anotar a marca na rima labial.</li>' +
-        '<li>Iniciar sedoanalgesia contínua (o bloqueador dura mais que o indutor).</li><li>Raio X de tórax; ajustar o ventilador; gasometria.</li></ul></details>' +
-      '<div class="list">' + card('#/infusao/fentanil', '🫀', 'Sedação contínua pós-intubação', 'Fentanil, midazolam, propofol em mL/h') + '</div>' +
-      '<p class="note">Fontes: MSD Manuals (medicamentos para intubação); protocolo de via aérea na emergência HCFMUSP; WikEM. Doses de referência — siga o protocolo do serviço e a decisão da equipe médica.</p>';
-    function run() {
-      var peso = num(document.getElementById('sri-p').value), ped = document.querySelector('input[name=sri-m]:checked').value === 'p';
-      var out = document.getElementById('sri-out'), r = E.sriDoses(peso, ped);
-      if (!r) { out.innerHTML = '<div class="result empty">Informe o peso.</div>'; return; }
-      var grupo = '';
-      out.innerHTML = '<div class="tbl-wrap"><table class="tbl ep"><thead><tr><th>Medicação</th><th>Dose</th><th>Volume</th></tr></thead><tbody>' + r.map(function (x) {
-        var c = conc[x.id] > 0 ? conc[x.id] : x.conc, ml = x.dose / c;
-        var head = x.grupo !== grupo ? '<tr class="grp"><td colspan="3">' + esc(x.grupo) + '</td></tr>' : '';
-        grupo = x.grupo;
-        return head + '<tr class="sri-r"><td><b>' + esc(x.nome) + '</b><small>' + fmt(x.porKg, 2) + ' ' + x.u + '/kg · faixa ' + fmt(x.faixa[0], 0) + '–' + fmt(x.faixa[1], 0) + ' ' + x.u + '</small></td>' +
-          '<td class="num"><b>' + fmt(x.dose, 1) + ' ' + x.u + '</b>' + (x.limitado ? '<small>dose máx.</small>' : '') + '</td>' +
-          '<td class="num"><b>' + fmt(ml, 1) + ' mL</b><small><input class="mini" data-c="' + x.id + '" type="text" inputmode="decimal" value="' + fmt(c, 2) + '" aria-label="Concentração de ' + esc(x.nome) + '"> ' + x.u + '/mL</small></td></tr>' +
-          '<tr class="sri-obs"><td colspan="3">' + esc(x.obs) + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
-      out.querySelectorAll('[data-c]').forEach(function (i) {
-        i.onchange = function () { var v = num(i.value); if (v > 0) { conc[i.getAttribute('data-c')] = v; store.set('sriConc', conc); } run(); };
+        '<li>Iniciar sedoanalgesia contínua (o bloqueador dura mais que o indutor).</li><li>Raio X de tórax; gasometria em 30–60 min; ajustar o ventilador.</li></ul>' +
+        '<a class="btn ghost" href="#/infusao/fentanil">🫀 Sedação contínua (fentanil, midazolam, propofol)</a></div>' +
+      '<p class="note">Fontes: MSD Manuals (medicamentos para intubação); protocolo de via aérea HCFMUSP; WikEM; Diretrizes Brasileiras de Ventilação Mecânica AMIB/SBPT 2013 (atualização em andamento desde 2023); protocolo ARDSNet. Doses de referência — siga o protocolo do serviço e a decisão da equipe médica.</p>';
+
+    function pesoAtual() { return num(document.getElementById('sri-p').value); }
+    function ped() { return document.querySelector('input[name=sri-m]:checked').value === 'p'; }
+    function doseDe(id) {
+      var r = E.sriDoses(pesoAtual(), ped());
+      return r ? r.filter(function (x) { return x.id === id; })[0] : null;
+    }
+    function apsDe(id) {
+      var vistos = {};
+      return window.Apresentacoes.lista(id).filter(function (a) { var k = (a.qtd / a.vol).toFixed(6); if (vistos[k]) return false; vistos[k] = 1; return true; })
+        .map(function (a) { return { rot: fmt(a.qtd / a.vol, 2) + ' ' + a.u + '/mL — ' + a.rot.replace(/\s*\(.*?\)\s*/g, ' ').trim(), qtd: a.qtd, u: a.u, vol: a.vol }; });
+    }
+    function concDe(id) {
+      var aps = apsDe(id), c = concSel[id];
+      if (c > 0) return c;
+      var x = E.SRI.filter(function (s) { return s.id === id; })[0];
+      return x ? x.conc : (aps[0] ? aps[0].qtd / aps[0].vol : 1);
+    }
+    function linhaDroga(id) {
+      var x = doseDe(id);
+      if (!x) return '<p class="note">Informe o peso.</p>';
+      var c = concDe(id), aps = apsDe(id);
+      return '<div class="sri-dose"><div><b>' + fmt(x.dose, 1) + ' ' + x.u + '</b><small>' + fmt(x.porKg, 2) + ' ' + x.u + '/kg' + (x.limitado ? ' · dose máx.' : '') + '</small></div>' +
+        '<div class="sri-ml"><b>' + fmt(x.dose / c, 1) + ' mL</b><small>de ' + fmt(c, 2) + ' ' + x.u + '/mL</small></div></div>' +
+        (aps.length ? '<div class="ap-chips">' + aps.map(function (a) {
+          var ac = a.qtd / a.vol;
+          return '<button type="button" class="ap-chip' + (Math.abs(ac - c) < 1e-9 ? ' on' : '') + '" data-sc="' + id + '" data-v="' + ac + '">' + esc(a.rot) + '</button>';
+        }).join('') + '</div>' : '') +
+        '<p class="note">' + esc(x.obs) + '</p>';
+    }
+    function renderEscolha() {
+      document.getElementById('sri-esc').innerHTML = GR.map(function (g) {
+        return '<div class="sec sri-g"><h3>' + esc(g.titulo) + '</h3><div class="seg">' + g.ops.map(function (o) {
+          return '<label class="seg-opt"><input type="radio" name="sg-' + g.k + '" value="' + o[0] + '"' + (sel[g.k] === o[0] ? ' checked' : '') + '><span>' + esc(o[1]) + '</span></label>';
+        }).join('') + '</div><p class="note">💡 ' + esc(g.dica) + '</p>' + (sel[g.k] ? linhaDroga(sel[g.k]) : '') + '</div>';
+      }).join('');
+      document.querySelectorAll('#sri-esc input[type=radio]').forEach(function (r) {
+        r.onchange = function () { sel[r.name.slice(3)] = r.value; store.set('sri', sel); renderEscolha(); renderSeq(); };
+      });
+      document.querySelectorAll('#sri-esc [data-sc]').forEach(function (b) {
+        b.onclick = function () { concSel[b.getAttribute('data-sc')] = +b.getAttribute('data-v'); store.set('sriConc', concSel); renderEscolha(); renderSeq(); };
       });
     }
-    document.getElementById('sri-f').addEventListener('input', run);
-    document.getElementById('sri-f').addEventListener('change', run);
-    run();
+    function passos() {
+      var p = [], d;
+      p.push({ t: 0, txt: 'Pré-oxigenar com O₂ a 100% por 3 min; posicionar; checar o material' });
+      if (sel.pre && (d = doseDe(sel.pre))) p.push({ t: 0, txt: 'Fentanil ' + fmt(d.dose, 0) + ' mcg (' + fmt(d.dose / concDe(sel.pre), 1) + ' mL) EV lento' });
+      if (sel.ind && (d = doseDe(sel.ind))) p.push({ t: 180, txt: d.nome + ' ' + fmt(d.dose, 1) + ' mg (' + fmt(d.dose / concDe(sel.ind), 1) + ' mL) EV' });
+      if (sel.bnm && (d = doseDe(sel.bnm))) p.push({ t: 180, txt: d.nome + ' ' + fmt(d.dose, 0) + ' mg (' + fmt(d.dose / concDe(sel.bnm), 1) + ' mL) EV logo após o indutor' });
+      p.push({ t: sel.bnm === 'succinilcolina' ? 225 : 240, txt: 'Aguardar relaxamento (' + (sel.bnm === 'succinilcolina' ? '45 s; fasciculações cessam' : '60 s') + ') → laringoscopia e intubação' });
+      p.push({ t: 300, txt: 'Confirmar com capnografia e ausculta; fixar a cânula; iniciar ventilação' });
+      return p;
+    }
+    var timer = null;
+    function renderSeq() {
+      var ps = passos(), el = document.getElementById('sri-seq');
+      if (!pesoAtual()) { el.innerHTML = '<p class="note">Informe o peso.</p>'; return; }
+      var decor = seq ? (Date.now() - seq.inicio) / 1000 : null;
+      el.innerHTML = '<div class="sec">' + (seq ? '<div class="pcr-row"><span>Tempo desde o início</span><b id="sri-tm">' + E.mmss(decor) + '</b></div>' : '') +
+        '<ol class="steps sri-steps">' + ps.map(function (p, i) {
+          var ativo = seq && decor >= p.t && (i === ps.length - 1 || decor < ps[i + 1].t);
+          var feito = seq && seq.feitos && seq.feitos[i];
+          return '<li class="' + (ativo ? 'now' : '') + (feito ? ' done' : '') + '"><small>' + E.mmss(p.t) + '</small> ' + esc(p.txt) +
+            (seq && !feito ? ' <button type="button" class="btn sm ghost" data-feito="' + i + '">Feito</button>' : feito ? ' <small>✓ ' + esc(feito) + '</small>' : '') + '</li>';
+        }).join('') + '</ol>' +
+        (seq ? '<div class="ask-row"><button class="btn" type="button" id="sri-copy">📋 Copiar registro</button><button class="btn ghost" type="button" id="sri-reset">Nova sequência</button></div>'
+             : '<button class="btn pcr-start" type="button" id="sri-go">▶ Iniciar sequência (cronômetro)</button>') + '</div>';
+      var go = document.getElementById('sri-go');
+      if (go) go.onclick = function () { seq = { inicio: Date.now(), feitos: {} }; store.set('sriSeq', seq); beep(660, 0.2); renderSeq(); tick(); };
+      el.querySelectorAll('[data-feito]').forEach(function (b) {
+        b.onclick = function () { seq.feitos[b.getAttribute('data-feito')] = new Date().toLocaleTimeString('pt-BR'); store.set('sriSeq', seq); renderSeq(); };
+      });
+      var cp = document.getElementById('sri-copy');
+      if (cp) cp.onclick = function () {
+        compartilharTexto('EnfCalc — intubação em sequência rápida (' + new Date(seq.inicio).toLocaleDateString('pt-BR') + ')\nPeso: ' + fmt(pesoAtual(), 1) + ' kg\n' +
+          ps.map(function (p, i) { return (seq.feitos[i] ? seq.feitos[i] : '—') + ' · ' + p.txt; }).join('\n') + '\n\nRegistro de apoio; transcrever para o prontuário.', 'Registro da intubação');
+      };
+      var rs = document.getElementById('sri-reset');
+      if (rs) rs.onclick = function () { ask({ titulo: 'Nova sequência', msg: 'Apagar o registro desta sequência?', ok: 'Apagar', perigo: true }).then(function (s) { if (s) { seq = null; store.set('sriSeq', null); renderSeq(); } }); };
+    }
+    var ultimoPasso = -1;
+    function tick() {
+      if (pcrTimer) clearInterval(pcrTimer);
+      pcrTimer = setInterval(function () {
+        if (!seq) return;
+        var decor = (Date.now() - seq.inicio) / 1000, ps = passos();
+        var idx = ps.reduce(function (a, p, i) { return decor >= p.t ? i : a; }, 0);
+        if (idx !== ultimoPasso) { if (ultimoPasso >= 0) { beep(880, 0.25); try { navigator.vibrate && navigator.vibrate(200); } catch (e) { /* ok */ } } ultimoPasso = idx; renderSeq(); }
+        var tm = document.getElementById('sri-tm'); if (tm) tm.textContent = E.mmss(decor);
+      }, 500);
+    }
+    function renderVent() {
+      var v = E.ventInicial({ ped: ped(), idadeMeses: num(document.getElementById('sri-id').value) * 12, altura: num(document.getElementById('sri-a').value),
+        sexo: (document.querySelector('input[name=sri-s]:checked') || {}).value, peso: pesoAtual() });
+      var el = document.getElementById('sri-vent');
+      if (!v) { el.innerHTML = '<div class="result empty">' + (ped() ? 'Informe o peso.' : 'Informe altura e sexo para calcular o peso predito.') + '</div>'; return; }
+      el.innerHTML = resultsHtml({ results: [
+        { label: 'Volume corrente', value: fmt(v.vc[0], 0) + '–' + fmt(v.vc[1], 0), unit: 'mL', main: true, sub: '6–8 mL/kg do ' + v.baseTipo + ' (' + fmt(v.pesoBase, 1) + ' kg). Protetor: ' + fmt(v.vcProtetor, 0) + ' mL (6 mL/kg)' },
+        { label: 'Frequência respiratória', value: v.fr[0] + '–' + v.fr[1], unit: 'irpm', sub: 'Ajustar pela capnografia e gasometria' },
+        { label: 'PEEP inicial', value: String(v.peep), unit: 'cmH₂O' },
+        { label: 'FiO₂ inicial', value: String(v.fio2Inicial), unit: '%', sub: 'Reduzir para manter SpO₂ ' + v.metas.spo2 },
+        { label: 'Metas de segurança', value: 'Pplat ' + v.metas.pplat, sub: 'Driving pressure (Pplat − PEEP) ' + v.metas.driving + ' · relação I:E 1:2 a 1:3' }
+      ] });
+    }
+    var form = document.getElementById('sri-f');
+    function syncPed() {
+      document.getElementById('sri-sx').hidden = ped();
+      document.getElementById('sri-idw').hidden = !ped();
+    }
+    form.addEventListener('input', function () { renderEscolha(); renderSeq(); renderVent(); });
+    form.addEventListener('change', function () { syncPed(); renderEscolha(); renderSeq(); renderVent(); });
+    syncPed(); renderEscolha(); renderSeq(); renderVent();
+    if (seq) tick();
   }
 
   // ---- Hipodermóclise ----

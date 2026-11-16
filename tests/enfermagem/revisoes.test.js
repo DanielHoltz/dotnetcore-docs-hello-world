@@ -56,3 +56,31 @@ test('bulário: todos os medicamentos têm resumo completo e categoria válida',
   }
   assert.equal(Object.keys(B.BULA).length, D.DRUGS.length);
 });
+
+test('apresentações comerciais: ids válidos, unidades compatíveis e valores positivos', () => {
+  const A = require('../../wwwroot/enfermagem/js/apresentacoes.js');
+  const C = require('../../wwwroot/enfermagem/js/calc.js');
+  for (const [id, lista] of Object.entries(A.AP)) {
+    const d = D.DRUGS.find(x => x.id === id);
+    assert.ok(d, 'apresentação sem medicamento: ' + id);
+    for (const [rot, qtd, u, vol] of lista) {
+      assert.ok(rot && qtd > 0 && vol > 0, id + ' ' + rot);
+      assert.ok(C.sameClass(u, d.conc.u), id + ' unidade ' + u);
+    }
+  }
+  assert.ok(D.DRUGS.filter(d => A.AP[d.id]).length >= 75);
+});
+
+test('bulário ampliado: fichas resumidas válidas e sem conflito de id', () => {
+  const X = require('../../wwwroot/enfermagem/js/bulario_extra.js').EXTRAS;
+  const B = require('../../wwwroot/enfermagem/js/bulario.js');
+  const C = require('../../wwwroot/enfermagem/js/calc.js');
+  const cats = new Set(B.CATEGORIAS.map(c => c.id)), ids = new Set();
+  for (const x of X) {
+    assert.ok(!ids.has(x.id) && !D.DRUGS.some(d => d.id === x.id), 'id repetido: ' + x.id); ids.add(x.id);
+    assert.ok(cats.has(x.cat), x.id + ' categoria');
+    for (const k of ['nome', 'classe', 'via', 'apres', 'ind', 'enf']) assert.ok(x[k] && x[k].length > 2, x.id + ' ' + k);
+    for (const a of x.ap || []) assert.ok(a[1] > 0 && a[3] > 0 && C.UNITS[a[2]], x.id + ' ap');
+  }
+  assert.ok(X.length + D.DRUGS.length >= 170);
+});

@@ -79,7 +79,7 @@
   var SRI = [
     { id: 'fentanil', grupo: 'Pré-tratamento / analgesia', nome: 'Fentanil', u: 'mcg', faixa: [1, 3], padrao: 2, conc: 50, max: 200, obs: 'EV lento (rigidez torácica em bolus rápido). Cautela em hipotensão.' },
     { id: 'etomidato', grupo: 'Indutor', nome: 'Etomidato', u: 'mg', faixa: [0.2, 0.3], padrao: 0.3, conc: 2, max: 40, obs: 'Estabilidade hemodinâmica. Pode causar mioclonias; supressão adrenal transitória (cautela na sepse).' },
-    { id: 'cetamina', grupo: 'Indutor', nome: 'Cetamina', u: 'mg', faixa: [1, 2], padrao: 1.5, conc: 50, max: 200, obs: 'Preserva drive respiratório e PA; útil em broncoespasmo e choque. Cautela em hipertensão grave e isquemia coronariana.' },
+    { id: 'cetamina', grupo: 'Indutor', nome: 'Cetamina', u: 'mg', faixa: [1, 2], padrao: 1.5, conc: 50, max: 200, obs: 'Dose para cetamina RACÊMICA — com ESCETAMINA (S+) usar cerca de METADE. Preserva drive respiratório e PA; útil em broncoespasmo e choque. Cautela em hipertensão grave e isquemia coronariana.' },
     { id: 'propofol', grupo: 'Indutor', nome: 'Propofol', u: 'mg', faixa: [1, 2], padrao: 1.5, conc: 10, max: 200, obs: 'Hipotensão frequente — preferir em paciente hemodinamicamente estável; reduzir dose em idosos.' },
     { id: 'midazolam', grupo: 'Indutor', nome: 'Midazolam', u: 'mg', faixa: [0.1, 0.3], padrao: 0.2, conc: 5, max: 20, obs: 'Início mais lento; hipotensão. Alternativa quando os demais indutores não estão disponíveis.' },
     { id: 'rocuronio', grupo: 'Bloqueador neuromuscular', nome: 'Rocurônio', u: 'mg', faixa: [1, 1.2], padrao: 1.2, conc: 10, max: 200, obs: 'Início em ~60 s; duração de 30–60 min. Preferir quando a succinilcolina é contraindicada. Reversor: sugamadex.' },
@@ -107,8 +107,29 @@
       acimaVelocidade: porSitio > 62.5 + 1e-9, acimaVolume: por24 > 1500 + 1e-9 };
   }
 
+  // Ventilação mecânica inicial (Diretrizes Brasileiras de VM AMIB/SBPT 2013; protocolo ARDSNet)
+  // Peso predito: homem 50 + 0,91 × (altura − 152,4); mulher 45,5 + 0,91 × (altura − 152,4)
+  function pesoPredito(alturaCm, sexo) {
+    if (!(alturaCm > 0) || (sexo !== 'm' && sexo !== 'f')) return null;
+    return Math.max(0, (sexo === 'm' ? 50 : 45.5) + 0.91 * (alturaCm - 152.4));
+  }
+  function ventInicial(o) {
+    // o: { ped, idadeMeses, altura, sexo, peso }
+    var base = o.ped ? (o.peso > 0 ? o.peso : null) : pesoPredito(o.altura, o.sexo);
+    if (!base) return null;
+    var fr;
+    if (!o.ped) fr = [12, 16];
+    else if (o.idadeMeses != null && o.idadeMeses < 12) fr = [25, 35];
+    else if (o.idadeMeses != null && o.idadeMeses < 72) fr = [20, 30];
+    else if (o.idadeMeses != null && o.idadeMeses < 144) fr = [16, 24];
+    else fr = [14, 20];
+    return { pesoBase: base, baseTipo: o.ped ? 'peso real/ideal' : 'peso predito',
+      vc: [6 * base, 8 * base], vcProtetor: 6 * base, fr: fr, peep: 5, fio2Inicial: 100,
+      metas: { spo2: '93–97% (DPOC: 88–92%)', pplat: '≤ 30 cmH₂O', driving: '≤ 15 cmH₂O' } };
+  }
+
   var api = { pesoEstimado: pesoEstimado, tuboTraqueal: tuboTraqueal, energias: energias, dosesPCR: dosesPCR,
-    mmss: mmss, statusAdrenalina: statusAdrenalina, CAUSAS: CAUSAS, SRI: SRI, sriDoses: sriDoses, hipodermoclise: hipodermoclise };
+    mmss: mmss, statusAdrenalina: statusAdrenalina, CAUSAS: CAUSAS, SRI: SRI, sriDoses: sriDoses, hipodermoclise: hipodermoclise, pesoPredito: pesoPredito, ventInicial: ventInicial };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Emergencia = api;
 })(this);
