@@ -714,7 +714,7 @@
       '<div class="chipnav" id="dcat"><button type="button" class="chipnav-b" data-c="">Todos</button>' +
         B.CATEGORIAS.map(function (c) { return '<button type="button" class="chipnav-b" data-c="' + c.id + '">' + c.icon + ' ' + esc(c.nome) + '</button>'; }).join('') + '</div>' +
       '<div class="az" id="daz"></div><div id="dl"></div>' +
-      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length) + ' medicamentos (' + D.DRUGS.length + ' com preparo e dose; ' + BX.EXTRAS.length + ' em ficha resumida) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a></p>';
+      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length) + ' medicamentos (' + D.DRUGS.length + ' com preparo e dose; ' + BX.EXTRAS.length + ' em ficha resumida) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
     function render() {
       var t = norm(dq.value.trim());
@@ -763,7 +763,7 @@
       (x.hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
       li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('💊 Posologia usual (adulto)', BX.DOSE[x.id]) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
-      protRelHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' +
+      confHtml(x.id) + protRelHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' +
       (aps.length ? '<h2>Calcular volume a aspirar</h2><form class="form" id="dform" onsubmit="return false"></form><div id="dout" aria-live="polite"></div>' : '') +
       refsHtml({ id: x.id, nome: x.nome, classe: x.classe }) +
       '<p class="note">Resumo de referência elaborado para o EnfCalc; não reproduz nem substitui a bula do fabricante.</p>';
@@ -2275,6 +2275,41 @@
     var ps = protocolosDoMed(id);
     return ps.length ? '<div class="sec"><h3>📑 Protocolos em que aparece</h3><p>' + ps.map(function (p) { return '<a href="#/protocolo/' + p.id + '">' + esc(p.nome) + '</a>'; }).join(' · ') + '</p></div>' : '';
   }
+  var CONF_ST = { ok: ['ok', '✅ Conferida com a fonte'], ajustado: ['info', '🛠️ Conferida e corrigida'], parcial: ['warn', '⚠️ Conferida em parte'], 'sem-fonte': ['bad', '❔ Sem fonte oficial automática'] };
+  function confHtml(id) {
+    var c = BX.CONFERENCIA && BX.CONFERENCIA[id];
+    if (!c) return '';
+    var st = CONF_ST[c.st] || CONF_ST['sem-fonte'];
+    return '<div class="sec"><h3>📚 Conferência da ficha</h3><p><span class="badge ' + st[0] + '">' + st[1] + '</span> <small>em ' + esc(fmtData(BX.CONF_DATA)) + '</small></p>' +
+      (c.nota ? '<p>' + esc(c.nota) + '</p>' : '') +
+      (c.fontes.length ? '<ul class="fontes">' + c.fontes.map(function (f) {
+        var url = f[1].charAt(0) === '/' ? PR.urlMsd(f[1]) : f[1];
+        return '<li><a target="_blank" rel="noopener" href="' + esc(url) + '">' + esc(f[0]) + '</a></li>';
+      }).join('') + '</ul>' : '') +
+      '<p class="note">Conferência automatizada da posologia com bulas oficiais (FDA/DailyMed, em inglês) e o Manual MSD. Não substitui a bula brasileira nem a revisão de um farmacêutico. <a href="#/conferencia">Ver relatório</a></p></div>';
+  }
+  function fmtData(iso) { var p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
+
+  function viewConferencia() {
+    setHeader('Conferência das fichas', true);
+    var C2 = BX.CONFERENCIA || {}, ids = Object.keys(C2);
+    var cont = {}; ids.forEach(function (k) { cont[C2[k].st] = (cont[C2[k].st] || 0) + 1; });
+    var filtro = store.get('confFiltro', 'ajustado');
+    var ordem = ['ajustado', 'parcial', 'sem-fonte', 'ok'];
+    function nomeX(k) { var x = BX.EXTRAS.filter(function (e) { return e.id === k; })[0]; return x ? x.nome : k; }
+    $app.innerHTML = '<p class="lead">As ' + ids.length + ' fichas resumidas tiveram a posologia comparada, uma a uma, com a bula oficial americana (FDA/DailyMed) e, quando não havia bula, com o Manual MSD. Conferência de ' + esc(fmtData(BX.CONF_DATA)) + '.</p>' +
+      '<div class="chipnav">' + ordem.map(function (st) {
+        return '<button type="button" class="chipnav-b' + (st === filtro ? ' on' : '') + '" data-f="' + st + '">' + CONF_ST[st][1] + ' (' + (cont[st] || 0) + ')</button>';
+      }).join('') + '</div>' +
+      '<div class="list">' + ids.filter(function (k) { return C2[k].st === filtro; }).sort(function (a, b) { return nomeX(a).localeCompare(nomeX(b)); }).map(function (k) {
+        return card('#/droga/' + k, '💊', nomeX(k), C2[k].nota || (C2[k].fontes[0] ? C2[k].fontes[0][0] : ''));
+      }).join('') + '</div>' +
+      '<p class="disclaimer">As bulas da FDA refletem o registro nos EUA; doses, apresentações e indicações podem diferir no Brasil. Para uso profissional, confira a bula da Anvisa e peça a revisão de um farmacêutico.</p>';
+    Array.prototype.forEach.call($app.querySelectorAll('[data-f]'), function (b) {
+      b.addEventListener('click', function () { store.set('confFiltro', b.getAttribute('data-f')); viewConferencia(); });
+    });
+  }
+
   function msdLinkHtml(nome) {
     var termo = String(nome).replace(/\(.*?\)/g, '').replace(/\s[\d,]+\s?%/, '').trim();
     return '<a class="btn sm ghost" target="_blank" rel="noopener" href="' + esc(PR.buscaMsd(termo)) + '">📘 Buscar no Manual MSD</a>';
@@ -2413,6 +2448,7 @@
       case 'pcr': viewPCR(); break;
       case 'emergencia': viewEmergencia(); break;
       case 'protocolos': viewProtocolos(); break;
+      case 'conferencia': viewConferencia(); break;
       case 'protocolo': viewProtocolo(parts[1]); break;
       case 'sri': viewSRI(); break;
       case 'hipodermoclise': viewHipo(); break;

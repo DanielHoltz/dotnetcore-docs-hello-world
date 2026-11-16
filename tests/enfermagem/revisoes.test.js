@@ -90,7 +90,7 @@ test('protocolos: estrutura, medicamentos existentes e links do Manual MSD', () 
   const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
   const ids = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
   const grupos = new Set(PR.GRUPOS.map(g => g.id)), vistos = new Set();
-  assert.ok(PR.PROTOCOLOS.length >= 20);
+  assert.ok(PR.PROTOCOLOS.length >= 38);
   for (const p of PR.PROTOCOLOS) {
     assert.ok(!vistos.has(p.id), 'id repetido ' + p.id); vistos.add(p.id);
     assert.ok(grupos.has(p.grupo), p.id + ' grupo');
@@ -102,4 +102,28 @@ test('protocolos: estrutura, medicamentos existentes e links do Manual MSD', () 
     }
   }
   assert.ok(X.EXTRAS.every(x => X.DOSE[x.id]), 'toda ficha resumida tem posologia');
+});
+
+test('conferência das fichas resumidas: todas registradas, com status e fontes válidas', () => {
+  const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
+  assert.match(X.CONF_DATA, /^\d{4}-\d{2}-\d{2}$/);
+  for (const x of X.EXTRAS) {
+    const c = X.CONFERENCIA[x.id];
+    assert.ok(c, 'sem conferência: ' + x.id);
+    assert.ok(['ok', 'ajustado', 'parcial', 'sem-fonte'].includes(c.st), x.id + ' status');
+    assert.ok(c.st === 'ok' || c.nota, x.id + ' precisa de nota');
+    for (const [rot, url] of c.fontes) assert.ok(rot && (url.startsWith('https://dailymed.nlm.nih.gov/') || url.startsWith('/pt/profissional/')), x.id + ' fonte');
+    if (c.st === 'ok' || c.st === 'ajustado') assert.ok(c.fontes.length, x.id + ' conferida sem fonte');
+  }
+  assert.strictEqual(Object.keys(X.CONFERENCIA).length, X.EXTRAS.length);
+});
+
+test('novas fichas: categorias válidas e pele/feridas', () => {
+  const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
+  const B = require('../../wwwroot/enfermagem/js/bulario.js');
+  const cats = new Set(B.CATEGORIAS.map(c => c.id));
+  assert.ok(X.EXTRAS.every(x => cats.has(x.cat)));
+  assert.ok(X.EXTRAS.filter(x => x.cat === 'pele').length >= 8);
+  assert.ok(X.EXTRAS.length >= 165);
+  const ids = X.EXTRAS.map(x => x.id); assert.strictEqual(new Set(ids).size, ids.length);
 });

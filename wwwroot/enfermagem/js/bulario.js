@@ -18,6 +18,7 @@
     { id: 'antidoto', nome: 'Antídotos e emergência', icon: '🛟' },
     { id: 'hormonio', nome: 'Hormônios, endócrino e obstetrícia', icon: '💉' },
     { id: 'respiratorio', nome: 'Respiratório', icon: '🫁' },
+    { id: 'pele', nome: 'Pele, feridas e tópicos', icon: '🩹' },
     { id: 'outros', nome: 'Vitaminas e outros', icon: '🧴' }
   ];
 
