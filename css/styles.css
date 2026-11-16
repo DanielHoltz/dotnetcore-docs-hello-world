@@ -523,3 +523,10 @@ h2[id^="g-"] { scroll-margin-top: 120px; }
 h2[id^="m-"] { scroll-margin-top: 120px; }
 .az button.on { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
 #dtipo { margin: 8px 0 2px; }
+/* Nomes comerciais por tipo */
+.marcas-linha { margin: -2px 4px 12px; font-size: .9rem; line-height: 1.45; }
+.marcas p { margin: 0 0 6px; line-height: 1.5; }
+.tipo { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-right: 4px; vertical-align: 1px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.tipo-R { background: var(--warn-bg); color: var(--text); border-color: var(--warn); }
+.tipo-G { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.tipo-N, .tipo-B { background: var(--primary-soft); color: var(--primary); border-color: transparent; }

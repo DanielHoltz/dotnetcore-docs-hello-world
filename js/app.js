@@ -616,7 +616,56 @@
       (favKey && isFav(favKey) ? '<span class="star">★</span>' : '') + '<span class="chev">›</span></a>';
   }
 
-  function marcasDe(id) { var m = CT.mercado(id); return m ? m.marcas.join(' ') : ''; }
+  // ---- Nomes comerciais e tipo (referência, genérico, similar...) ----
+  var TIPO_NOME = { R: 'Referência', N: 'Novo', B: 'Biológico', E: 'Específico', S: 'Similar', F: 'Fitoterápico', O: 'Outro', G: 'Genérico' };
+  var TIPO_ORD = ['R', 'N', 'B', 'E', 'S', 'F', 'O'];
+  var TIPO_PLURAL = { N: 'Novos', B: 'Biológicos', E: 'Específicos', S: 'Similares', F: 'Fitoterápicos', O: 'Outros' };
+  function nomesMarcas(ms) { return (ms || []).map(function (m) { return m[0]; }); }
+  function marcasDe(id) { var m = CT.mercado(id); return m ? nomesMarcas(m.marcas).join(' ') : ''; }
+  function marcasCurtas(ms, n) { return (ms || []).slice(0, n).map(function (m) { return m[0] + (m[1] === 'R' ? ' (ref.)' : ''); }).join(', '); }
+  function marcasHtml(mk) {
+    var grupos = TIPO_ORD.map(function (t) { return [t, mk.marcas.filter(function (m) { return m[1] === t; })]; }).filter(function (g) { return g[1].length; });
+    return '<div class="marcas">' + grupos.map(function (g) {
+      return '<p><span class="tipo tipo-' + g[0] + '">' + (g[0] === 'R' ? '⭐ ' : '') + (g[1].length > 1 && g[0] !== 'R' ? TIPO_PLURAL[g[0]] : TIPO_NOME[g[0]]) + '</span> ' + esc(nomesMarcas(g[1]).join(', ')) + '</p>';
+    }).join('') + (mk.gen ? '<p><span class="tipo tipo-G">Genérico</span> ' + mk.gen + ' fabricante' + (mk.gen > 1 ? 's' : '') + ' (o nome na caixa é o do princípio ativo)</p>' : '') + '</div>';
+  }
+  function marcasLinha(mk) {
+    if (!mk || (!mk.marcas.length && !mk.gen)) return '';
+    return '<p class="marcas-linha">🏷️ <b>Nomes comerciais:</b> ' + esc(marcasCurtas(mk.marcas, 6) || '—') + (mk.marcas.length > 6 ? '…' : '') + (mk.gen ? ' · <span class="tipo tipo-G">Genérico</span>' : '') + '</p>';
+  }
+  // Busca tolerante a erros de digitação (ex.: "sivastatina" → sinvastatina)
+  function lev(a, b) {
+    if (Math.abs(a.length - b.length) > 2) return 9;
+    var v = []; for (var j = 0; j <= b.length; j++) v[j] = j;
+    for (var i = 1; i <= a.length; i++) {
+      var prev = v[0]; v[0] = i;
+      for (var k = 1; k <= b.length; k++) { var tmp = v[k]; v[k] = Math.min(v[k] + 1, v[k - 1] + 1, prev + (a[i - 1] === b[k - 1] ? 0 : 1)); prev = tmp; }
+    }
+    return v[b.length];
+  }
+  // Distância total da busca ao texto (-1 = não parecido); menor = mais parecido
+  function parecido(texto, words) {
+    var toks = texto.split(/[^a-z0-9]+/), tot = 0;
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (texto.indexOf(w) >= 0) continue;
+      if (w.length < 4) return -1;
+      var lim = w.length >= 7 ? 2 : 1, best = 9;
+      toks.forEach(function (t) {
+        if (t.length < 3) return;
+        var d = lev(w, t);
+        if (t.length > w.length && w.length >= 5) d = Math.min(d, lev(w, t.slice(0, w.length)) + 0.5);
+        if (d < best) best = d;
+      });
+      if (best > lim) return -1;
+      tot += best;
+    }
+    return tot;
+  }
+  function aproximados(lista, txt, words) {
+    return lista.map(function (x) { return [x, parecido(txt(x), words)]; }).filter(function (p) { return p[1] >= 0; })
+      .sort(function (a, b) { return a[1] - b[1] || txt(a[0]).length - txt(b[0]).length; }).map(function (p) { return p[0]; });
+  }
   function allEntries() {
     var e = [];
     e.push({ key: 'view:pcr', href: '#/pcr', icon: '🚨', title: 'Modo PCR', desc: 'Parada cardiorrespiratória: cronômetro e registro', search: 'pcr parada reanimacao rcp adrenalina choque' });
@@ -629,7 +678,7 @@
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     BX.EXTRAS.forEach(function (x) { e.push({ key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula ' + marcasDe(x.id) }); });
-    CT.CAT.forEach(function (a) { e.push({ key: 'droga:' + a[0], href: '#/droga/' + a[0], icon: '📚', title: a[1], desc: a[4] + ' · catálogo', search: a[1] + ' ' + a[2] + ' ' + a[4] + ' ' + a[9].join(' ') }); });
+    CT.CAT.forEach(function (a) { var mc = marcasCurtas(a[9], 3); e.push({ key: 'droga:' + a[0], href: '#/droga/' + a[0], icon: '📚', title: a[1], desc: (mc ? '🏷️ ' + mc + ' · ' : '') + a[4] + ' · catálogo', search: a[1] + ' ' + a[2] + ' ' + a[4] + ' ' + nomesMarcas(a[9]).join(' ') }); });
     D.DRUGS.forEach(function (d) { var bu = B.bula(d.id); e.push({ key: 'droga:' + d.id, href: '#/droga/' + d.id, icon: '💊', title: d.nome, desc: d.classe, search: d.nome + ' ' + d.classe + ' diluicao bula ' + (bu ? bu.ind : '') + ' ' + marcasDe(d.id) }); });
     loadMaletas().forEach(function (m) { e.push({ key: 'maleta:' + m.id, href: '#/maleta/' + m.id, icon: m.icon, title: m.nome, desc: 'Maleta · ' + m.itens.length + ' medicamentos', search: m.nome + ' ' + m.local + ' maleta kit' }); });
     D.SCALES.forEach(function (s) { e.push({ key: 'escala:' + s.id, href: '#/escala/' + s.id, icon: '📋', title: s.nome, desc: s.desc, search: s.nome + ' ' + s.desc + ' escala' }); });
@@ -699,7 +748,9 @@
       main.hidden = true;
       var words = t.split(/\s+/);
       var hits = entries.filter(function (e) { var s = norm(e.search + ' ' + e.title); return words.every(function (w) { return s.indexOf(w) >= 0; }); });
-      res.innerHTML = hits.length ? '<div class="list">' + hits.slice(0, 40).map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>'
+      var aprox = false;
+      if (!hits.length && t.length >= 4) { hits = aproximados(entries, function (e) { return norm(e.title + ' ' + e.search); }, words); aprox = hits.length > 0; }
+      res.innerHTML = hits.length ? (aprox ? '<div class="alert info">Nenhum resultado exato para “' + esc(q.value.trim()) + '”. Você quis dizer:</div>' : '') + '<div class="list">' + hits.slice(0, 40).map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>'
         : '<p class="empty-msg">Nada encontrado para “' + esc(q.value) + '”.</p>';
     });
   }
@@ -758,9 +809,9 @@
   function viewDrugs() {
     setHeader('Bulário', false);
     var filtro = store.get('bulCat', ''), tipoF = store.get('bulTipo', ''), letraSel = store.get('bulLetra', '');
-    var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + (mk ? ' ' + mk.marcas.join(' ') : ''), hv: isHV(d), tipo: 'completa' }; })
-      .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + (mk ? ' ' + mk.marcas.join(' ') : ''), hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
-      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + c.marcas.join(' '), marcas: c.marcas, hv: false, tipo: 'catalogo', origem: c.origem }; }))
+    var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + (mk ? ' ' + nomesMarcas(mk.marcas).join(' ') : ''), marcas: mk ? mk.marcas : [], hv: isHV(d), tipo: 'completa' }; })
+      .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + (mk ? ' ' + nomesMarcas(mk.marcas).join(' ') : ''), marcas: mk ? mk.marcas : [], hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
+      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + nomesMarcas(c.marcas).join(' '), marcas: c.marcas, hv: false, tipo: 'catalogo', origem: c.origem }; }))
       .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
     todos.forEach(function (d) { d.busca = norm(d.nome + ' ' + d.classe + ' ' + d.txt); });
     $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar por nome ou classe…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
@@ -778,19 +829,31 @@
       var list = todos.filter(function (d) {
         return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF) && words.every(function (w) { return d.busca.indexOf(w) >= 0; });
       });
+      var aprox = false;
+      if (!list.length && t.length >= 4) {
+        list = aproximados(todos.filter(function (d) { return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF); }), function (d) { return norm(d.nome + ' ' + nomesMarcas(d.marcas).join(' ')); }, words);
+        aprox = list.length > 0;
+      }
       var porLetra = {};
       list.forEach(function (d) { var l = norm(d.nome).charAt(0).toUpperCase(); if (!/[A-Z]/.test(l)) l = '#'; (porLetra[l] = porLetra[l] || []).push(d); });
       var letras = Object.keys(porLetra).sort(function (a, b) { return (a === '#') - (b === '#') || a.localeCompare(b); });
+      if (aprox) {
+        document.getElementById('daz').innerHTML = '';
+        dl.innerHTML = '<div class="alert info">Nenhum resultado exato para “' + esc(dq.value.trim()) + '”. Você quis dizer:</div><div class="list">' + list.slice(0, 30).map(linha).join('') + '</div>';
+        return;
+      }
       var paginar = !t && list.length > 250;   // lista grande: mostra uma letra por vez
       if (paginar && letras.indexOf(letraSel) < 0) letraSel = letras[0];
       document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '"' + (paginar && l === letraSel ? ' class="on"' : '') + '>' + l + '</button>'; }).join('') : '';
       var mostrar = paginar ? [letraSel] : letras, limite = 300, n = 0;
       function linha(d) {
         var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
-        var desc = d.tipo === 'catalogo' ? d.classe + (d.marcas.length ? ' · ' + d.marcas.slice(0, 2).join(', ') : '') + (d.origem === 2 ? ' · registro Anvisa' : ' · catálogo') : d.classe + (d.tipo === 'resumo' ? ' · ficha resumida' : '');
+        var mc = marcasCurtas(d.marcas, 3);
+        var desc = (mc ? '🏷️ ' + mc + ' · ' : '') + d.classe + (d.tipo === 'catalogo' ? (d.origem === 2 ? ' · registro Anvisa' : ' · catálogo') : d.tipo === 'resumo' ? ' · ficha resumida' : '');
         return card('#/droga/' + d.id, d.hv ? '🔴' : d.tipo === 'catalogo' ? '📚' : (cat ? cat.icon : '💊'), d.nome, desc, 'droga:' + d.id);
       }
-      dl.innerHTML = (list.length ? '<p class="note">' + list.length.toLocaleString('pt-BR') + ' resultado' + (list.length > 1 ? 's' : '') + (paginar ? ' · letra ' + letraSel : '') + '</p>' : '') +
+      dl.innerHTML = (aprox ? '<div class="alert info">Nenhum resultado exato para “' + esc(dq.value.trim()) + '”. Você quis dizer:</div>' : '') +
+        (list.length ? '<p class="note">' + list.length.toLocaleString('pt-BR') + ' resultado' + (list.length > 1 ? 's' : '') + (paginar ? ' · letra ' + letraSel : '') + '</p>' : '') +
         (list.length ? mostrar.map(function (l) {
           if (n >= limite) return '';
           var itens = porLetra[l].slice(0, limite - n); n += itens.length;
@@ -816,10 +879,10 @@
     if (!mk) return '';
     return '<div class="sec"><h3>🏷️ ' + (titulo || 'No mercado brasileiro') + '</h3>' +
       '<p class="badges"><span class="badge ' + (mk.tarja >= 3 ? 'bad' : mk.tarja === 2 ? 'warn' : 'info') + '">' + esc(CT.tarjaTxt(mk.tarja)) + '</span>' +
-      (mk.hosp ? '<span class="badge">🏥 Uso hospitalar</span>' : '') + (mk.gen ? '<span class="badge ok">Genérico disponível</span>' : '') +
+      (mk.hosp ? '<span class="badge">🏥 Uso hospitalar</span>' : '') + (mk.gen ? '<span class="badge ok">Genérico disponível</span>' : '<span class="badge">Sem genérico na lista</span>') +
       '<span class="badge">' + mk.labs + ' fabricante' + (mk.labs > 1 ? 's' : '') + '</span></p>' +
       (mk.tmax > mk.tarja ? '<p class="note">⚠️ Algumas apresentações têm tarja mais restritiva: ' + esc(CT.tarjaTxt(mk.tmax)) + '.</p>' : '') +
-      (mk.marcas.length ? '<p><b>Nomes comerciais:</b> ' + esc(mk.marcas.join(', ')) + '</p>' : '') +
+      ((mk.marcas.length || mk.gen) ? '<p><b>Nomes comerciais e tipo:</b></p>' + marcasHtml(mk) : '') +
       (mk.ap.length ? '<p><b>Apresentações:</b></p><ul class="fontes">' + mk.ap.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
       '<p class="note">Fonte: ' + esc(mk.origem === 2 ? CT.FONTE_REG.nome : CT.FONTE.nome) + ', ' + esc(fmtData(mk.origem === 2 ? CT.FONTE_REG.data : CT.FONTE.data)) + '. Confira o rótulo do produto em mãos.</p></div>';
   }
@@ -828,13 +891,13 @@
     var cat = B.CATEGORIAS.filter(function (x) { return x.id === c.cat; })[0];
     var termo = (c.comp || c.nome).split(' + ')[0].replace(/\s—.*$/, '');
     $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(c.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + c.id) + '</div>' +
+      '<div class="head-row"><p class="lead">' + esc(c.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + c.id) + '</div>' + marcasLinha(c) +
       '<div class="alert info">📚 Ficha de catálogo com dados oficiais. <b>Não traz posologia</b>: consulte a bula e a prescrição.</div>' +
       (c.origem === 1 ? '<div class="alert warn">Consta na lista de preços da CMED, mas sem comercialização informada em 2025 — pode estar em falta no mercado.</div>' : '') +
       (c.origem === 2 ? '<div class="alert warn">Registro ativo na Anvisa, sem preço na lista da CMED (comum em soros, vacinas, fitoterápicos, gases e produtos hospitalares). Apresentações e tarja: ver bula.</div>' : '') +
       (c.comp ? '<div class="sec"><h3>🧪 Componentes</h3><p>' + esc(c.comp) + '</p></div>' : '') +
       mercadoHtml(c) +
-      '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(anvisaBusca(c.marcas[0] || termo)) + '">📄 Bula no Bulário da Anvisa</a>' + msdLinkHtml(termo) +
+      '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(anvisaBusca((c.marcas[0] && c.marcas[0][0]) || termo)) + '">📄 Bula no Bulário da Anvisa</a>' + msdLinkHtml(termo) +
       '<a class="btn sm ghost" href="#/calc/dose">💉 Calcular volume a aspirar</a></div>' +
       '<p class="disclaimer">Catálogo gerado a partir da ' + esc(CT.FONTE.nome) + ' (dados públicos). Classe terapêutica, tarja e apresentações conforme a lista oficial.</p>';
   }
@@ -857,7 +920,7 @@
     var aps = (x.ap || []).map(function (a) { return { rot: a[0], qtd: a[1], u: a[2], vol: a[3] }; });
     function li(t, v) { return v ? '<div class="sec"><h3>' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
     $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' +
+      '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' + marcasLinha(CT.mercado(x.id)) +
       (x.hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
       li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('💊 Posologia usual (adulto)', BX.DOSE[x.id]) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
@@ -912,7 +975,7 @@
         (DB.DOSES[id].freq ? '<p><b>Intervalo usual:</b> ' + esc(DB.DOSES[id].freq) + '</p>' : '') + '</div>' : '') + addKit;
 
     $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(d.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + d.id) + '</div>' +
+      '<div class="head-row"><p class="lead">' + esc(d.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + d.id) + '</div>' + marcasLinha(CT.mercado(d.id)) +
       (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="tabs" role="tablist">' + abas.map(function (a) {
         return '<button type="button" role="tab" class="tab" id="tab-' + a[0] + '" aria-controls="pane-' + a[0] + '" data-tab="' + a[0] + '">' + a[1] + '</button>';
