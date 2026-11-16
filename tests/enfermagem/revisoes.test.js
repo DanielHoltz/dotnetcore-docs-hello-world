@@ -163,12 +163,13 @@ test('catálogo CMED/Anvisa: ≥ 1.400 princípios ativos, sem duplicar fichas d
   const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
   const cats = new Set(B.CATEGORIAS.map(c => c.id));
   const appIds = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
-  assert.ok(CT.total >= 1400);
+  assert.ok(CT.total >= 2000);
+  assert.ok(CT.CAT.every(a => [0, 1, 2].includes(a[12])));
   assert.ok(CT.total + appIds.size >= 1500, 'total de medicamentos');
   const ids = new Set();
   for (const a of CT.CAT) {
     const c = CT.item(a);
-    assert.ok(c.id.startsWith('c-') && !ids.has(c.id) && !appIds.has(c.id), 'id ' + c.id); ids.add(c.id);
+    assert.ok(/^[cr]-/.test(c.id) && !ids.has(c.id) && !appIds.has(c.id), 'id ' + c.id); ids.add(c.id);
     assert.ok(c.nome && cats.has(c.cat) && [-1, 0, 1, 2, 3].includes(c.tarja) && c.tmax >= c.tarja, c.id);
     assert.ok(Array.isArray(c.ap) && Array.isArray(c.marcas));
   }
