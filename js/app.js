@@ -760,7 +760,7 @@
     var filtro = store.get('bulCat', ''), tipoF = store.get('bulTipo', ''), letraSel = store.get('bulLetra', '');
     var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + (mk ? ' ' + mk.marcas.join(' ') : ''), hv: isHV(d), tipo: 'completa' }; })
       .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + (mk ? ' ' + mk.marcas.join(' ') : ''), hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
-      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + c.marcas.join(' '), marcas: c.marcas, hv: false, tipo: 'catalogo' }; }))
+      .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + c.marcas.join(' '), marcas: c.marcas, hv: false, tipo: 'catalogo', origem: c.origem }; }))
       .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
     todos.forEach(function (d) { d.busca = norm(d.nome + ' ' + d.classe + ' ' + d.txt); });
     $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar por nome ou classe…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
@@ -769,7 +769,7 @@
       '<div class="seg" id="dtipo" role="radiogroup" aria-label="Tipo de ficha">' + [['', 'Todas'], ['completa', 'Com preparo'], ['resumo', 'Resumidas'], ['catalogo', 'Catálogo']].map(function (o) {
         return '<label class="seg-opt"><input type="radio" name="dtipo" value="' + o[0] + '"' + (o[0] === tipoF ? ' checked' : '') + '><span>' + o[1] + '</span></label>'; }).join('') + '</div>' +
       '<div class="az" id="daz"></div><div id="dl"></div>' +
-      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR') + ' medicamentos: ' + D.DRUGS.length + ' com preparo e dose, ' + BX.EXTRAS.length + ' em ficha resumida e ' + CT.total.toLocaleString('pt-BR') + ' no catálogo de mercado (CMED/Anvisa) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
+      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR') + ' medicamentos: ' + D.DRUGS.length + ' com preparo e dose, ' + BX.EXTRAS.length + ' em ficha resumida e ' + CT.total.toLocaleString('pt-BR') + ' no catálogo oficial (CMED e registros da Anvisa) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
     function render() {
       var t = norm(dq.value.trim());
@@ -779,15 +779,15 @@
         return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF) && words.every(function (w) { return d.busca.indexOf(w) >= 0; });
       });
       var porLetra = {};
-      list.forEach(function (d) { var l = norm(d.nome).charAt(0).toUpperCase(); (porLetra[l] = porLetra[l] || []).push(d); });
-      var letras = Object.keys(porLetra).sort();
+      list.forEach(function (d) { var l = norm(d.nome).charAt(0).toUpperCase(); if (!/[A-Z]/.test(l)) l = '#'; (porLetra[l] = porLetra[l] || []).push(d); });
+      var letras = Object.keys(porLetra).sort(function (a, b) { return (a === '#') - (b === '#') || a.localeCompare(b); });
       var paginar = !t && list.length > 250;   // lista grande: mostra uma letra por vez
       if (paginar && letras.indexOf(letraSel) < 0) letraSel = letras[0];
       document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '"' + (paginar && l === letraSel ? ' class="on"' : '') + '>' + l + '</button>'; }).join('') : '';
       var mostrar = paginar ? [letraSel] : letras, limite = 300, n = 0;
       function linha(d) {
         var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
-        var desc = d.tipo === 'catalogo' ? d.classe + (d.marcas.length ? ' · ' + d.marcas.slice(0, 2).join(', ') : '') + ' · catálogo' : d.classe + (d.tipo === 'resumo' ? ' · ficha resumida' : '');
+        var desc = d.tipo === 'catalogo' ? d.classe + (d.marcas.length ? ' · ' + d.marcas.slice(0, 2).join(', ') : '') + (d.origem === 2 ? ' · registro Anvisa' : ' · catálogo') : d.classe + (d.tipo === 'resumo' ? ' · ficha resumida' : '');
         return card('#/droga/' + d.id, d.hv ? '🔴' : d.tipo === 'catalogo' ? '📚' : (cat ? cat.icon : '💊'), d.nome, desc, 'droga:' + d.id);
       }
       dl.innerHTML = (list.length ? '<p class="note">' + list.length.toLocaleString('pt-BR') + ' resultado' + (list.length > 1 ? 's' : '') + (paginar ? ' · letra ' + letraSel : '') + '</p>' : '') +
@@ -817,11 +817,11 @@
     return '<div class="sec"><h3>🏷️ ' + (titulo || 'No mercado brasileiro') + '</h3>' +
       '<p class="badges"><span class="badge ' + (mk.tarja >= 3 ? 'bad' : mk.tarja === 2 ? 'warn' : 'info') + '">' + esc(CT.tarjaTxt(mk.tarja)) + '</span>' +
       (mk.hosp ? '<span class="badge">🏥 Uso hospitalar</span>' : '') + (mk.gen ? '<span class="badge ok">Genérico disponível</span>' : '') +
-      '<span class="badge">' + mk.labs + ' laboratório' + (mk.labs > 1 ? 's' : '') + '</span></p>' +
+      '<span class="badge">' + mk.labs + ' fabricante' + (mk.labs > 1 ? 's' : '') + '</span></p>' +
       (mk.tmax > mk.tarja ? '<p class="note">⚠️ Algumas apresentações têm tarja mais restritiva: ' + esc(CT.tarjaTxt(mk.tmax)) + '.</p>' : '') +
       (mk.marcas.length ? '<p><b>Nomes comerciais:</b> ' + esc(mk.marcas.join(', ')) + '</p>' : '') +
       (mk.ap.length ? '<p><b>Apresentações:</b></p><ul class="fontes">' + mk.ap.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
-      '<p class="note">Fonte: ' + esc(CT.FONTE.nome) + ', ' + esc(fmtData(CT.FONTE.data)) + '. Confira o rótulo do produto em mãos.</p></div>';
+      '<p class="note">Fonte: ' + esc(mk.origem === 2 ? CT.FONTE_REG.nome : CT.FONTE.nome) + ', ' + esc(fmtData(mk.origem === 2 ? CT.FONTE_REG.data : CT.FONTE.data)) + '. Confira o rótulo do produto em mãos.</p></div>';
   }
   function viewCatalogo(c) {
     setHeader(c.nome, true);
@@ -829,7 +829,9 @@
     var termo = (c.comp || c.nome).split(' + ')[0].replace(/\s—.*$/, '');
     $app.innerHTML =
       '<div class="head-row"><p class="lead">' + esc(c.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + c.id) + '</div>' +
-      '<div class="alert info">📚 Ficha de catálogo com dados oficiais de mercado. <b>Não traz posologia</b>: consulte a bula e a prescrição.</div>' +
+      '<div class="alert info">📚 Ficha de catálogo com dados oficiais. <b>Não traz posologia</b>: consulte a bula e a prescrição.</div>' +
+      (c.origem === 1 ? '<div class="alert warn">Consta na lista de preços da CMED, mas sem comercialização informada em 2025 — pode estar em falta no mercado.</div>' : '') +
+      (c.origem === 2 ? '<div class="alert warn">Registro ativo na Anvisa, sem preço na lista da CMED (comum em soros, vacinas, fitoterápicos, gases e produtos hospitalares). Apresentações e tarja: ver bula.</div>' : '') +
       (c.comp ? '<div class="sec"><h3>🧪 Componentes</h3><p>' + esc(c.comp) + '</p></div>' : '') +
       mercadoHtml(c) +
       '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(anvisaBusca(c.marcas[0] || termo)) + '">📄 Bula no Bulário da Anvisa</a>' + msdLinkHtml(termo) +
