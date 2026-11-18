@@ -772,6 +772,8 @@
     PR.PROTOCOLOS.forEach(function (p) { e.push({ key: 'prot:' + p.id, href: '#/protocolo/' + p.id, icon: '📑', title: p.nome, desc: 'Protocolo · ' + p.resumo, search: p.nome + ' ' + p.resumo + ' protocolo conduta' }); });
     e.push({ key: 'view:sri', href: '#/sri', icon: '🫁', title: 'Intubação — sequência rápida', desc: 'Doses por peso em mg e mL', search: 'intubacao sri iot etomidato cetamina rocuronio succinilcolina via aerea' });
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
+    Object.keys(CT.CLASSES).forEach(function (k) { e.push({ key: 'classe:' + k, href: '#/classe/' + k, icon: '🧭', title: CT.CLASSES[k], desc: 'Classe de medicamentos · ' + k, search: 'classe ' + CT.CLASSES[k] + ' ' + k }); });
+    e.push({ key: 'view:classes', href: '#/classes', icon: '🧭', title: 'Classes de medicamentos', desc: 'Por sistema do corpo e classe terapêutica', search: 'classes classe terapeutica mecanismo atuacao farmacologica' });
     e.push({ key: 'view:scanner', href: '#/scanner', icon: '📷', title: 'Ler código de barras da caixa', desc: 'Identifica o medicamento pelo EAN', search: 'codigo de barras ean caixa camera scanner leitor' });
     e.push({ key: 'view:plantao', href: '#/plantao', icon: '🗓️', title: 'Agenda de medicações do plantão', desc: 'Horários por leito, checagem e lembretes', search: 'agenda aprazamento horarios checagem plantao lembrete' });
     e.push({ key: 'view:sbar', href: '#/sbar', icon: '📝', title: 'Passagem de plantão (SBAR)', desc: 'Com NEWS2 automático', search: 'passagem plantao sbar news2 handover' });
@@ -813,7 +815,8 @@
     { href: '#/emergencia', icon: '🚨', nome: 'Emergência', desc: 'PCR, pediatria, drogas vasoativas', cls: 'sec-red' },
     { href: '#/maleta/lib/atender', icon: '👤', nome: 'Atendimento', desc: 'Dose e preparo por paciente' },
     { href: '#/calculadoras', icon: '🧮', nome: 'Cálculos', desc: 'Gotejamento, diluição, soros' },
-    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: (window.DATA.DRUGS.length + window.BularioExtra.EXTRAS.length + window.Catalogo.total).toLocaleString('pt-BR') + ' medicamentos' },
+    { href: '#/drogas', icon: '💊', nome: 'Bulário', desc: (window.DATA.DRUGS.length + window.BularioExtra.EXTRAS.length + window.Catalogo.total).toLocaleString('pt-BR') + ' princípios ativos e milhares de nomes comerciais' },
+    { href: '#/classes', icon: '🧭', nome: 'Classes', desc: 'Medicamentos por classe terapêutica' },
     { href: '#/maletas', icon: '🧰', nome: 'Maletas', desc: 'Seus kits de trabalho' },
     { href: '#/escalas', icon: '📋', nome: 'Escalas', desc: 'Glasgow, Braden, NEWS2…' },
     { href: '#/protocolos', icon: '📑', nome: 'Protocolos', desc: window.Protocolos.PROTOCOLOS.length + ' condutas · Manual MSD' },
@@ -922,28 +925,49 @@
   }
 
   // ---- Bulário ----
+  // Todos os nomes comerciais como itens da lista (uma entrada por nome + princípio ativo)
+  var MARCAS_CACHE = null;
+  function todasMarcas() {
+    if (MARCAS_CACHE) return MARCAS_CACHE;
+    var vistos = {}, out = [];
+    function add(id, princ, cat, ms) {
+      (ms || []).forEach(function (m) {
+        var k = norm(m[0]) + '|' + id; if (vistos[k]) return; vistos[k] = 1;
+        out.push({ id: id, nome: m[0], tm: m[1], princ: princ, classe: princ, cat: cat, txt: princ, tipo: 'marca', hv: false, marcas: [] });
+      });
+    }
+    D.DRUGS.forEach(function (d) { var mk = CT.mercado(d.id), bu = B.bula(d.id); if (mk) add(d.id, d.nome, bu && bu.cat, mk.marcas); });
+    BX.EXTRAS.forEach(function (x) { var mk = CT.mercado(x.id); if (mk) add(x.id, x.nome, x.cat, mk.marcas); });
+    CT.CAT.forEach(function (a) { add(a[0], a[1], a[3], a[9]); });
+    MARCAS_CACHE = out;
+    return out;
+  }
   function viewDrugs() {
     setHeader('Bulário', false);
     var filtro = store.get('bulCat', ''), tipoF = store.get('bulTipo', ''), letraSel = store.get('bulLetra', '');
     var todos = D.DRUGS.map(function (d) { var bu = B.bula(d.id), mk = CT.mercado(d.id); return { id: d.id, nome: d.nome, classe: d.classe, cat: bu && bu.cat, txt: (bu ? bu.ind : '') + ' ' + marcasDe(d.id), marcas: mk ? mk.marcas : [], nomes: (mk ? mk.nomes : []).concat(R.BUSCA_ANVISA[d.id] ? [R.BUSCA_ANVISA[d.id]] : []), hv: isHV(d), tipo: 'completa' }; })
       .concat(BX.EXTRAS.map(function (x) { var mk = CT.mercado(x.id); return { id: x.id, nome: x.nome, classe: x.classe, cat: x.cat, txt: x.ind + ' ' + x.via + ' ' + marcasDe(x.id), marcas: mk ? mk.marcas : [], nomes: mk ? mk.nomes : [], hv: !!x.hv || /ALTA VIGILÂNCIA/.test(x.classe), tipo: 'resumo' }; }))
       .concat(CT.CAT.map(function (a) { var c = CT.item(a); return { id: c.id, nome: c.nome, classe: c.classe, cat: c.cat, txt: c.comp + ' ' + nomesMarcas(c.marcas).join(' ') + ' ' + c.nomes.join(' '), marcas: c.marcas, nomes: c.nomes, hv: false, tipo: 'catalogo', origem: c.origem }; }))
+      .concat(todasMarcas())
       .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
     todos.forEach(function (d) { d.busca = norm(d.nome + ' ' + d.classe + ' ' + d.txt); });
+    var nTipo = {}; todos.forEach(function (d) { nTipo[d.tipo] = (nTipo[d.tipo] || 0) + 1; });
     $app.innerHTML = '<div class="search"><input id="dq" type="search" placeholder="Buscar por nome ou classe…" autocomplete="off" aria-label="Buscar medicamento"></div>' +
       '<div class="chipnav" id="dcat"><button type="button" class="chipnav-b" data-c="">Todos</button>' +
         B.CATEGORIAS.map(function (c) { return '<button type="button" class="chipnav-b" data-c="' + c.id + '">' + c.icon + ' ' + esc(c.nome) + '</button>'; }).join('') + '</div>' +
-      '<div class="seg" id="dtipo" role="radiogroup" aria-label="Tipo de ficha">' + [['', 'Todas'], ['completa', 'Com preparo'], ['resumo', 'Resumidas'], ['catalogo', 'Catálogo']].map(function (o) {
-        return '<label class="seg-opt"><input type="radio" name="dtipo" value="' + o[0] + '"' + (o[0] === tipoF ? ' checked' : '') + '><span>' + o[1] + '</span></label>'; }).join('') + '</div>' +
+      '<div class="chipnav" id="dtipo" role="radiogroup" aria-label="Tipo de ficha">' + [['', 'Todas'], ['completa', '💊 Com preparo'], ['resumo', '📄 Resumidas'], ['catalogo', '📚 Princípios ativos'], ['marca', '🏷️ Nomes comerciais']].map(function (o) {
+        return '<button type="button" class="chipnav-b' + (o[0] === tipoF ? ' on' : '') + '" data-tipo="' + o[0] + '">' + o[1] + (o[0] ? ' (' + (nTipo[o[0]] || 0).toLocaleString('pt-BR') + ')' : '') + '</button>'; }).join('') + '</div>' +
       '<div class="az" id="daz"></div><div id="dl"></div>' +
-      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR') + ' medicamentos: ' + D.DRUGS.length + ' com preparo e dose, ' + BX.EXTRAS.length + ' em ficha resumida e ' + CT.total.toLocaleString('pt-BR') + ' no catálogo oficial (CMED e registros da Anvisa) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
+      '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR') + ' medicamentos: ' + D.DRUGS.length + ' com preparo e dose, ' + BX.EXTRAS.length + ' em ficha resumida e ' + CT.total.toLocaleString('pt-BR') + ' no catálogo oficial (CMED e registros da Anvisa), com ' + (nTipo.marca || 0).toLocaleString('pt-BR') + ' nomes comerciais · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
+    dq.parentNode.insertAdjacentHTML('afterend', '<div class="ref-btns"><a class="btn sm ghost" href="#/classes">🧭 Navegar por classe terapêutica</a><a class="btn sm ghost" href="#/scanner">📷 Ler código de barras</a></div>');
     addVoz(dq);
     function render() {
       var t = norm(dq.value.trim());
       document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === filtro); });
       var words = t ? t.split(/\s+/) : [];
       var list = todos.filter(function (d) {
+        if (d.tipo === 'marca' && t && tipoF !== 'marca') return false;   // na busca geral, o nome comercial já aparece pelo nome digitado
         return (!filtro || d.cat === filtro) && (!tipoF || d.tipo === tipoF) && words.every(function (w) { return d.busca.indexOf(w) >= 0; });
       });
       var aprox = false;
@@ -976,6 +1000,7 @@
       document.getElementById('daz').innerHTML = letras.length > 3 ? letras.map(function (l) { return '<button type="button" data-l="' + l + '"' + (paginar && l === letraSel ? ' class="on"' : '') + '>' + l + '</button>'; }).join('') : '';
       var mostrar = paginar ? [letraSel] : letras, limite = 300, n = 0;
       function linha(d) {
+        if (d.tipo === 'marca') return card(hrefAlias(d.id, { n: d.nome }), d.tm === 'R' ? '⭐' : '🏷️', d.nome, (TIPO_NOME[d.tm] || 'Nome comercial') + ' · ' + d.princ, 'droga:' + d.id);
         var al = t ? nomeBuscado(d.nome, d.marcas, d.nomes, t, words) : null;
         if (al) return card(hrefAlias(d.id, al), d.hv ? '🔴' : al.k === 'v' ? '💊' : '🏷️', al.n, descAlias(al, d.classe), 'droga:' + d.id);
         var cat = B.CATEGORIAS.filter(function (c) { return c.id === d.cat; })[0];
@@ -1003,7 +1028,7 @@
       });
     }
     document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.onclick = function () { filtro = b.getAttribute('data-c'); store.set('bulCat', filtro); render(); }; });
-    document.querySelectorAll('#dtipo input').forEach(function (r) { r.onchange = function () { tipoF = r.value; store.set('bulTipo', tipoF); render(); }; });
+    document.querySelectorAll('#dtipo [data-tipo]').forEach(function (b) { b.onclick = function () { tipoF = b.getAttribute('data-tipo'); store.set('bulTipo', tipoF); document.querySelectorAll('#dtipo [data-tipo]').forEach(function (x) { x.classList.toggle('on', x === b); }); render(); }; });
     dq.addEventListener('input', render);
     render();
   }
@@ -1048,7 +1073,7 @@
     var cat = B.CATEGORIAS.filter(function (x) { return x.id === c.cat; })[0];
     var termo = (c.comp || c.nome).split(' + ')[0].replace(/\s—.*$/, '');
     $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(c.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + c.id) + '</div>' + aliasTopo(alias, c.nome, c) + marcasLinha(c) +
+      '<div class="head-row"><p class="lead">' + esc(c.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + c.id) + '</div>' + aliasTopo(alias, c.nome, c) + marcasLinha(c) + classeLinha(c.cc, c.cc ? '' : c.classe) +
       '<div class="alert info">📚 Ficha de catálogo com dados oficiais. <b>Não traz posologia</b>: consulte a bula e a prescrição.</div>' +
       (c.origem === 1 ? '<div class="alert warn">Consta na lista de preços da CMED, mas sem comercialização informada em 2025 — pode estar em falta no mercado.</div>' : '') +
       (c.origem === 2 ? '<div class="alert warn">Registro ativo na Anvisa, sem preço na lista da CMED (comum em soros, vacinas, fitoterápicos, gases e produtos hospitalares). Apresentações e tarja: ver bula.</div>' : '') +
@@ -1080,7 +1105,7 @@
     if (!aps.length && CT.mercado(x.id)) aps = apsCatalogo(CT.mercado(x.id).ap);
     function li(t, v) { return v ? '<div class="sec"><h3>' + t + '</h3><p>' + esc(v) + '</p></div>' : ''; }
     $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' + aliasTopo(alias, x.nome, CT.mercado(x.id)) + marcasLinha(CT.mercado(x.id)) +
+      '<div class="head-row"><p class="lead">' + esc(x.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + ' · via ' + esc(x.via) + '</small>' : '') + '</p>' + favButton('droga:' + x.id) + '</div>' + aliasTopo(alias, x.nome, CT.mercado(x.id)) + marcasLinha(CT.mercado(x.id)) + (CT.mercado(x.id) ? classeLinha(CT.mercado(x.id).cc, '') : '') +
       (x.hv ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="alert info">📄 Ficha resumida: sem cálculo de dose por paciente. Confira a bula oficial e a prescrição.</div>' +
       li('📦 Apresentações usuais', x.apres) + li('🎯 Indicações', x.ind) + li('💊 Posologia usual (adulto)', BX.DOSE[x.id]) + li('🩺 Cuidados de enfermagem', x.enf) + li('⚠️ Atenção', x.alerta) +
@@ -1135,7 +1160,7 @@
         (DB.DOSES[id].freq ? '<p><b>Intervalo usual:</b> ' + esc(DB.DOSES[id].freq) + '</p>' : '') + '</div>' : '') + addKit;
 
     $app.innerHTML =
-      '<div class="head-row"><p class="lead">' + esc(d.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + d.id) + '</div>' + aliasTopo(alias, d.nome, CT.mercado(d.id)) + marcasLinha(CT.mercado(d.id)) +
+      '<div class="head-row"><p class="lead">' + esc(d.classe) + (cat ? '<br><small>' + cat.icon + ' ' + esc(cat.nome) + '</small>' : '') + '</p>' + favButton('droga:' + d.id) + '</div>' + aliasTopo(alias, d.nome, CT.mercado(d.id)) + marcasLinha(CT.mercado(d.id)) + (CT.mercado(d.id) ? classeLinha(CT.mercado(d.id).cc, '') : '') +
       (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') +
       '<div class="tabs" role="tablist">' + abas.map(function (a) {
         return '<button type="button" role="tab" class="tab" id="tab-' + a[0] + '" aria-controls="pane-' + a[0] + '" data-tab="' + a[0] + '">' + a[1] + '</button>';
@@ -3106,6 +3131,80 @@
     };
   }
 
+  // ---- Classes de medicamentos (classificação terapêutica CMED/EphMRA) ----
+  var GRUPOS_CLASSE = {
+    A: ['🍽️', 'Aparelho digestivo e metabolismo'], B: ['🩸', 'Sangue e órgãos hematopoéticos'], C: ['❤️', 'Aparelho cardiovascular'], D: ['🧴', 'Dermatológicos'],
+    F: ['🌿', 'Fitoterápicos'], G: ['🚻', 'Aparelho geniturinário e hormônios sexuais'], H: ['🧬', 'Hormônios sistêmicos (exceto sexuais e insulinas)'],
+    J: ['🦠', 'Anti-infecciosos de uso sistêmico'], K: ['💧', 'Soluções hospitalares'], L: ['🎗️', 'Antineoplásicos e imunomoduladores'], M: ['🦴', 'Aparelho musculoesquelético'],
+    N: ['🧠', 'Sistema nervoso'], P: ['🪱', 'Antiparasitários'], R: ['🫁', 'Aparelho respiratório'], S: ['👁️', 'Órgãos dos sentidos'], T: ['🔬', 'Agentes de diagnóstico'],
+    V: ['🧪', 'Vários (antídotos, radiofármacos e outros)'], Z: ['📋', 'Outras classes (registro Anvisa)']
+  };
+  var IDX_CLASSE = null;
+  function chaveClasse(cc, classe) { return cc || ('Z:' + (classe || 'Sem classe')); }
+  function nomeClasse(k) { return k.indexOf('Z:') === 0 ? k.slice(2) : (CT.CLASSES[k] || k); }
+  function grupoDe(k) { return k.indexOf('Z:') === 0 ? 'Z' : k.charAt(0); }
+  function indiceClasses() {
+    if (IDX_CLASSE) return IDX_CLASSE;
+    var idx = {};
+    function add(k, item) { (idx[k] = idx[k] || []).push(item); }
+    D.DRUGS.forEach(function (d) { var mk = CT.mercado(d.id); if (mk && mk.cc) add(mk.cc, { id: d.id, nome: d.nome, ic: '💊', marcas: mk.marcas, ord: 0 }); });
+    BX.EXTRAS.forEach(function (x) { var mk = CT.mercado(x.id); if (mk && mk.cc) add(mk.cc, { id: x.id, nome: x.nome, ic: '📄', marcas: mk.marcas, ord: 1 }); });
+    CT.CAT.forEach(function (a) { var c = CT.item(a); add(chaveClasse(c.cc, c.classe), { id: c.id, nome: c.nome, ic: '📚', marcas: c.marcas, ord: 2 }); });
+    Object.keys(idx).forEach(function (k) { idx[k].sort(function (a, b) { return a.ord - b.ord || a.nome.localeCompare(b.nome, 'pt-BR'); }); });
+    IDX_CLASSE = idx;
+    return idx;
+  }
+  function classeLinha(cc, classe) {
+    var k = chaveClasse(cc, classe);
+    if (!cc && !classe) return '';
+    return '<p class="marcas-linha">🧭 <b>Classe:</b> <a href="#/classe/' + encodeURIComponent(k) + '">' + esc(nomeClasse(k)) + '</a>' + (cc ? ' <small>(' + esc(cc) + ')</small>' : '') + '</p>';
+  }
+  function viewClasses(grupo) {
+    var idx = indiceClasses(), chaves = Object.keys(idx);
+    if (!grupo) {
+      setHeader('Classes de medicamentos', true);
+      var porG = {};
+      chaves.forEach(function (k) { var g = grupoDe(k); porG[g] = porG[g] || { c: 0, m: 0 }; porG[g].c++; porG[g].m += idx[k].length; });
+      $app.innerHTML = '<p class="lead">Navegue pelos medicamentos por sistema do corpo e por classe terapêutica (mecanismo/atuação).</p>' +
+        '<div class="search"><input id="cq" type="search" placeholder="Buscar classe (ex.: estatinas, betabloqueadores, SSRI)…" autocomplete="off" aria-label="Buscar classe"></div><div id="cres"></div>' +
+        '<div id="cgrid" class="hub">' + Object.keys(GRUPOS_CLASSE).filter(function (g) { return porG[g]; }).map(function (g) {
+          return '<a class="hub-tile" href="#/classes/' + g + '"><span class="hub-ic">' + GRUPOS_CLASSE[g][0] + '</span><b>' + esc(GRUPOS_CLASSE[g][1]) + '</b><small>' + porG[g].c + ' classes · ' + porG[g].m.toLocaleString('pt-BR') + ' medicamentos</small></a>';
+        }).join('') + '</div>' +
+        '<p class="disclaimer">Classificação terapêutica da Lista de Preços CMED/Anvisa (padrão EphMRA). Medicamentos só do registro da Anvisa aparecem em “Outras classes”.</p>';
+      var cq = document.getElementById('cq');
+      addVoz(cq);
+      cq.addEventListener('input', function () {
+        var t = norm(cq.value.trim()), res = document.getElementById('cres');
+        document.getElementById('cgrid').hidden = !!t;
+        if (!t) { res.innerHTML = ''; return; }
+        var ws = t.split(/\s+/);
+        var hits = chaves.filter(function (k) { var n = norm(nomeClasse(k) + ' ' + k); return ws.every(function (w) { return n.indexOf(w) >= 0; }); })
+          .sort(function (a, b) { return idx[b].length - idx[a].length; }).slice(0, 60);
+        res.innerHTML = hits.length ? '<div class="list">' + hits.map(function (k) { var g = GRUPOS_CLASSE[grupoDe(k)] || ['🧭']; return card('#/classe/' + encodeURIComponent(k), g[0], nomeClasse(k), (k.indexOf('Z:') ? k + ' · ' : '') + idx[k].length + ' medicamento' + (idx[k].length > 1 ? 's' : '')); }).join('') + '</div>'
+          : '<p class="empty-msg">Nenhuma classe encontrada.</p>';
+      });
+      return;
+    }
+    var G = GRUPOS_CLASSE[grupo] || ['🧭', grupo];
+    setHeader(G[1], true);
+    var ks = chaves.filter(function (k) { return grupoDe(k) === grupo; }).sort(function (a, b) { return grupo === 'Z' ? nomeClasse(a).localeCompare(nomeClasse(b)) : a.localeCompare(b, 'en', { numeric: true }); });
+    $app.innerHTML = '<p class="lead">' + G[0] + ' ' + ks.length + ' classes · toque para ver os medicamentos.</p><div class="list">' + ks.map(function (k) {
+      return card('#/classe/' + encodeURIComponent(k), G[0], nomeClasse(k), (grupo === 'Z' ? '' : k + ' · ') + idx[k].length + ' medicamento' + (idx[k].length > 1 ? 's' : ''));
+    }).join('') + '</div>';
+  }
+  function viewClasse(k) {
+    var idx = indiceClasses(), itens = idx[k];
+    if (!itens) return viewNotFound();
+    var G = GRUPOS_CLASSE[grupoDe(k)] || ['🧭', ''];
+    setHeader(nomeClasse(k), true);
+    $app.innerHTML = '<p class="lead"><a href="#/classes/' + grupoDe(k) + '">' + G[0] + ' ' + esc(G[1]) + '</a>' + (k.indexOf('Z:') ? ' › ' + esc(k) : '') + '<br><small>' + itens.length + ' medicamento' + (itens.length > 1 ? 's' : '') + ' nesta classe</small></p>' +
+      '<div class="list">' + itens.map(function (i) {
+        var mc = marcasCurtas(i.marcas, 3);
+        return card('#/droga/' + i.id, i.ic, i.nome, (mc ? '🏷️ ' + mc : 'sem nome comercial na lista') + (i.ord === 2 ? ' · catálogo' : i.ord === 1 ? ' · ficha resumida' : ' · ficha completa'), 'droga:' + i.id);
+      }).join('') + '</div>' +
+      '<p class="disclaimer">💊 ficha completa (preparo e dose) · 📄 ficha resumida · 📚 catálogo oficial. Medicamentos da mesma classe podem ter doses e indicações diferentes.</p>';
+  }
+
   // ---- Escalas ----
   function viewScales() {
     setHeader('Escalas', false);
@@ -3188,7 +3287,7 @@
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', plantao: 'view:plantao', sbar: 'view:sbar' }[parts[0]];
+    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', classes: 'view:classes', plantao: 'view:plantao', sbar: 'view:sbar' }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -3211,6 +3310,8 @@
       case 'hipodermoclise': viewHipo(); break;
       case 'ferramentas': viewFerramentas(); break;
       case 'scanner': viewScanner(); break;
+      case 'classes': viewClasses(parts[1]); break;
+      case 'classe': viewClasse(decodeURIComponent(parts[1] || '')); break;
       case 'plantao': viewPlantao(); break;
       case 'sbar': viewSBAR(); break;
       case 'atender': viewAtender('lib'); break;

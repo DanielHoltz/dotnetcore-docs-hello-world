@@ -92,6 +92,7 @@ def merge(e,b,g):
     e['marcas'].sort(key=lambda x:ORD.get(x[1],9))
     e['gen']=max(e['gen'],len(g['genemp']))
     e['fab']=max(e.get('labs',0),len(g['emp']))
+NOMEIDX={chave(c['nome']):c for c in cat['cat']}
 for b,g in sorted(G.items()):
     kb=ck(b); alvo=IDX.get(kb)
     if alvo is None and '+' not in kb and len(kb)>=6:
@@ -101,13 +102,16 @@ for b,g in sorted(G.items()):
     if alvo is not None:
         merge(alvo,b,g); continue
     if kb in conhecidos: continue
+    _top=sorted(g['prods'].items(),key=lambda kv:-kv[1]['n'])
+    _nome=((titulo(_top[0][0])+' — ') if _top and len(b.split(' + '))>3 else '')+('associação de %d componentes'%len(b.split(' + ')) if len(b.split(' + '))>3 else titulo(b))
+    if chave(_nome) in NOMEIDX: merge(NOMEIDX[chave(_nome)],b,g); continue
     parts=b.split(' + ')
     top=sorted(g['prods'].items(),key=lambda kv:-kv[1]['n'])
     nome=((titulo(top[0][0])+' — ') if top and len(parts)>3 else '')+('associação de %d componentes'%len(parts) if len(parts)>3 else titulo(b))
     cl=g['classe'].most_common(1)[0][0] if g['classe'] else ''
     tipo=g['cats'].most_common(1)[0][0]
     novos.append({'id':mkid(b),'nome':nome,'comp':titulo(b) if len(parts)>3 else '','cat':cat_de(cl+' '+tipo),'classe':(cl.capitalize() if cl else tipo.capitalize()),
-      'nomes':sorted(nomes_de(g['raw'],b)),'base':b,'tarja':-1,'tmax':-1,'hosp':0,'gen':len(g['genemp']),'labs':len(g['emp']),'marcas':marcas_de(g['prods']),'ap':[],'o':2})
+      'cc':'','nomes':sorted(nomes_de(g['raw'],b)),'base':b,'tarja':-1,'tmax':-1,'hosp':0,'gen':len(g['genemp']),'labs':len(g['emp']),'marcas':marcas_de(g['prods']),'ap':[],'o':2})
 print('registro: bases',len(G),'novas',len(novos)); print(collections.Counter(n['cat'] for n in novos))
 import random; random.seed(5); print([n['nome'] for n in random.sample(novos,25)])
 cat['cat']+=novos

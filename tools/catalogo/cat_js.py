@@ -2,7 +2,7 @@ import os as _os
 JSDIR=_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),'..','..','wwwroot','enfermagem','js')+_os.sep
 import json
 d=json.load(open('catalogo.json'))
-def arr(x): return [x['id'],x['nome'],x['comp'],x['cat'],x['classe'],x['tarja'],x['hosp'],x['gen'],x['labs'],x['marcas'],x['ap'],x['tmax'],x['o'],x.get('nomes',[])]
+def arr(x): return [x['id'],x['nome'],x['comp'],x['cat'],x['classe'],x['tarja'],x['hosp'],x['gen'],x['labs'],x['marcas'],x['ap'],x['tmax'],x['o'],x.get('nomes',[]),x.get('cc','')]
 L=["/*",
 " * EnfCalc — CATÁLOGO de medicamentos comercializados no Brasil (gerado automaticamente).",
 " * Fontes: Lista de Preços de Medicamentos da CMED/Anvisa (09/11/2026) e registros ativos de medicamentos (Dados Abertos Anvisa).",
@@ -21,13 +21,15 @@ L.append(',\n'.join('    '+json.dumps(arr(x),ensure_ascii=False) for x in d['cat
 L.append("  ];")
 L.append("  // Dados de mercado de medicamentos que já têm ficha no app: [classe, tarja, hospitalar, genérico, nº labs, [marcas], [apresentações], tarja máx.]")
 L.append("  var MERCADO = {")
-L.append(',\n'.join("    %s: %s"%(json.dumps(k),json.dumps([v['classe'],v['tarja'],v['hosp'],v['gen'],v['labs'],v['marcas'],v['ap'],v['tmax'],v.get('nomes',[])],ensure_ascii=False)) for k,v in d['mercado'].items()))
+L.append(',\n'.join("    %s: %s"%(json.dumps(k),json.dumps([v['classe'],v['tarja'],v['hosp'],v['gen'],v['labs'],v['marcas'],v['ap'],v['tmax'],v.get('nomes',[]),v.get('cc','')],ensure_ascii=False)) for k,v in d['mercado'].items()))
 L.append("  };")
-L.append("""  function item(a) { return { id: a[0], nome: a[1], comp: a[2], cat: a[3], classe: a[4], tarja: a[5], hosp: a[6], gen: a[7], labs: a[8], marcas: a[9], ap: a[10], tmax: a[11], origem: a[12], nomes: a[13] || [] }; }
-  function mercado(id) { var m = MERCADO[id]; return m ? { classe: m[0], tarja: m[1], hosp: m[2], gen: m[3], labs: m[4], marcas: m[5], ap: m[6], tmax: m[7], nomes: m[8] || [] } : null; }
+L.append("  // Classes terapêuticas (classificação usada pela CMED, códigos no padrão EphMRA)")
+L.append("  var CLASSES = "+json.dumps(dict(sorted(d.get('classes',{}).items())),ensure_ascii=False)+";")
+L.append("""  function item(a) { return { id: a[0], nome: a[1], comp: a[2], cat: a[3], classe: a[4], tarja: a[5], hosp: a[6], gen: a[7], labs: a[8], marcas: a[9], ap: a[10], tmax: a[11], origem: a[12], nomes: a[13] || [], cc: a[14] || '' }; }
+  function mercado(id) { var m = MERCADO[id]; return m ? { classe: m[0], tarja: m[1], hosp: m[2], gen: m[3], labs: m[4], marcas: m[5], ap: m[6], tmax: m[7], nomes: m[8] || [], cc: m[9] || '' } : null; }
   var TARJAS = ['Sem tarja / venda livre', 'Tarja vermelha (venda sob prescrição)', 'Tarja vermelha com retenção de receita', 'Tarja preta (controle especial)'];
   function tarjaTxt(t) { return t >= 0 ? TARJAS[t] : 'Tarja não informada na lista'; }
-  var api = { FONTE: FONTE, FONTE_REG: FONTE_REG, CAT: CAT, item: item, mercado: mercado, TARJAS: TARJAS, tarjaTxt: tarjaTxt, total: CAT.length };
+  var api = { FONTE: FONTE, FONTE_REG: FONTE_REG, CAT: CAT, CLASSES: CLASSES, item: item, mercado: mercado, TARJAS: TARJAS, tarjaTxt: tarjaTxt, total: CAT.length };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Catalogo = api;
 })(this);""")

@@ -64,6 +64,22 @@ for r in rows:
     if tj.startswith('Tarja'): g['tarja'][TARJA.get(tj,0)]+=1
     if r[ix['RESTRIÇÃO HOSPITALAR']]=='Sim': g['hosp']+=1
     if r[ix['COMERCIALIZAÇÃO 2025']]=='Sim': g['com']+=1
+# junta grafias que diferem só por acento/caixa (ex.: ACIDO ACETILSALICILICO × ÁCIDO ACETILSALICÍLICO)
+def _acentos(t): return sum(1 for ch in t if ch in 'ÁÉÍÓÚÂÊÔÃÕÇÀÜ')
+_por={}
+for b in list(G.keys()): _por.setdefault(chave(b),[]).append(b)
+for k,bs in _por.items():
+    if len(bs)<2: continue
+    bs.sort(key=lambda x:(-_acentos(x),-G[x]['tot']))
+    alvo=G[bs[0]]
+    for o in bs[1:]:
+        g=G.pop(o)
+        alvo['subs'].update(g['subs']); alvo['labs']|=g['labs']; alvo['genlabs']|=g['genlabs']; alvo['ap'].update(g['ap']); alvo['classe'].update(g['classe'])
+        for kk in ('tarja','tipos'): alvo[kk].update(g[kk])
+        for kk in ('hosp','tot','com'): alvo[kk]+=g[kk]
+        alvo['gen']=alvo['gen'] or g['gen']
+        for pn,e in g['prods'].items():
+            t=alvo['prods'].setdefault(pn,{'n':0,'t':collections.Counter(),'ref':False}); t['n']+=e['n']; t['t'].update(e['t']); t['ref']=t['ref'] or e['ref']
 # app drugs to link
 app=json.loads(subprocess.run(['node','-e',"const D=require('%sdata.js'),X=require('%sbulario_extra.js'),R=require('%srevisoes.js');console.log(JSON.stringify([...D.DRUGS.map(d=>[d.id,d.nome,R.BUSCA_ANVISA[d.id]||'']),...X.EXTRAS.map(x=>[x.id,x.nome,''])]))"%(JS,JS,JS)],capture_output=True,text=True).stdout)
 SIN={'medroxiprogesterona':'MEDROXIPROGESTERONA','imipenem':'CILASTATINA + IMIPENÉM','cefalotina':'CEFALOTINA SODICA','heparina':'HEPARINA SÓDICA SUÍNA','nitroprussiato':'NITROPRUSSETO','fentanil':'FENTANILA','fentanil-transdermico':'FENTANILA','escopolamina':'BUTILBROMETO DE ESCOPOLAMINA',
@@ -109,14 +125,29 @@ def marcas_de(prods):
     L=[[titulo(p),'R' if e['ref'] else e['t'].most_common(1)[0][0],e['n']] for p,e in prods.items()]
     L.sort(key=lambda x:(ORD.get(x[1],9),-x[2],x[0]))
     return [x[:2] for x in L]
+SIGLAS={'SSRI','SNRI','ECA','HMG-COA','PCSK9','PDE5','PDE-5','AINE','AINES','HIV','HPV','HCV','HBV','SNC','TNF','IL','VEGF','DNA','RNA','GLP-1','DPP-4','DPP-IV','SGLT2','SGLT-2','ADH','GABA','MAO','IMAO','COX-2','CGRP','JAK','BCR-ABL','EGFR','HER2','CD20','PD-1','PD-L1','ALK','BTK','CDK','PARP','MEK','BRAF','MTOR','II','III','IV','VI','XA','IIA','IIB','B12','D3','K','H1','H2','H2O','5-HT3','5HT3','ACTH','LHRH','GNRH','FSH','LH','HCG','RSV','VSR','IGE','IGG','AAS','OTC','CFTR','BRCA','KRAS','FLT3','IDH','FGFR','RET','ROS1','MET','NTRK','C1','C2','C3','PTH'}
+def frase(t):
+    t=re.sub(r'\s+',' ',t.strip())
+    out=[]
+    for i,w in enumerate(t.split(' ')):
+        core=re.sub(r'[^\wÀ-ÿ/-]','',w).upper()
+        if core in SIGLAS or re.search(r'\d',core): out.append(w.upper() if core not in ('XA',) else w[:-2].lower()+'Xa' if len(w)>2 else 'Xa')
+        else: out.append(w.lower())
+    r=' '.join(out)
+    r=re.sub(r'\bfator xa\b','fator Xa',r,flags=re.I).replace('HMG-COA','HMG-CoA')
+    r=r.rstrip('. ')
+    return r[:1].upper()+r[1:]
+CLASSES={}
 def pack(b,g,id_=None):
     cl=g['classe'].most_common(1)[0][0]
-    return {'id':id_ or mkid(b),'nome':nome_de(b,g),'comp':titulo(b) if len(b.split(' + '))>3 else '','cat':cat_de(cl),'classe':re.sub(r'^\S+\s+-\s+','',cl).capitalize(),
+    cc=cl.split(' - ')[0].strip() if ' - ' in cl else ''
+    if cc: CLASSES[cc]=frase(re.sub(r'^\S+\s+-\s+','',cl))
+    return {'cc':cc,'id':id_ or mkid(b),'nome':nome_de(b,g),'comp':titulo(b) if len(b.split(' + '))>3 else '','cat':cat_de(cl),'classe':frase(re.sub(r'^\S+\s+-\s+','',cl)),
         'tarja':(g['tarja'].most_common(1)[0][0] if g['tarja'] else -1),'tmax':(max(g['tarja']) if g['tarja'] else -1),'hosp':1 if g['hosp']*2>=g['tot'] else 0,'gen':len(g['genlabs']),'labs':len(g['labs']),
         'marcas':marcas_de(g['prods']),'base':b,'nomes':sorted(set(titulo(re.sub(r'\s+',' ',x.strip())) for x in g['subs'] if chave(x)!=chave(b) and ';' not in x)),'ap':[a for a,_ in g['ap'].most_common(10)],'o':0 if g['com']>0 else 1}
 for b,g in sel: out.append(pack(b,g))
 mercado={i:pack(b,G[b],'x') for i,b in link.items()}
 json.dump({'bases':list(G.keys()),'ids':sorted(ids)},open('dl/cmed_meta.json','w'),ensure_ascii=False)
-json.dump({'cat':out,'mercado':mercado},open('catalogo.json','w'),ensure_ascii=False)
+json.dump({'cat':out,'mercado':mercado,'classes':CLASSES},open('catalogo.json','w'),ensure_ascii=False)
 print('entradas:',len(out)); print(json.dumps(out[:3],ensure_ascii=False)[:1500]); print(collections.Counter(o['cat'] for o in out))
 print('sem vínculo:',[n for i,n,_ in app if i not in link][:80])

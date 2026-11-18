@@ -208,3 +208,15 @@ test('escalas novas: pontuação e interpretação', () => {
   assert.strictEqual(S('push').interp(0).txt, 'Lesão cicatrizada');
   assert.ok(D.SCALES.every(s => s.items.length && typeof s.interp === 'function'));
 });
+
+test('classes terapêuticas: códigos válidos e nomes legíveis', () => {
+  const CT = require('../../wwwroot/enfermagem/js/catalogo.js');
+  const ks = Object.keys(CT.CLASSES);
+  assert.ok(ks.length >= 400);
+  ks.forEach(k => { assert.match(k, /^[A-Z][A-Z0-9]*$/); assert.ok(CT.CLASSES[k].length > 3); });
+  const comCC = CT.CAT.filter(a => CT.item(a).cc).length;
+  assert.ok(comCC >= 1700, 'itens com classe: ' + comCC);
+  CT.CAT.forEach(a => { const c = CT.item(a); if (c.cc) assert.ok(CT.CLASSES[c.cc], 'classe sem nome: ' + c.cc); });
+  assert.strictEqual(CT.mercado('losartana').cc.charAt(0), 'C');
+  assert.strictEqual(CT.CLASSES['C10A1'], 'Estatinas, inibidores da redutase HMG-CoA');
+});
