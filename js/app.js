@@ -13,18 +13,21 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function num(s) {
-    if (s == null) return NaN;
-    s = String(s).trim().replace(/\s/g, '');
-    if (s === '') return NaN;
-    // aceita "1.000,5", "5.000.000" (milhar pt-BR) e "1000.5"
-    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
-    else if (/^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
-    return parseFloat(s);
-  }
+  // Leitura estrita de números digitados (pt-BR). Retorna { v, erro } — erro: 'invalido' | 'ambiguo' | ''.
+  // Aceita: 12 · 12,5 · 1.234,5 · 5.000.000 · 12.5 · 0.25. Rejeita sufixos (2mg) e o caso ambíguo 1.234 (milhar ou decimal?).
+  var numInfo = C.numInfo;
+  function num(s) { return numInfo(s).v; }
+  var MSG_NUM = { invalido: 'Valor inválido: digite só o número (ex.: 1,5).', ambiguo: 'Ambíguo: é mil ou um decimal? Escreva 1234 ou 1,234.' };
   function fmt(n, d) {
     if (n == null || !isFinite(n)) return '—';
     if (d == null) d = Math.abs(n) >= 100 ? 1 : Math.abs(n) >= 1 ? 2 : 3;
+    var a = Math.abs(n);
+    // nunca mostrar zero para um valor não nulo: usa algarismos significativos ou notação científica
+    if (a > 0 && a < 0.5 * Math.pow(10, -d)) {
+      if (a >= 1e-6) return n.toLocaleString('pt-BR', { maximumSignificantDigits: 3 });
+      var e = Math.floor(Math.log10(a)), m = n / Math.pow(10, e);
+      return (+m.toPrecision(3)).toLocaleString('pt-BR') + ' × 10' + String(e).split('').map(function (c) { return c === '-' ? '⁻' : '⁰¹²³⁴⁵⁶⁷⁸⁹'.charAt(+c); }).join('');
+    }
     return n.toLocaleString('pt-BR', { maximumFractionDigits: d });
   }
   function fmtHM(min) {
@@ -38,7 +41,9 @@
 
   var store = {
     get: function (k, def) { try { var v = localStorage.getItem('enfcalc.' + k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
-    set: function (k, v) { try { localStorage.setItem('enfcalc.' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
+    // devolve true se gravou; false se o navegador bloqueou ou o espaço acabou
+    set: function (k, v) { try { localStorage.setItem('enfcalc.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    del: function (k) { try { localStorage.removeItem('enfcalc.' + k); return localStorage.getItem('enfcalc.' + k) == null; } catch (e) { return false; } },
     trySet: function (k, v) { try { localStorage.setItem('enfcalc.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   };
 
@@ -244,7 +249,8 @@
       ],
       compute: function (v) {
         if (!(v.peso > 0) || !(v.dpk > 0)) return null;
-        var porDose = v.tipo === 'dia' ? v.peso * v.dpk / (v.nx || 1) : v.peso * v.dpk;
+        if (v.tipo === 'dia' && !(v.nx > 0 && isFinite(v.nx))) return { error: 'Informe quantas doses por dia (número maior que zero) para dividir a dose diária.' };
+        var porDose = v.tipo === 'dia' ? v.peso * v.dpk / v.nx : v.peso * v.dpk;
         var warns = [];
         if (v.max > 0 && porDose > v.max) { warns.push('Dose calculada (' + fmt(porDose) + ' mg) excede a máxima informada. Usando ' + fmt(v.max) + ' mg.'); porDose = v.max; }
         var out = [{ label: 'Dose por administração', value: fmt(porDose, 2), unit: 'mg', main: v.qtd > 0 && v.vol > 0 ? false : true }];
@@ -648,6 +654,19 @@
     form.dispatchEvent(new Event('input'));
   });
 
+  // Marca campos numéricos com texto inválido/ambíguo; retorna quantos estão inválidos
+  function validarCampo(i) {
+    var inf = numInfo(i.value), campo = i.closest('.field') || i.parentNode, msg = campo.querySelector('.num-err');
+    i.classList.toggle('inv', !!inf.erro); i.setAttribute('aria-invalid', inf.erro ? 'true' : 'false');
+    if (inf.erro) { if (!msg) { msg = document.createElement('small'); msg.className = 'num-err'; msg.setAttribute('role', 'alert'); campo.appendChild(msg); } msg.textContent = MSG_NUM[inf.erro]; }
+    else if (msg) msg.remove();
+    return !inf.erro;
+  }
+  function validarNumeros(form) {
+    var n = 0;
+    form.querySelectorAll('input[inputmode="decimal"]').forEach(function (i) { if (!validarCampo(i)) n++; });
+    return n;
+  }
   function readValues(form, fields) {
     var v = {};
     fields.forEach(function (f) {
@@ -680,8 +699,9 @@
 
   function bindLiveForm(form, fields, compute, out) {
     function run() {
-      var r;
-      try { r = compute(readValues(form, fields)); } catch (e) { r = { error: e.message }; }
+      var r, invalidos = validarNumeros(form);
+      if (invalidos) r = { error: 'Corrija ' + (invalidos > 1 ? 'os ' + invalidos + ' campos destacados' : 'o campo destacado') + ' para ver o resultado.' };
+      else { try { r = compute(readValues(form, fields)); } catch (e) { r = { error: e.message }; } }
       out.innerHTML = resultsHtml(r);
     }
     form.addEventListener('input', run);
@@ -700,7 +720,23 @@
     var hash = location.hash || '#/';
     document.querySelectorAll('.tabbar a').forEach(function (a) {
       var rs = a.getAttribute('data-route').split(' ');
-      a.classList.toggle('active', rs.some(function (r) { return r === '#/' ? (hash === '#/' || hash === '#' || hash === '#/sobre') : hash.indexOf(r) === 0; }));
+      var ativo = rs.some(function (r) { return r === '#/' ? (hash === '#/' || hash === '#' || hash === '#/sobre') : hash.indexOf(r) === 0; });
+      a.classList.toggle('active', ativo);
+      if (ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+
+  // Acessibilidade aplicada após cada tela: grupos de opções com rótulo e seletores de unidade com nome do campo
+  var A11Y_N = 0;
+  function acessibilidade() {
+    $app.querySelectorAll('.seg').forEach(function (g) {
+      g.setAttribute('role', 'radiogroup');
+      var lbl = g.previousElementSibling;
+      if (lbl && lbl.classList.contains('lbl') && !g.hasAttribute('aria-labelledby')) { if (!lbl.id) lbl.id = 'lbl-a11y-' + (++A11Y_N); g.setAttribute('aria-labelledby', lbl.id); }
+    });
+    $app.querySelectorAll('select.unit').forEach(function (u) {
+      var campo = u.closest('.field'), l = campo && campo.querySelector('label, .lbl');
+      if (l) u.setAttribute('aria-label', 'Unidade de ' + l.textContent.trim().replace(/\s+/g, ' ').toLowerCase());
     });
   }
 
@@ -800,7 +836,7 @@
     e.push({ key: 'view:emergped', href: '#/emergencia-ped', icon: '👶', title: 'Emergência pediátrica', desc: 'Doses e materiais por peso/idade', search: 'pediatria pals crianca tubo canula desfibrilacao peso estimado' });
     e.push({ key: 'view:compat', href: '#/compatibilidade', icon: '🔗', title: 'Interações e compatibilidade', desc: 'Checar medicamentos juntos', search: 'interacao compatibilidade y incompatibilidade' });
     MOD.MODULOS.forEach(function (m) { e.push({ key: 'mod:' + m.id, href: '#/modulo/' + m.id, icon: m.icon, title: 'Módulo ' + m.nome, desc: m.desc, search: 'modulo area ' + m.nome + ' ' + m.desc }); });
-    PR.PROTOCOLOS.forEach(function (p) { e.push({ key: 'prot:' + p.id, href: '#/protocolo/' + p.id, icon: '📑', title: p.nome, desc: 'Protocolo · ' + p.resumo, search: p.nome + ' ' + p.resumo + ' protocolo conduta' }); });
+    PR.PROTOCOLOS.forEach(function (p) { e.push({ key: 'prot:' + p.id, href: '#/protocolo/' + p.id, icon: '📑', title: p.nome, desc: 'Protocolo · ' + p.resumo, search: textoProtocolo(p) + ' protocolo conduta' }); });
     e.push({ key: 'view:sri', href: '#/sri', icon: '🫁', title: 'Intubação — sequência rápida', desc: 'Doses por peso em mg e mL', search: 'intubacao sri iot etomidato cetamina rocuronio succinilcolina via aerea' });
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
     Object.keys(CT.CLASSES).forEach(function (k) { e.push({ key: 'classe:' + k, href: '#/classe/' + k, icon: '🧭', title: CT.CLASSES[k], desc: 'Classe de medicamentos · ' + k, search: 'classe ' + CT.CLASSES[k] + ' ' + k }); });
@@ -808,6 +844,7 @@
     e.push({ key: 'view:scanner', href: '#/scanner', icon: '📷', title: 'Ler código de barras da caixa', desc: 'Identifica o medicamento pelo EAN', search: 'codigo de barras ean caixa camera scanner leitor' });
     e.push({ key: 'view:plantao', href: '#/plantao', icon: '🗓️', title: 'Agenda de medicações do plantão', desc: 'Horários por leito, checagem e lembretes', search: 'agenda aprazamento horarios checagem plantao lembrete' });
     e.push({ key: 'view:sbar', href: '#/sbar', icon: '📝', title: 'Passagem de plantão (SBAR)', desc: 'Com NEWS2 automático', search: 'passagem plantao sbar news2 handover' });
+    e.push({ key: 'view:antimicrobianos', href: '#/antimicrobianos', icon: '🦠', title: 'Antibióticos e resistência', desc: 'Tipo de infecção, bactéria e antibiograma → indicações', search: 'antibiotico antimicrobiano resistencia bacteria antibiograma mrsa vre esbl kpc ndm carbapenem pseudomonas acinetobacter clostridium infeccao cultura isolamento precaucao contato' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     BX.EXTRAS.forEach(function (x) { var mk = CT.mercado(x.id); e.push({ id: x.id, marcas: mk ? mk.marcas : [], nomes: mk ? mk.nomes : [], key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula ' + marcasDe(x.id) }); });
@@ -860,13 +897,15 @@
     return al ? card(hrefAlias(e.id, al), al.k === 'v' ? '💊' : '🏷️', al.n, descAlias(al, e.classe || e.desc.replace(/^🏷️ [^·]*· /, ''))) : card(e.href, e.icon, e.title, e.desc);
   }
   var PALETA_SUG = [['#/pcr', '🚨', 'Modo PCR', 'Cronômetro e doses'], ['#/maleta/lib/atender', '👤', 'Atender paciente', 'Dose e preparo pelo peso'], ['#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h'],
-    ['#/calc/gotejamento', '💧', 'Gotejamento', 'Gotas/min e mL/h'], ['#/escalas', '📋', 'Escalas', 'Glasgow, NEWS2, Braden…'], ['#/scanner', '📷', 'Ler caixa', 'Código de barras']];
+    ['#/calc/gotejamento', '💧', 'Gotejamento', 'Gotas/min e mL/h'], ['#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'MRSA, ESBL, KPC…'], ['#/escalas', '📋', 'Escalas', 'Glasgow, NEWS2, Braden…'], ['#/scanner', '📷', 'Ler caixa', 'Código de barras']];
+  var paletaSoltar = null;
   function abrirPaleta() {
     if (document.getElementById('paleta')) return;
     var entries = allEntries();
     var w = document.createElement('div'); w.id = 'paleta'; w.className = 'paleta';
     w.innerHTML = '<div class="pal-box" role="dialog" aria-modal="true" aria-label="Busca rápida"><div class="pal-in"><span>🔍</span><input id="pal-q" type="search" autocomplete="off" placeholder="Buscar medicamento, nome comercial, cálculo, escala ou protocolo…" aria-label="Buscar"><button type="button" class="pal-x" aria-label="Fechar">Esc</button></div><div class="pal-res" id="pal-res"></div><p class="pal-dica">↑ ↓ para navegar · Enter para abrir · Esc para fechar</p></div>';
     document.body.appendChild(w); document.body.classList.add('pal-aberta');
+    var soltar = prenderFoco(w); paletaSoltar = soltar;
     var q = w.querySelector('#pal-q'), res = w.querySelector('#pal-res'), sel = 0;
     addVoz(q);
     function itens() { return [].slice.call(res.querySelectorAll('a.card')); }
@@ -881,7 +920,7 @@
         : '<p class="empty-msg">Nada encontrado para “' + esc(q.value) + '”.</p>';
       marca();
     }
-    function fechar() { document.removeEventListener('keydown', tecla); w.remove(); document.body.classList.remove('pal-aberta'); }
+    function fechar() { document.removeEventListener('keydown', tecla); w.remove(); document.body.classList.remove('pal-aberta'); paletaSoltar = null; soltar(); }
     function tecla(e) {
       var its = itens();
       if (e.key === 'Escape') { fechar(); return; }
@@ -925,7 +964,7 @@
     var hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     $app.innerHTML =
       '<section class="home-hero"><svg class="ecg" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 34 H170 l10 -4 l8 4 H220 l8 -26 l10 48 l9 -30 l6 8 H330 l12 -6 l10 6 H600"/></svg>' +
-        '<div class="hh-top"><span id="hh-status" class="hh-status on">Online</span><span class="hh-clock" id="hh-clock">--:--</span></div>' +
+        '<div class="hh-top"><span id="hh-status" class="hh-status on" role="status" aria-live="polite">Online</span><span class="hh-clock" id="hh-clock">--:--</span></div>' +
         '<p class="hh-data">' + esc(hoje) + '</p><h2 class="hh-t">' + saudacao() + '! O que você precisa agora?</h2>' +
         '<button type="button" class="hh-search" id="hh-search"><span>🔍</span><span class="hh-ph">Medicamento, nome comercial, cálculo, protocolo…</span><kbd>/</kbd></button>' +
         '<div class="hh-stats"><span><b data-count="' + (D.DRUGS.length + BX.EXTRAS.length + CT.total) + '">' + nDrog + '</b> medicamentos</span><span><b data-count="' + PR.PROTOCOLOS.length + '">' + PR.PROTOCOLOS.length + '</b> protocolos</span><span><b data-count="' + D.SCALES.length + '">' + D.SCALES.length + '</b> escalas</span><span><b data-count="' + (CALCS.length + 2) + '">' + (CALCS.length + 2) + '</b> cálculos</span></div></section>' +
@@ -941,7 +980,7 @@
         tileG('#/escalas', '📋', 'Escalas', D.SCALES.length + ' escalas clínicas', '#c2410c') +
       '</div>' +
       '<div class="pills">' +
-        '<a class="pill" href="#/classes">🧭 Classes</a><a class="pill" href="#/emergencia">🚑 Emergência</a><a class="pill" href="#/compatibilidade">🔗 Interações</a>' +
+        '<a class="pill" href="#/antimicrobianos">🦠 Antibióticos e resistência</a><a class="pill" href="#/classes">🧭 Classes</a><a class="pill" href="#/emergencia">🚑 Emergência</a><a class="pill" href="#/compatibilidade">🔗 Interações</a>' +
         '<a class="pill" href="#/hipodermoclise">💧 Hipodermóclise</a><a class="pill" href="#/sbar">📝 Passagem SBAR</a><a class="pill" href="#/ferramentas">⚙️ Mais</a>' +
       '</div>' +
       secT('Por área de atuação') +
@@ -956,6 +995,68 @@
     document.getElementById('hh-search').onclick = function () { abrirPaleta(); };
   }
 
+  // ---- Antimicrobianos: tipo de infecção + bactéria + resistências → indicações ----
+  function viewAntimicrobianos() {
+    setHeader('Antibióticos e resistência', true);
+    var AM = window.Antimicrobianos;
+    var st = store.get('amEstado', { sitio: '', bact: '', r: {} });
+    function existe(id) { return !!id && (id.indexOf('c-') === 0 ? CT.CAT.some(function (a) { return a[0] === id; }) : (D.DRUGS.some(function (d) { return d.id === id; }) || BX.EXTRAS.some(function (x) { return x.id === id; }))); }
+    function opcao(o, cls, aviso) {
+      var ap = o[0] && AM.APLICACAO[o[0]] && AM.APLICACAO[o[0]] !== '—' ? AM.APLICACAO[o[0]] : '';
+      var nome = existe(o[0]) ? '<a href="#/droga/' + esc(o[0]) + '">' + esc(o[1]) + ' ›</a>' : '<b>' + esc(o[1]) + '</b>';
+      return '<div class="am-op ' + cls + '"><div class="am-op-n">' + nome + '</div>' + (o[2] ? '<small>' + esc(o[2]) + '</small>' : '') +
+        (aviso ? '<small class="am-av">⚠️ ' + esc(aviso) + '</small>' : '') + (ap && cls !== 'evitar' ? '<p class="am-ap">💉 ' + esc(ap) + '</p>' : '') + '</div>';
+    }
+    function chips(lista, sel, attr, extra) {
+      return '<div class="am-chips">' + (extra || '') + lista.map(function (x) {
+        return '<button type="button" class="am-chip' + (x.id === sel ? ' on' : '') + '" ' + attr + '="' + x.id + '"><span>' + x.icon + '</span><b>' + esc(x.nome) + '</b>' + (x.ex || x.germes ? '<small>' + esc(x.ex || x.germes) + '</small>' : '') + '</button>';
+      }).join('') + '</div>';
+    }
+    function render() {
+      var B = AM.BACTERIAS.filter(function (b) { return b.id === st.bact; })[0];
+      var S = AM.SITIOS.filter(function (x) { return x.id === st.sitio; })[0];
+      var h = '<p class="lead">Escolha o tipo de infecção e, se já houver cultura, a bactéria e as resistências do antibiograma. O app mostra as opções geralmente ativas, o que evitar, a precaução e como aplicar.</p>' +
+        '<div class="alert warn">⚕️ Apoio para a enfermagem entender o antibiograma e preparar o cuidado. A escolha, a dose e a duração são do médico com a CCIH, conforme o antibiograma, o local da infecção, a função renal e as alergias.</div>' +
+        '<h3 class="sub-h">1. Tipo de infecção</h3>' + chips(AM.SITIOS, st.sitio, 'data-sit', '<button type="button" class="am-chip' + (!st.sitio ? ' on' : '') + '" data-sit=""><span>❔</span><b>Não definido</b><small>Ver só pela bactéria</small></button>') +
+        '<h3 class="sub-h">2. Bactéria isolada na cultura</h3>' + chips(AM.BACTERIAS, st.bact, 'data-bac', '<button type="button" class="am-chip' + (!st.bact ? ' on' : '') + '" data-bac=""><span>⏳</span><b>Ainda sem cultura</b><small>Tratamento empírico</small></button>');
+      if (B && B.perguntas.length) {
+        h += '<h3 class="sub-h">3. Resistências no antibiograma</h3><div class="am-perg">' + B.perguntas.map(function (q) {
+          if (q.se && !st.r[q.se]) return '';
+          if (q.tipo === 'sel') return '<label class="am-q am-sel"><span>' + esc(q.txt) + '</span><select data-q="' + q.id + '">' + q.opts.map(function (o) { return '<option value="' + o[0] + '"' + (st.r[q.id] === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>';
+          return '<label class="am-q"><input type="checkbox" data-q="' + q.id + '"' + (st.r[q.id] ? ' checked' : '') + '><span>' + esc(q.txt) + '</span></label>';
+        }).join('') + '</div>';
+      }
+      h += '<div id="am-res">';
+      if (B) {
+        var pid = AM.perfil(B.id, st.r), P = AM.PERFIS[pid], pr = AM.PRECAUCAO[P.prec];
+        var ok = [], fora = [];
+        P.ativos.forEach(function (o) { var v = AM.noSitio(o[0], st.sitio); (v.ok ? ok : fora).push([o, v.aviso]); });
+        h += '<section class="am-card"><small class="am-tag">PERFIL IDENTIFICADO</small><h2 class="am-t">' + esc(P.nome) + '</h2>' + (S ? '<p class="am-sit">' + S.icon + ' ' + esc(S.nome) + '</p>' : '') +
+          '<div class="am-prec am-prec-' + P.prec + '"><b>🛡️ ' + esc(pr[0]) + '</b><small>' + esc(pr[1]) + '</small></div>' +
+          '<h3 class="sub-h">✅ Geralmente ativos' + (S ? ' neste tipo de infecção' : '') + '</h3><div class="am-ops">' + ok.map(function (x) { return opcao(x[0], 'ativo', x[1]); }).join('') + '</div>' +
+          (fora.length ? '<h3 class="sub-h">🚫 Ativos, mas não indicados neste local</h3><div class="am-ops">' + fora.map(function (x) { return opcao(x[0], 'fora', x[1]); }).join('') + '</div>' : '') +
+          '<h3 class="sub-h">⛔ Geralmente inativos ou a evitar</h3><div class="am-ops">' + P.evitar.map(function (o) { return opcao(o, 'evitar'); }).join('') + '</div>' +
+          (P.notas.length || (S && S.notas.length) ? '<h3 class="sub-h">📝 Observações</h3><ul class="pcr-list">' + P.notas.concat(S ? S.notas : []).map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' : '') + '</section>';
+      } else if (S) {
+        h += '<section class="am-card"><small class="am-tag">TRATAMENTO EMPÍRICO USUAL</small><h2 class="am-t">' + S.icon + ' ' + esc(S.nome) + '</h2><p class="am-sit">Germes mais prováveis: ' + esc(S.germes) + '</p>' +
+          '<h3 class="sub-h">💊 Opções usuais (conforme diretrizes e o perfil local)</h3><div class="am-ops">' + S.empirico.map(function (o) { return opcao(o, 'ativo'); }).join('') + '</div>' +
+          '<h3 class="sub-h">📝 Observações</h3><ul class="pcr-list">' + S.notas.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' +
+          '<p class="note">Quando sair a cultura, marque a bactéria acima para ajustar (descalonar) o tratamento.</p></section>';
+      } else h += '<p class="empty-msg">Escolha o tipo de infecção ou a bactéria para ver as indicações.</p>';
+      h += '<details class="sec"><summary><b>🩺 Antes de iniciar qualquer antibiótico</b></summary><ul class="pcr-list">' + AM.GERAL.map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') + '</ul></details>' +
+        '<details class="sec"><summary><b>📚 Fontes</b></summary><ul class="fontes">' + AM.FONTES.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul></details>' +
+        '<div class="ref-btns"><a class="btn sm ghost" href="#/protocolo/sepse">🫀 Protocolo de sepse</a><a class="btn sm ghost" href="#/classes/J">🧭 Antimicrobianos por classe</a><a class="btn sm ghost" href="#/compatibilidade">🔗 Compatibilidade em Y</a></div></div>';
+      $app.innerHTML = h;
+      $app.querySelectorAll('[data-sit]').forEach(function (b) { b.onclick = function () { st.sitio = b.getAttribute('data-sit'); salvar(); }; });
+      $app.querySelectorAll('[data-bac]').forEach(function (b) { b.onclick = function () { var nb = b.getAttribute('data-bac'); if (nb !== st.bact) st.r = {}; st.bact = nb; salvar(); }; });
+      $app.querySelectorAll('[data-q]').forEach(function (c) {
+        c.onchange = function () { var q = c.getAttribute('data-q'); st.r[q] = c.type === 'checkbox' ? c.checked : c.value; salvar(); var res = document.getElementById('am-res'); if (res) res.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      });
+    }
+    function salvar() { var y = window.scrollY; store.set('amEstado', st); render(); window.scrollTo(0, y); }
+    render();
+  }
+
   // ---- Plantão: hub das ferramentas do turno ----
   function viewTurno() {
     setHeader('Plantão', false);
@@ -963,6 +1064,7 @@
       secT('Ao lado do leito') + '<div class="list">' +
         card('#/scanner', '📷', 'Ler caixa do medicamento', 'Código de barras → ficha, nome comercial e tipo', 'view:scanner') +
         card('#/infusao', '🫀', 'Bomba de infusão / DVA', 'mcg/kg/min ↔ mL/h', 'view:infusao') +
+        card('#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'Tipo de infecção + antibiograma → indicações e precauções', 'view:antimicrobianos') +
         card('#/compatibilidade', '🔗', 'Interações e compatibilidade em Y', 'Checar 2 ou mais medicamentos', 'view:compat') + '</div>' +
       secT('Organização do turno') + '<div class="list">' +
         card('#/sbar', '📝', 'Passagem de plantão (SBAR)', 'Com NEWS2 e doses pendentes', 'view:sbar') +
@@ -1213,8 +1315,8 @@
   // abas: [[id, rótulo, html]] — devolve o HTML; ligarAbas() ativa depois de inserir no DOM
   function abasHtml(abas) {
     return '<div class="tabs" role="tablist">' + abas.map(function (a) {
-      return '<button type="button" role="tab" class="tab" id="tab-' + a[0] + '" aria-controls="pane-' + a[0] + '" data-tab="' + a[0] + '">' + a[1] + '</button>';
-    }).join('') + '</div>' + abas.map(function (a) { return '<div class="pane" role="tabpanel" id="pane-' + a[0] + '">' + a[2] + '</div>'; }).join('');
+      return '<button type="button" role="tab" class="tab" id="tab-' + a[0] + '" aria-controls="pane-' + a[0] + '" data-tab="' + a[0] + '" tabindex="-1">' + a[1] + '</button>';
+    }).join('') + '</div>' + abas.map(function (a) { return '<div class="pane" role="tabpanel" id="pane-' + a[0] + '" aria-labelledby="tab-' + a[0] + '" tabindex="0">' + a[2] + '</div>'; }).join('');
   }
   function ligarAbas(abas, chave, padrao) {
     var ids = abas.map(function (a) { return a[0]; });
@@ -1224,13 +1326,21 @@
       if (chave) store.set(chave, t);
       ids.forEach(function (id) {
         var on = id === t, b = document.getElementById('tab-' + id);
-        b.setAttribute('aria-selected', on);
+        b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
         document.getElementById('pane-' + id).hidden = !on;
         if (on && b.scrollIntoView && rolar) b.scrollIntoView({ block: 'nearest', inline: 'center' });
       });
       if (rolar) { var tb = $app.querySelector('.tabs'); if (tb && tb.getBoundingClientRect().top < 0) tb.scrollIntoView({ block: 'start' }); }
     }
     $app.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { mostrar(b.getAttribute('data-tab'), true); }; });
+    // teclado nas abas (padrão ARIA): setas, Home e End movem e ativam
+    var lista = $app.querySelector('.tabs');
+    if (lista) lista.addEventListener('keydown', function (e) {
+      var i = ids.indexOf((document.activeElement.getAttribute && document.activeElement.getAttribute('data-tab')) || ''); if (i < 0) return;
+      var n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? ids.length - 1 : null;
+      if (n == null) return; e.preventDefault(); n = (n + ids.length) % ids.length;
+      mostrar(ids[n], true); document.getElementById('tab-' + ids[n]).focus();
+    });
     $app.querySelectorAll('[data-ir-aba]').forEach(function (b) { b.onclick = function () { mostrar(b.getAttribute('data-ir-aba'), true); window.scrollTo(0, 0); }; });
     mostrar(aba, false);
   }
@@ -1370,6 +1480,13 @@
       '<div id="calc-out" aria-live="polite"></div>' +
       '<button class="btn ghost" id="btn-clear" type="button">Limpar campos</button>';
     var form = document.getElementById('calc-form');
+    // rascunho da calculadora: lembra os valores ao trocar de tela (só nesta sessão do navegador)
+    var chaveR = 'enfcalc.rasc.' + c.id;
+    if (!drugId) { try { var rasc = JSON.parse(sessionStorage.getItem(chaveR) || 'null'); if (rasc) Object.keys(rasc).forEach(function (k) {
+      form.querySelectorAll('[data-k="' + k + '"]').forEach(function (el) { if (el.type === 'radio') el.checked = el.value === rasc[k]; else el.value = rasc[k]; });
+    }); } catch (e) { /* sem sessionStorage */ } }
+    function guardaRasc() { try { var o = {}; form.querySelectorAll('[data-k]').forEach(function (el) { if (el.type === 'radio') { if (el.checked) o[el.getAttribute('data-k')] = el.value; } else o[el.getAttribute('data-k')] = el.value; }); sessionStorage.setItem(chaveR, JSON.stringify(o)); } catch (e) { /* ok */ } }
+    form.addEventListener('input', guardaRasc); form.addEventListener('change', guardaRasc);
     var run = bindLiveForm(form, c.fields, c.compute, document.getElementById('calc-out'));
     if (drugId) {   // pré-seleciona a apresentação de mercado do medicamento, se houver
       var sel = form.querySelector('select[data-apres]');
@@ -1558,6 +1675,8 @@
   }
 
   // ---- Listas de seleção (valores de mercado) com opção "Outro valor…" ----
+  // opções de tempo: 'Bolus' (0) só para medicamentos que o cadastro permite em bolus
+  function temposDe(id) { return P.permiteBolus(id, DB) ? AP.TEMPOS : AP.TEMPOS.filter(function (t) { return t > 0; }); }
   function fmtIn(n) { return String(+(+n).toPrecision(10)).replace('.', ','); }
   function labVol(x) { return x === 0 ? 'Sem diluir (EV direto)' : fmt(x, 0) + ' mL' + (x <= 20 ? ' (seringa)' : ' (bolsa/frasco)'); }
   function labVF(x) { return fmt(x, 0) + ' mL' + (x <= 50 ? ' (seringa)' : ' (bolsa)'); }
@@ -1685,6 +1804,26 @@
   if (EMBED) document.documentElement.classList.add('embed');
 
   // Janela de confirmação/entrada do próprio app (substitui confirm/prompt nativos)
+  // Diálogos: guarda quem abriu, prende Tab/Shift+Tab dentro, deixa o fundo inerte e devolve o foco ao fechar
+  function prenderFoco(box) {
+    var antes = document.activeElement;
+    var fundo = [document.querySelector('.topbar'), $app, document.querySelector('.tabbar')].filter(Boolean);
+    fundo.forEach(function (el) { el.inert = true; el.setAttribute('aria-hidden', 'true'); });
+    function tab(e) {
+      if (e.key !== 'Tab') return;
+      var f = [].slice.call(box.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function (x) { return x.offsetParent !== null; });
+      if (!f.length) return;
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    }
+    box.addEventListener('keydown', tab);
+    return function () {
+      box.removeEventListener('keydown', tab);
+      fundo.forEach(function (el) { el.inert = false; el.removeAttribute('aria-hidden'); });
+      if (antes && antes.focus && document.body.contains(antes)) try { antes.focus(); } catch (e) { /* ok */ }
+    };
+  }
   function ask(o) {
     return new Promise(function (resolve) {
       var w = document.createElement('div');
@@ -1694,9 +1833,10 @@
         (o.input ? '<input class="txt ask-in" id="ask-in" type="text" maxlength="200" placeholder="' + esc(o.ph || '') + '">' : '') +
         '<div class="ask-row"><button class="btn ghost" type="button" id="ask-no">Cancelar</button><button class="btn' + (o.perigo ? ' dangerb' : '') + '" type="button" id="ask-ok">' + esc(o.ok || 'Confirmar') + '</button></div></div>';
       document.body.appendChild(w);
-      var inp = w.querySelector('#ask-in');
-      function fim(v) { document.removeEventListener('keydown', key); w.remove(); resolve(v); }
-      function key(e) { if (e.key === 'Escape') fim(null); if (e.key === 'Enter' && inp) fim(inp.value); }
+      var inp = w.querySelector('#ask-in'), soltar = prenderFoco(w);
+      function fim(v) { document.removeEventListener('keydown', key); w.remove(); soltar(); resolve(v); }
+      // Enter só envia quando o foco está no campo; nos botões vale a ação do próprio botão
+      function key(e) { if (e.key === 'Escape') fim(null); if (e.key === 'Enter' && inp && document.activeElement === inp) { e.preventDefault(); fim(inp.value); } }
       document.addEventListener('keydown', key);
       w.querySelector('#ask-no').onclick = function () { fim(null); };
       w.querySelector('#ask-ok').onclick = function () { fim(inp ? inp.value : true); };
@@ -2211,18 +2351,22 @@
       document.querySelectorAll('#atl .card').forEach(function (c) { c.hidden = !!t && c.getAttribute('data-name').indexOf(t) < 0; });
     }
     atq.oninput = filtrar;
-    var timer;
+    var timer, avisouFalha = false;
     form.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(save, 250); });
     form.addEventListener('change', function (e) { if (e.target.type !== 'text') save(); });
     function save() {
+      if (!document.body.contains(form)) return;          // tela antiga: não grava
       pac = readPac();
-      store.set('paciente', pac);
+      var ok = store.set('paciente', pac);
       if (pac.peso) store.set('peso', pac.peso);
+      if (!ok && !avisouFalha) { avisouFalha = true; toast('Não foi possível salvar no aparelho (armazenamento bloqueado ou cheio). Os dados valem só enquanto esta tela estiver aberta.', true); }
       render();
     }
     document.getElementById('pac-new').onclick = function () {
+      clearTimeout(timer);                                  // cancela salvamento pendente do paciente anterior
       ask({ titulo: 'Novo paciente', msg: 'Limpar os dados e o registro do paciente atual?', ok: 'Limpar' }).then(function (sim) {
         if (!sim) return;
+        clearTimeout(timer);
         store.set('paciente', null);
         store.set('registro', []);
         viewAtender(id);
@@ -2285,7 +2429,7 @@
             AP.diluentesDe(dd && dd.diluente).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('') + '</select></div>' +
             '<div class="field"><label for="pr-dil">Volume do diluente</label><select id="pr-dil">' + optsHtml(AP.VOLUMES, null, labVol) + '</select></div></div>' +
             (dd && dd.diluente ? '<small class="hint-sel">Compatível pela ficha: ' + esc(dd.diluente) + '</small>' : '')) +
-          (im ? '' : '<div class="field"><label for="pr-t">Tempo de administração</label><select id="pr-t">' + optsHtml(AP.TEMPOS, null, labTempo) + '</select></div>') +
+          (im ? '' : '<div class="field"><label for="pr-t">Tempo de administração</label><select id="pr-t">' + optsHtml(temposDe(did), null, labTempo) + '</select></div>') +
         '</form><div id="prep" aria-live="polite"></div><button class="btn" id="reg-btn" type="button">✓ Registrar administração agora</button>') +
       (m.lib ? '<a class="btn ghost" href="#/compatibilidade">🔗 Checar interações com outros medicamentos</a><div hidden>' : '<div>') +
       '<h2>🔗 Interações com esta maleta</h2>' +
@@ -2310,7 +2454,7 @@
     function defaults() {
       var pad = P.preparoPadrao(did, num($d.value), d.conc, pf, DB);
       if ($dil && !dirtyDil) setSel($dil, pad.diluenteMl, AP.VOLUMES, labVol);
-      if ($t && !dirtyT) setSel($t, pad.tempo, AP.TEMPOS, labTempo);
+      if ($t && !dirtyT) setSel($t, pad.tempo, temposDe(did), labTempo);
     }
     function run() {
       var dose = num($d.value), out = document.getElementById('prep');
@@ -2326,7 +2470,7 @@
       else if (r.tempo > 0) {
         steps.push((r.diluenteMl > 0 || r.via === 'pronto' ? '<b>Infundir</b> em ' : '<b>Administrar EV lento</b> em ') + fmtTempo(r.tempo) +
           (r.diluenteMl > 0 || r.via === 'pronto' ? ': <span class="big">' + fmt(r.mlh, 1) + ' mL/h</span> na bomba · ' + fmt(Math.round(r.gts), 0) + ' gts/min · ' + fmt(Math.round(r.mcgts), 0) + ' mcgts/min' : ''));
-      } else steps.push('<b>Administrar</b> em bolus');
+      } else if (!r.bloqueio) steps.push('<b>Administrar</b> em bolus');
       if (dd && dd.admTxt) steps.push(esc(dd.admTxt));
       var av = r.avisos.slice();
       if (sug && sug.max != null && dose > sug.max * 1.001) av.unshift('Dose acima da máxima de referência (' + fmt(sug.max, 3) + ' ' + d.conc.u + '). Confirme com o prescritor.');
@@ -2335,23 +2479,24 @@
         : (r.via === 'pronto' ? fmt(r.aspirar, 1) + ' mL da bolsa' : 'aspirar ' + fmt(r.aspirar, 2) + ' mL') +
           (r.diluenteMl > 0 ? '; diluir em ' + fmt(r.diluenteMl, 0) + ' mL de ' + dilNome() : '') +
           (r.tempo > 0 ? '; ' + (r.diluenteMl > 0 || r.via === 'pronto' ? 'infundir' : 'EV lento') + ' em ' + fmtTempo(r.tempo) + (r.mlh && (r.diluenteMl > 0 || r.via === 'pronto') ? ' (' + fmt(r.mlh, 1) + ' mL/h)' : '') : '; bolus')) };
+      if (r.bloqueio) { ultimo = null; out.innerHTML = '<ol class="steps">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol><div class="alert bad" role="alert">⛔ ' + esc(r.bloqueio) + '</div>'; return; }
       out.innerHTML = '<ol class="steps">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
         av.map(function (a) { return '<div class="alert warn">⚠️ ' + esc(a) + '</div>'; }).join('');
     }
     document.getElementById('reg-btn').onclick = function () {
-      if (!ultimo || !(num($d.value) > 0)) { toast('Informe a dose antes de registrar.', true); return; }
+      if (!ultimo || !(num($d.value) > 0)) { toast('Complete ou corrija o preparo antes de registrar.', true); return; }
       var dados = ultimo;
       confirmar9Certos(d.nome).then(function (sim) {
         if (!sim) return;
         var reg = loadRegistro();
         reg.push({ t: new Date().toISOString(), nome: d.nome, dose: dados.dose, prep: dados.prep, certos: true });
-        store.set('registro', reg.slice(-200));
+        if (!store.set('registro', reg.slice(-200))) { toast('Falha ao gravar o registro no aparelho (armazenamento bloqueado ou cheio). Anote no prontuário.', true); return; }
         toast('Administração registrada às ' + hhmm(reg[reg.length - 1].t) + ' (9 certos conferidos).');
       });
     };
     $d.addEventListener('input', function () { defaults(); run(); });
     if ($dil) { $dil.addEventListener('change', function () { dirtyDil = true; run(); }); bindOutro($dil, 'mL', AP.VOLUMES, labVol, run); }
-    if ($t) { $t.addEventListener('change', function () { dirtyT = true; run(); }); bindOutro($t, 'minutos', AP.TEMPOS, labTempo, run); }
+    if ($t) { $t.addEventListener('change', function () { dirtyT = true; run(); }); bindOutro($t, 'minutos', temposDe(did), labTempo, run); }
     if ($tipo) $tipo.addEventListener('change', run);
     defaults(); run();
   }
@@ -2551,6 +2696,7 @@
     ['Naloxona', '0,4–2 mg EV/IO/IM/IN', 'Suspeita de intoxicação por opioide (não atrasar RCP e ventilação).', 'naloxona']];
 
   function viewPCR() {
+    pararPCRTimers();
     setHeader('Modo PCR', true);
     var E = window.Emergencia;
     var st = store.get('pcr', null);
@@ -2678,7 +2824,7 @@
 
     renderLog(); tick();
     pararPCRTimers();
-    pcrTimer = setInterval(tick, 500);
+    if (!st.fim) pcrTimer = setInterval(function () { if (!document.getElementById('pcr-total')) { pararPCRTimers(); return; } tick(); }, 500);
     try { if (navigator.wakeLock && !st.fim) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {}); } catch (e) { /* ok */ }
 
     if (!st.fim) {
@@ -3047,6 +3193,14 @@
     });
   }
 
+  // texto pesquisável de um protocolo: nome, resumo, seções, itens e nomes dos medicamentos citados
+  var PROT_TXT = {};
+  function textoProtocolo(p) {
+    if (PROT_TXT[p.id]) return PROT_TXT[p.id];
+    var t = [p.nome, p.resumo];
+    (p.secoes || []).forEach(function (sc) { t.push(sc.t); sc.itens.forEach(function (it) { if (Array.isArray(it)) { t.push(it[1]); if (it[0]) t.push(nm(it[0])); } else t.push(it); }); });
+    return (PROT_TXT[p.id] = norm(t.join(' ')));
+  }
   function viewProtocolos() {
     setHeader('Protocolos', false);
     $app.innerHTML = '<p class="lead">Condutas resumidas para a enfermagem, com passo a passo, medicamentos e link para o Manual MSD.</p>' +
@@ -3056,7 +3210,7 @@
     function render() {
       var t = norm(pq.value.trim());
       document.getElementById('pl').innerHTML = PR.GRUPOS.map(function (g) {
-        var ps = PR.PROTOCOLOS.filter(function (p) { return p.grupo === g.id && (!t || norm(p.nome + ' ' + p.resumo).indexOf(t) >= 0); });
+        var ps = PR.PROTOCOLOS.filter(function (p) { return p.grupo === g.id && (!t || t.split(/\s+/).every(function (w) { return textoProtocolo(p).indexOf(w) >= 0; })); });
         return ps.length ? '<h2>' + g.icon + ' ' + esc(g.nome) + '</h2><div class="list">' + ps.map(function (p) { return card('#/protocolo/' + p.id, p.icon, p.nome, p.resumo, 'prot:' + p.id); }).join('') + '</div>' : '';
       }).join('') || '<p class="empty-msg">Nenhum protocolo encontrado.</p>';
     }
@@ -3104,7 +3258,7 @@
     }
     if (window.EAN_DB) return prep();
     var sc = document.createElement('script'); sc.src = 'js/ean.js';
-    sc.onload = prep; sc.onerror = function () { cb(null); };
+    sc.onload = prep; sc.onerror = function () { sc.remove(); cb(null); };   // remove para permitir nova tentativa
     document.head.appendChild(sc);
   }
   function nomeQualquer(id) {
@@ -3133,7 +3287,7 @@
       '<div class="ref-btns"><button class="btn" id="scan-cam" type="button">📷 Abrir câmera</button></div>' +
       '<form class="form" id="scan-form" onsubmit="return false"><div class="field"><label for="scan-cod">Número do código de barras (EAN)</label>' +
       '<div class="row"><input id="scan-cod" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="ex.: 7891058001155"><button class="btn sm" id="scan-ok" type="submit">Buscar</button></div></div></form>' +
-      '<div id="scan-out" aria-live="polite"></div>' +
+      '<p class="scan-base" id="scan-base" role="status">⏳ Preparando a base de códigos…</p><div id="scan-out" aria-live="polite"></div>' +
       (hist.length ? '<h2>🕘 Lidos recentemente</h2><div class="list">' + hist.map(function (h) { return card(hrefAlias(h.id, { n: h.m }), '📦', h.m, nomeQualquer(h.id) + ' · ' + h.c); }).join('') + '</div>' : '') +
       '<p class="disclaimer">Base: códigos EAN da Lista de Preços CMED/Anvisa (' + esc(fmtData(CT.FONTE.data)) + '). Na primeira leitura o app baixa a base de códigos (≈ 1,6 MB).</p>';
     var out = document.getElementById('scan-out'), cod = document.getElementById('scan-cod');
@@ -3144,7 +3298,16 @@
       carregarEAN(function (db) { out.innerHTML = db ? eanResultadoHtml(db, c) : '<div class="alert bad">Não foi possível carregar a base de códigos. Verifique a conexão.</div>'; });
     }
     document.getElementById('scan-form').onsubmit = function () { buscar(cod.value); return false; };
-    carregarEAN(function () {});   // pré-carrega em segundo plano
+    function estadoBase() {
+      var el = document.getElementById('scan-base'); if (!el) return;
+      el.textContent = '⏳ Baixando a base de códigos (≈ 1,6 MB)…';
+      carregarEAN(function (db) {
+        el = document.getElementById('scan-base'); if (!el) return;
+        if (db) { el.className = 'scan-base ok'; el.textContent = '✅ Base de códigos pronta — a leitura funciona também sem internet neste aparelho.'; }
+        else { el.className = 'scan-base bad'; el.innerHTML = '⚠️ Base de códigos indisponível (sem internet e ainda não guardada). <button type="button" class="linklike" id="scan-retry">Tentar de novo</button>'; document.getElementById('scan-retry').onclick = estadoBase; }
+      });
+    }
+    estadoBase();
     document.getElementById('scan-cam').onclick = function () {
       var area = document.getElementById('scan-area'), video = document.getElementById('scan-video');
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { out.innerHTML = '<div class="alert warn">Este navegador não permite usar a câmera aqui. Digite o número do código.</div>'; return; }
@@ -3556,7 +3719,8 @@
       '<div class="sec"><h3>Backup e troca de aparelho</h3><p>Maletas, favoritos e registros ficam salvos apenas neste aparelho. Exporte um backup para guardar ou levar para outro celular.</p>' +
         '<button class="btn" id="bk-exp" type="button">📦 Exportar backup completo</button>' +
         '<label class="btn ghost file-btn">📥 Restaurar backup (.json)<input type="file" id="bk-imp" accept=".json,application/json"></label></div>' +
-      '<button class="btn ghost" id="clear-data" type="button">Apagar favoritos e dados salvos</button>';
+      '<button class="btn ghost" id="clear-data" type="button">Apagar dados do paciente e do uso (mantém as maletas)</button>' +
+      '<p class="note">Apaga: paciente em atendimento, registro de administração, agenda do plantão, passagem SBAR, avaliações de escalas, registro de PCR, favoritos, recentes, leituras de código de barras e preferências de filtros. As maletas ficam (faça backup antes, se quiser apagar tudo).</p>';
     document.getElementById('bk-exp').onclick = function () {
       salvarArquivo(JSON.stringify(M.exportarBackup(loadMaletas(), favs()), null, 2), 'enfcalc-backup-' + new Date().toISOString().slice(0, 10) + '.json', 'Backup EnfCalc');
     };
@@ -3578,8 +3742,15 @@
       rd.readAsText(f);
     };
     document.getElementById('clear-data').onclick = function () {
-      store.set('favs', []); store.set('peso', 70);
-      this.textContent = 'Dados apagados ✓';
+      var btn = this;
+      ask({ titulo: 'Apagar dados', msg: 'Apagar os dados do paciente, registros, agenda, SBAR, avaliações, PCR, favoritos e preferências deste aparelho? As maletas serão mantidas.', ok: 'Apagar', perigo: true }).then(function (sim) {
+        if (!sim) return;
+        var CHAVES = ['favs', 'recentes', 'paciente', 'registro', 'peso', 'plantao', 'plantaoDia', 'plantaoAviso', 'sbar', 'sbarAtual', 'escHist', 'pcr', 'scanHist',
+          'apPref', 'bulCat', 'bulTipo', 'bulLetra', 'drugTab', 'confFiltro', 'amEstado', 'conferente', 'sri', 'sriConc', 'sriSeq'];
+        var falhas = CHAVES.filter(function (k) { return !store.del(k); });
+        if (falhas.length) { toast('Não foi possível apagar tudo (' + falhas.join(', ') + '). Tente de novo.', true); return; }
+        btn.textContent = 'Dados apagados ✓'; btn.disabled = true; toast('Dados apagados deste aparelho.');
+      });
     };
   }
 
@@ -3589,13 +3760,14 @@
   }
 
   // ---------- roteador ----------
+  function decodificar(x) { try { return decodeURIComponent(x); } catch (e) { return null; } }
   function route() {
-    var pal = document.getElementById('paleta'); if (pal) { pal.remove(); document.body.classList.remove('pal-aberta'); }
+    var pal = document.getElementById('paleta'); if (pal) { pal.remove(); document.body.classList.remove('pal-aberta'); if (paletaSoltar) { paletaSoltar(); paletaSoltar = null; } }
     var h = location.hash.replace(/^#\/?/, '');
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', classes: 'view:classes', plantao: 'view:plantao', sbar: 'view:sbar' }[parts[0]];
+    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', classes: 'view:classes', plantao: 'view:plantao', sbar: 'view:sbar', antimicrobianos: 'view:antimicrobianos' }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -3603,7 +3775,7 @@
       case 'calc': viewCalc(parts[1], parts[2]); break;
       case 'infusao': viewInfusao(parts[1]); break;
       case 'drogas': viewDrugs(); break;
-      case 'droga': viewDrug(parts[1], parts[2] ? decodeURIComponent(parts[2]) : ''); break;
+      case 'droga': { var al = parts[2] ? decodificar(parts[2]) : ''; if (al === null) viewNotFound(); else viewDrug(parts[1], al); } break;
       case 'escalas': viewScales(); break;
       case 'escala': viewScale(parts[1]); break;
       case 'escala-historico': viewEscalaHistorico(); break;
@@ -3620,9 +3792,10 @@
       case 'ferramentas': viewFerramentas(); break;
       case 'scanner': viewScanner(); break;
       case 'classes': viewClasses(parts[1]); break;
-      case 'classe': viewClasse(decodeURIComponent(parts[1] || '')); break;
+      case 'classe': { var kc = decodificar(parts[1] || ''); if (kc === null) viewNotFound(); else viewClasse(kc); } break;
       case 'plantao': viewPlantao(); break;
       case 'turno': viewTurno(); break;
+      case 'antimicrobianos': viewAntimicrobianos(); break;
       case 'sbar': viewSBAR(); break;
       case 'atender': viewAtender('lib'); break;
       case 'emergencia-ped': viewEmergPed(); break;
@@ -3640,7 +3813,11 @@
         break;
       default: viewNotFound();
     }
+    acessibilidade();
   }
+
+  // validação visual de todo campo numérico do app
+  $app.addEventListener('input', function (e) { if (e.target.matches && e.target.matches('input[inputmode="decimal"]')) validarCampo(e.target); });
 
   // favoritos (delegação)
   $app.addEventListener('click', function (e) {
@@ -3660,7 +3837,9 @@
   var modal = document.getElementById('disclaimer-modal');
   if (!store.get('aceite', false)) {
     modal.hidden = false;
-    document.getElementById('btn-aceite').onclick = function () { store.set('aceite', true); modal.hidden = true; };
+    var soltarAviso = prenderFoco(modal);
+    document.getElementById('btn-aceite').focus();
+    document.getElementById('btn-aceite').onclick = function () { store.set('aceite', true); modal.hidden = true; soltarAviso(); };
   }
 
   window.addEventListener('hashchange', route);

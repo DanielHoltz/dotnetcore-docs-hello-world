@@ -126,7 +126,12 @@
     var vm = vmaxEfetiva(d, pf);
     if (isFinite(vm) && r.tempo > 0 && dose / r.tempo > vm * 1.001)
       r.avisos.push('Velocidade acima do máximo (' + fmtN(vm) + ' ' + conc.u + '/min): infundir em no mínimo ' + Math.ceil(dose / vm) + ' min.');
-    if (isFinite(vm) && r.tempo === 0 && via !== 'im') r.avisos.push('Este medicamento tem velocidade máxima: informe o tempo de administração.');
+    // tempo zero (bolus) só é aceito quando o cadastro permite bolus e não há velocidade máxima
+    if (r.tempo <= 0 && via !== 'im') {
+      if (via === 'infusao' || via === 'continua' || via === 'pronto') r.bloqueio = 'Este medicamento é administrado em INFUSÃO, não em bolus: escolha o tempo de administração.';
+      else if (isFinite(vm)) r.bloqueio = 'Este medicamento tem velocidade máxima de administração: escolha o tempo (não fazer em bolus rápido).';
+      else if (dil > 20) r.bloqueio = 'Volume diluído de ' + fmtN(total) + ' mL não é compatível com bolus: escolha o tempo de infusão.';
+    }
     return r;
   }
 
@@ -190,7 +195,8 @@
     return out.sort(function (a, b) { return (a.sev === 'grave' ? 0 : 1) - (b.sev === 'grave' ? 0 : 1); });
   }
 
-  var api = { perfil: perfil, doseSugerida: doseSugerida, preparoPadrao: preparoPadrao, preparo: preparo,
+  function permiteBolus(id, DB) { var d = DB.DOSES[id] || {}; var v = d.via || 'bolus'; return v === 'bolus' && !(d.vmax > 0) && !(d.vmaxKgPed > 0); }
+  var api = { perfil: perfil, doseSugerida: doseSugerida, preparoPadrao: preparoPadrao, preparo: preparo, permiteBolus: permiteBolus,
     alertasPaciente: alertasPaciente, interacoes: interacoes, interacoesMaleta: interacoesMaleta, grupoDe: grupoDe, stdUp: stdUp, arred: arred };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Paciente = api;

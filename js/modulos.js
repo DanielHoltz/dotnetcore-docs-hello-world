@@ -20,7 +20,7 @@
 
     { id: 'uti', nome: 'UTI e terapia intensiva', icon: '🏥', desc: 'Vasoativos, sedação, eletrólitos e antimicrobianos de reserva',
       atalhos: [['#/infusao', '🫀', 'Infusão contínua', 'Vasoativos, sedação, insulina, heparina'], ['#/sri', '🫁', 'Intubação e ventilação inicial', 'Doses e parâmetros do ventilador'],
-        ['#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar medicamentos juntos'],
+        ['#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar medicamentos juntos'], ['#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'MRSA, ESBL, KPC, Pseudomonas…'],
         ['#/calc/relacao-pf', '🫁', 'Relação PaO₂/FiO₂', 'Oxigenação e SDRA'], ['#/calc/peso-predito', '📐', 'Volume corrente', 'Peso predito (6–8 mL/kg)']],
       protocolos: ['sepse', 'pcr-adulto', 'cad', 'ehh', 'hipona', 'hipok', 'hiperk', 'delirium', 'eap', 'tce', 'neutropenia-febril', 'tev-profilaxia', 'reacao-transfusional', 'alcool', 'pav', 'ics-cvc', 'itu-cateter', 'hiperglicemia-hosp', 'extravasamento', 'hemotransfusao', 'irpa', 'fa', 'agitacao'],
       calcs: ['relacao-pf', 'peso-predito', 'debito-urinario', 'balanco', 'clearance', 'anion-gap', 'osmolalidade', 'sodio-corrigido', 'adrogue', 'eletrolitos', 'vazao-bomba'],
@@ -30,7 +30,7 @@
       escalas: ['rass', 'cpot', 'glasgow', 'braden', 'news2', 'curb65', 'wells-tep', 'sofa', 'cam-icu', 'bps', 'poss', 'fugulin', 'flebite', 'infiltracao', 'padua'] },
 
     { id: 'clinica', nome: 'Clínica e enfermaria', icon: '🩺', desc: 'Preparo, soros, antibióticos e cuidados do dia a dia',
-      atalhos: [['#/maleta/lib/atender', '👤', 'Dose e preparo por paciente', 'Peso, idade, alergias e passo a passo'], ['#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar medicamentos juntos']],
+      atalhos: [['#/maleta/lib/atender', '👤', 'Dose e preparo por paciente', 'Peso, idade, alergias e passo a passo'], ['#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar medicamentos juntos'], ['#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'Infecção + antibiograma → indicações']],
       protocolos: ['seguranca-paciente', 'quedas', 'tev-profilaxia', 'hipoglicemia', 'hipok', 'emerg-has', 'dor', 'delirium', 'dpoc', 'dengue', 'hda', 'alcool', 'celulite', 'reacao-transfusional', 'pneumonia', 'itu', 'fa', 'hiperglicemia-hosp', 'nutricao-enteral', 'extravasamento', 'hemotransfusao', 'ferida-operatoria', 'dai', 'itu-cateter', 'cefaleia', 'agitacao'],
       calcs: ['gotejamento', 'tempo-infusao', 'vazao-bomba', 'dose', 'reconstituicao', 'aprazamento', 'transformacao-soro', 'eletrolitos', 'percentual', 'debito-urinario', 'balanco', 'clearance', 'imc', 'pam', 'ganzoni'],
       drogas: ['dipirona', 'paracetamol-ev', 'tramadol', 'morfina', 'ondansetrona', 'metoclopramida', 'bromoprida', 'omeprazol', 'ceftriaxona', 'cefazolina', 'pipe-tazo', 'ampi-sulbactam',

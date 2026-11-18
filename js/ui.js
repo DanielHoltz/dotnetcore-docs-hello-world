@@ -94,8 +94,9 @@
     var st = document.getElementById('hh-status');
     if (st) {
       var off = !navigator.onLine, pronto = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+      var txt = off ? 'Sem internet · modo offline' : pronto ? 'Online · disponível offline' : 'Online';
       st.className = 'hh-status ' + (off ? 'off' : 'on');
-      st.textContent = off ? 'Sem internet · modo offline' : pronto ? 'Online · disponível offline' : 'Online';
+      if (st.textContent !== txt) st.textContent = txt;   // só muda (e anuncia) quando o estado muda
     }
   }
   setInterval(relogio, 15000);
