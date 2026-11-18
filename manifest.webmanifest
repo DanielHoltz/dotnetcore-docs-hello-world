@@ -1,17 +1,115 @@
 {
   "name": "EnfCalc — Calculadora de Enfermagem",
   "short_name": "EnfCalc",
-  "description": "Gotejamento, diluições, drogas vasoativas, regra de três, eletrólitos e escalas para enfermagem.",
+  "description": "Apoio à enfermagem: cálculos e diluições, bulário com 2.400+ medicamentos, protocolos, escalas, modo PCR guiado, antibióticos e resistência, Processo de Enfermagem e POPs. Funciona offline.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0f766e",
+  "background_color": "#0b1220",
   "theme_color": "#0f766e",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "id": "./",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "categories": [
+    "medical",
+    "health",
+    "education",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Modo PCR",
+      "short_name": "PCR",
+      "url": "./#/pcr",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Atender paciente",
+      "short_name": "Atender",
+      "url": "./#/maleta/lib/atender",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Bulário",
+      "short_name": "Bulário",
+      "url": "./#/drogas",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Agenda do plantão",
+      "short_name": "Agenda",
+      "url": "./#/plantao",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/celular-inicio.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela inicial"
+    },
+    {
+      "src": "screenshots/celular-pcr.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Modo PCR guiado"
+    },
+    {
+      "src": "screenshots/computador-inicio.png",
+      "sizes": "1440x900",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Versão para computador"
+    }
   ]
 }

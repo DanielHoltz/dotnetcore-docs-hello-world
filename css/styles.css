@@ -912,3 +912,27 @@ input.inv { border-color: var(--bad) !important; box-shadow: 0 0 0 3px color-mix
 .scan-base { font-size: .85rem; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); margin: 8px 0; }
 .scan-base.ok { background: var(--ok-bg); color: var(--ok); }
 .scan-base.bad { background: var(--warn-bg); color: var(--warn); }
+
+/* ===== Governança, POPs, Processo de Enfermagem, exames ===== */
+.rev-linha { margin: 10px 0 0; font-size: .78rem; color: var(--muted); }
+.rev-linha b { color: var(--text); }
+.rep-btn { color: var(--muted) !important; }
+.inst-med { margin-top: -4px; }
+.hh-inst { margin: 0 0 2px; font-size: .78rem; font-weight: 700; color: #a5f3fc; letter-spacing: .02em; }
+.pe-area { margin: 14px 2px 6px; font: 700 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pe-focos { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.pe-focos .am-q span { display: flex; flex-direction: column; gap: 2px; }
+.pe-focos .am-q small { color: var(--muted); font-size: .78rem; }
+.pe-focos .am-q input { accent-color: var(--primary); }
+.pe-focos .am-q:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.pe-card { margin-top: 10px; }
+.pe-l { margin: 6px 0; line-height: 1.45; }
+.lab-t { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.lab-r { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.lab-r:last-child { border-bottom: 0; }
+.lab-r span { color: var(--muted); }
+.lab-r b { text-align: right; font-family: var(--mono); font-weight: 600; font-size: .9rem; }
+.sec .lab-r { padding: 8px 0; }
+@media (min-width: 1024px) { .pe-focos { grid-template-columns: 1fr 1fr; } }
+.home-hero.boot .boot-bar { height: 50px; background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.14), rgba(255,255,255,.06)); background-size: 200% 100%; animation: brilho 1.2s linear infinite; }
+@keyframes brilho { to { background-position: -200% 0; } }

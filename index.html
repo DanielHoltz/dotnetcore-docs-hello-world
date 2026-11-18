@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -25,7 +25,8 @@
     <a href="#/sobre" class="icon-btn" aria-label="Sobre">ⓘ</a>
   </header>
 
-  <main id="app" class="container"></main>
+  <div id="sr-rota" class="sr-only" role="status" aria-live="polite"></div>
+  <main id="app" class="container"><section class="home-hero boot" aria-busy="true"><p class="hh-data">EnfCalc</p><h2 class="hh-t">Carregando…</h2><div class="hh-search boot-bar"></div></section></main>
 
   <nav class="tabbar" aria-label="Navegação principal">
     <a href="#/" data-route="#/"><span>🏠</span>Início</a>
@@ -60,6 +61,8 @@
   <script defer src="js/modulos.js"></script>
 <script defer src="js/catalogo.js"></script>
   <script defer src="js/antimicrobianos.js"></script>
+  <script defer src="js/conteudo.js"></script>
+  <script defer src="js/editorial.js"></script>
   <script defer src="js/app.js"></script>
   <script defer src="js/ui.js"></script>
 </body>

@@ -304,7 +304,25 @@
     if (/^-?\d*\.\d+$/.test(s)) return { v: parseFloat(s), erro: '' };
     return { v: NaN, erro: 'invalido' };
   }
+  // VIG — velocidade de infusão de glicose (mg/kg/min) = vazão (mL/h) × concentração (%) ÷ (6 × peso)
+  function vig(mlh, concPct, peso) { if (!(mlh > 0) || !(concPct > 0) || !(peso > 0)) return null; return mlh * concPct / (6 * peso); }
+  // Carboplatina (Calvert): dose (mg) = AUC × (TFG + 25); TFG limitada a 125 mL/min quando "teto" = true
+  function calvert(auc, tfg, teto) { if (!(auc > 0) || !(tfg > 0)) return null; var t = teto ? Math.min(tfg, 125) : tfg; return { dose: auc * (t + 25), tfgUsada: t }; }
+  // Dose por superfície corporal (Mosteller), com teto opcional de SC
+  function dosePorM2(doseM2, peso, altura, tetoSC) {
+    var sc = superficieCorporal(peso, altura); if (sc == null || !(doseM2 > 0)) return null;
+    var usada = tetoSC > 0 ? Math.min(sc, tetoSC) : sc; return { sc: sc, scUsada: usada, dose: doseM2 * usada };
+  }
+  // Calorias da nutrição parenteral: glicose 3,4 kcal/g; aminoácidos 4 kcal/g; lipídios 9 kcal/g (emulsões 20%: ≈ 2 kcal/mL com glicerol)
+  function kcalNP(gGlic, gAA, gLip, peso) {
+    var g = gGlic > 0 ? gGlic : 0, a = gAA > 0 ? gAA : 0, l = gLip > 0 ? gLip : 0;
+    if (!(g + a + l > 0)) return null;
+    var k = { glic: g * 3.4, aa: a * 4, lip: l * 9 }; k.total = k.glic + k.aa + k.lip; k.naoProteica = k.glic + k.lip;
+    if (peso > 0) { k.porKg = k.total / peso; k.protKg = a / peso; }
+    return k;
+  }
   var api = {
+    vig: vig, calvert: calvert, dosePorM2: dosePorM2, kcalNP: kcalNP,
     numInfo: numInfo,
     calcioCorrigido: calcioCorrigido, deficitAguaLivre: deficitAguaLivre, CORTICOIDES: CORTICOIDES, equivCorticoide: equivCorticoide,
     news2: news2, horariosDoDia: horariosDoDia,
