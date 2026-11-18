@@ -74,6 +74,28 @@
   var CAUSAS = ['Hipovolemia', 'Hipóxia', 'H⁺ (acidose)', 'Hipo/hipercalemia', 'Hipotermia',
     'Tensão no tórax (pneumotórax)', 'Tamponamento cardíaco', 'Toxinas', 'Trombose pulmonar', 'Trombose coronária'];
 
+
+  // ---- PCR guiada (algoritmo AHA ACLS/PALS): próxima ação a partir do estado ----
+  // st: { ritmo: null|'chocavel'|'aesp'|'assistolia', rce, choquePendente, nChoques, nAdr, nAmio, ultimaAdr (ms), ciclo (ms), modo }
+  var RITMOS = { chocavel: 'FV / TV sem pulso', aesp: 'AESP', assistolia: 'Assistolia' };
+  function proximaAcao(st, agora) {
+    var ped = st.modo === 'ped';
+    if (st.rce) return { id: 'rce', nivel: 'ok', titulo: 'Retorno da circulação (RCE)', txt: 'Siga os cuidados pós-PCR abaixo. Reavalie pulso a cada 2 min; se perder o pulso, toque em “Perdeu pulso”.' };
+    if (!st.ritmo) return { id: 'analisar', nivel: 'bad', titulo: 'Monitorizar e analisar o ritmo', txt: 'Compressões de alta qualidade e O₂ enquanto instala o monitor/DEA. Pausa máxima de 10 s para ver o ritmo e marque abaixo.' };
+    var dc = (agora - st.ciclo) / 1000;
+    if (dc >= 120) return { id: 'checar', nivel: 'bad', titulo: 'Checar ritmo AGORA', txt: 'Pausa ≤ 10 s. Troque o compressor. Ritmo organizado? Cheque pulso. Marque o ritmo encontrado.' };
+    if (st.ritmo === 'chocavel' && st.choquePendente) return { id: 'choque', nivel: 'bad', titulo: '⚡ CHOQUE AGORA', txt: (ped ? 'Desfibrilação conforme o peso (2 J/kg no 1º, 4 J/kg no 2º, depois ≥ 4 J/kg).' : 'Bifásico: energia recomendada pelo fabricante (120–200 J) ou a máxima; monofásico 360 J.') + ' Carregue com compressões em andamento, afaste todos e retome RCP imediatamente após o choque.' };
+    var segAdr = st.ultimaAdr ? (agora - st.ultimaAdr) / 1000 : null;
+    var adrDevida = segAdr == null || segAdr >= 180;
+    if (st.ritmo !== 'chocavel' && adrDevida) return { id: 'adrenalina', nivel: 'warn', titulo: st.nAdr ? 'Adrenalina (janela 3–5 min)' : 'Adrenalina o quanto antes', txt: 'Ritmo não chocável: adrenalina assim que houver acesso IV/IO, depois a cada 3–5 min. Mantenha RCP.' };
+    if (st.ritmo === 'chocavel') {
+      if (st.nChoques >= 2 && adrDevida) return { id: 'adrenalina', nivel: 'warn', titulo: 'Adrenalina', txt: 'FV/TV após o 2º choque: adrenalina e repetir a cada 3–5 min. Mantenha RCP.' };
+      if (st.nChoques >= 3 && st.nAmio === 0) return { id: 'antiarritmico', nivel: 'warn', titulo: 'Antiarrítmico', txt: (ped ? 'Amiodarona 5 mg/kg em bolus (ou lidocaína 1 mg/kg).' : 'Amiodarona 300 mg em bolus (ou lidocaína 1–1,5 mg/kg).') + ' FV/TV refratária após o 3º choque.' };
+      if (st.nChoques >= 4 && st.nAmio === 1 && !ped) return { id: 'antiarritmico', nivel: 'warn', titulo: 'Antiarrítmico — 2ª dose', txt: 'Amiodarona 150 mg (ou lidocaína 0,5–0,75 mg/kg).' };
+    }
+    return { id: 'rcp', nivel: 'info', titulo: 'RCP de alta qualidade', txt: 'Próxima checagem de ritmo em ' + mmss(120 - dc) + '. Considere via aérea avançada e capnografia; procure e trate causas reversíveis (5H e 5T).' };
+  }
+
   // Sequência rápida de intubação: doses por peso (referências: MSD Manuals, protocolo de via aérea HCFMUSP, WikEM)
   // conc em mg/mL (fentanil em mcg/mL); faixa [min, max] por kg; padrao = dose usual por kg
   var SRI = [
@@ -129,7 +151,7 @@
   }
 
   var api = { pesoEstimado: pesoEstimado, tuboTraqueal: tuboTraqueal, energias: energias, dosesPCR: dosesPCR,
-    mmss: mmss, statusAdrenalina: statusAdrenalina, CAUSAS: CAUSAS, SRI: SRI, sriDoses: sriDoses, hipodermoclise: hipodermoclise, pesoPredito: pesoPredito, ventInicial: ventInicial };
+    mmss: mmss, statusAdrenalina: statusAdrenalina, CAUSAS: CAUSAS, RITMOS: RITMOS, proximaAcao: proximaAcao, SRI: SRI, sriDoses: sriDoses, hipodermoclise: hipodermoclise, pesoPredito: pesoPredito, ventInicial: ventInicial };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Emergencia = api;
 })(this);

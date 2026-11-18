@@ -2519,6 +2519,37 @@
     if (wakeLock) { try { wakeLock.release(); } catch (e) { /* ok */ } wakeLock = null; }
   }
 
+  // Causas reversíveis: o que fazer em cada uma (AHA ACLS/PALS)
+  var CAUSAS_ACAO = ['Volume (cristaloide) e hemoderivados se sangramento; controle da hemorragia.',
+    'O₂ a 100%, via aérea pérvia, confirmar posição do tubo (capnografia) e ventilação adequada.',
+    'Ventilação adequada; bicarbonato apenas em situações específicas (hipercalemia, intoxicação por tricíclicos).',
+    'Hipercalemia: cálcio EV, bicarbonato, insulina + glicose. Hipocalemia: reposição de potássio e magnésio.',
+    'Reaquecimento ativo; RCP prolongada (o paciente não está morto até estar aquecido).',
+    'Murmúrio abolido, desvio de traqueia, turgência jugular: descompressão por agulha e drenagem torácica.',
+    'Turgência jugular, abafamento de bulhas (USG à beira-leito): pericardiocentese.',
+    'Antídoto específico (opioide: naloxona; benzodiazepínico: evitar flumazenil em PCR; bloqueador de canal de cálcio/betabloqueador: cálcio, glucagon). CIATox 0800 722 6001.',
+    'TEP suspeito ou confirmado: considerar trombolítico conforme protocolo; RCP pode ser prolongada após a trombólise.',
+    'IAM: após RCE, ECG de 12 derivações e reperfusão coronariana (hemodinâmica).'];
+  var PAPEIS = [['👑', 'Líder', 'Coordena, decide condutas, verbaliza o plano e o tempo; não executa tarefas manuais.'],
+    ['🫀', 'Compressor(es)', 'Revezam a cada 2 min ou antes se cansados; minimizar pausas.'],
+    ['🫁', 'Via aérea', 'Bolsa-válvula-máscara, cânula, via aérea avançada, capnografia.'],
+    ['⚡', 'Monitor / desfibrilador', 'Pás/eletrodos, análise do ritmo, carga e choque com segurança.'],
+    ['💉', 'Medicação / acesso', 'Acesso IV/IO, preparo e administração, sempre com flush e elevação do membro.'],
+    ['📝', 'Registro / tempo', 'Anota eventos e horários, avisa os ciclos de 2 min e a janela da adrenalina (use este app).']];
+  var QUALIDADE = ['Frequência de 100–120 compressões/min (use o metrônomo).', 'Profundidade de 5–6 cm no adulto (≥ 1/3 do tórax na criança) e retorno total do tórax.',
+    'Pausas menores que 10 s; fração de compressão ideal > 80%.', 'Evitar hiperventilação: 30:2 sem via aérea avançada; com via aérea avançada, 1 ventilação a cada 6 s (criança: a cada 2–3 s).',
+    'Trocar o compressor a cada 2 min.', 'Capnografia: EtCO₂ < 10 mmHg sugere RCP ineficaz; aumento súbito (geralmente ≥ 35–40 mmHg) sugere RCE.', 'Superfície rígida sob o tórax; mãos no centro do tórax (metade inferior do esterno).'];
+  var POS_RCE = ['Via aérea: considerar via aérea avançada; capnografia contínua.', 'Oxigenação: SpO₂ 92–98% (evitar hiperóxia); ventilação para PaCO₂ 35–45 mmHg.',
+    'Hemodinâmica: PAS ≥ 90 mmHg e PAM ≥ 65 mmHg — volume e vasopressor (noradrenalina) se necessário.', 'ECG de 12 derivações: supradesnível de ST ou instabilidade → reperfusão coronariana.',
+    'Controle direcionado de temperatura em pacientes que não obedecem comandos; prevenir febre.', 'Glicemia, eletrólitos, gasometria e lactato; tratar a causa da parada.',
+    'Avaliar neurologicamente (Glasgow, pupilas) e evitar sedação desnecessária para avaliação; EEG se disponível.', 'Registrar o horário do RCE e transferir para UTI.'];
+  var ESPECIAIS = [['Bicarbonato de sódio 8,4%', '1 mEq/kg EV em bolus', 'Hipercalemia, intoxicação por tricíclicos/salicilatos, acidose metabólica grave prévia. Não usar rotineiramente.', 'bicarbonato'],
+    ['Cloreto de cálcio 10% / gluconato de cálcio 10%', 'Cloreto 10%: 5–10 mL · gluconato 10%: 15–30 mL EV', 'Hipercalemia, hipocalcemia, intoxicação por bloqueador de canal de cálcio. Não misturar com bicarbonato na mesma via.', 'gluconato-calcio'],
+    ['Sulfato de magnésio', '1–2 g EV diluído, em bolus na PCR', 'Torsades de pointes (TV polimórfica com QT longo).', 'sulfato-magnesio'],
+    ['Glicose 50%', '25 g (50 mL) EV', 'Hipoglicemia confirmada.', 'glicose-50'],
+    ['Alteplase', 'Conforme protocolo institucional', 'TEP suspeito/confirmado como causa da PCR.', 'alteplase'],
+    ['Naloxona', '0,4–2 mg EV/IO/IM/IN', 'Suspeita de intoxicação por opioide (não atrasar RCP e ventilação).', 'naloxona']];
+
   function viewPCR() {
     setHeader('Modo PCR', true);
     var E = window.Emergencia;
@@ -2527,52 +2558,82 @@
     if (!st || !st.inicio) {
       var pac = loadPaciente();
       $app.innerHTML =
-        '<div class="alert bad">🚨 Use em conjunto com o protocolo de RCP da instituição. O app apoia o registro e os tempos; não substitui o líder da reanimação.</div>' +
+        '<div class="pcr-intro"><b>🚨 Parada cardiorrespiratória</b><ol>' +
+          '<li><b>Segurança</b> da cena e uso de EPI.</li><li><b>Responsividade</b>: chame e toque nos ombros.</li>' +
+          '<li><b>Chame ajuda</b>: equipe, carrinho de emergência e desfibrilador/DEA.</li>' +
+          '<li><b>Respiração e pulso</b> (carotídeo; braquial no lactente) ao mesmo tempo, em até 10 s.</li>' +
+          '<li>Sem pulso ou respiração agônica (gasping): <b>inicie compressões</b> e toque em INICIAR.</li></ol></div>' +
         '<form class="form" id="pcr-f" onsubmit="return false"><div class="field"><span class="lbl">Paciente</span><div class="seg">' +
           '<label class="seg-opt"><input type="radio" name="pcr-m" value="adulto" checked><span>Adulto</span></label>' +
           '<label class="seg-opt"><input type="radio" name="pcr-m" value="ped"><span>Pediátrico</span></label></div></div>' +
-          '<div class="field" id="pcr-pf" hidden><label for="pcr-p">Peso (kg)</label><div class="input-wrap"><input id="pcr-p" type="text" inputmode="decimal" value="' + (pac.peso ? esc(String(pac.peso).replace('.', ',')) : '') + '"><span class="unit">kg</span></div><small>Sem peso? Estime em Emergência pediátrica.</small></div>' +
+          '<div class="field" id="pcr-pf" hidden><label for="pcr-p">Peso (kg)</label><div class="input-wrap"><input id="pcr-p" type="text" inputmode="decimal" value="' + (pac.peso ? esc(String(pac.peso).replace('.', ',')) : '') + '"><span class="unit">kg</span></div><small>Sem peso? <a href="#/emergencia-ped">Estime pela idade em Emergência pediátrica</a>.</small></div>' +
         '</form><button class="btn pcr-start" id="pcr-go" type="button">▶ INICIAR PCR</button>' +
-        '<p class="note">Registra horário de início, ciclos de 2 min, adrenalina (lembrete 3–5 min), choques, amiodarona, via aérea, acesso e RCE, e gera um resumo para o prontuário. Fonte: diretrizes AHA de RCP.</p>';
+        '<div class="sec"><h3>O que o modo PCR faz</h3><p>Mostra a <b>próxima ação</b> do algoritmo conforme o ritmo, cronometra os ciclos de 2 min e a janela da adrenalina, calcula energia e doses (inclusive por peso), lista as causas reversíveis com a conduta, os papéis da equipe e os cuidados pós-RCE, e gera o registro para o prontuário.</p></div>' +
+        '<div class="ref-btns"><a class="btn sm ghost" href="#/protocolo/pcr-adulto">📑 Protocolo PCR adulto</a><a class="btn sm ghost" href="#/protocolo/pcr-ped">🧸 Protocolo PCR pediátrica</a></div>' +
+        '<p class="note">Apoio baseado nas diretrizes da AHA (ACLS/PALS) e da SBC. Use com o protocolo da instituição; não substitui o líder da reanimação.</p>';
       var f = document.getElementById('pcr-f');
       f.onchange = function () { document.getElementById('pcr-pf').hidden = f.querySelector('input[name=pcr-m]:checked').value !== 'ped'; };
       document.getElementById('pcr-go').onclick = function () {
         var modo = f.querySelector('input[name=pcr-m]:checked').value, peso = num(document.getElementById('pcr-p').value);
         if (modo === 'ped' && !(peso > 0)) { toast('Informe o peso da criança.', true); document.getElementById('pcr-p').focus(); return; }
         var agora = Date.now();
-        store.set('pcr', { inicio: agora, ciclo: agora, modo: modo, peso: modo === 'ped' ? peso : null, ultimaAdr: null, nChoques: 0, nAmio: 0, eventos: [{ t: agora, txt: 'Início da PCR / RCP iniciada' }], causas: [] });
+        store.set('pcr', { inicio: agora, ciclo: agora, nCiclos: 1, modo: modo, peso: modo === 'ped' ? peso : null, ritmo: null, ritmos: [], choquePendente: false, rce: false,
+          ultimaAdr: null, nAdr: 0, nChoques: 0, nAmio: 0, eventos: [{ t: agora, txt: 'Início da PCR / RCP iniciada' }], causas: [] });
         beep(660, 0.2);
         viewPCR();
       };
       return;
     }
+    // compatibilidade com registros antigos
+    if (st.nAdr == null) st.nAdr = st.eventos.filter(function (e) { return /^Adrenalina/.test(e.txt); }).length;
+    if (!st.ritmos) st.ritmos = [];
+    if (!st.nCiclos) st.nCiclos = 1;
 
     var ped = st.modo === 'ped', doses = E.dosesPCR(ped, st.peso), en = ped ? E.energias(st.peso) : null;
     function salvar() { store.set('pcr', st); }
-    function registrar(txt) { st.eventos.push({ t: Date.now(), txt: txt }); salvar(); renderLog(); }
+    function registrar(txt) { st.eventos.push({ t: Date.now(), txt: txt }); salvar(); renderLog(); tick(); }
+    function energiaTxt() { var n = st.nChoques + 1; return ped ? fmt(n === 1 ? en.desf1 : en.desf2, 0) + ' J (' + (n === 1 ? '2' : '4') + ' J/kg)' : 'Bifásico 120–200 J (fabricante) · monofásico 360 J'; }
+    var lidoTxt = ped ? fmt(st.peso * 1, 1) + ' mg (1 mg/kg)' : '1–1,5 mg/kg (2ª: 0,5–0,75 mg/kg)';
+    var adrPrep = ped ? doses.adrenalina.txt : '1 mg = 1 mL da ampola 1 mg/mL, sem diluir, EV/IO em bolus + flush de 20 mL de SF e elevar o membro';
+    var amioPrep = ped ? doses.amiodarona[0].txt : '300 mg = 2 ampolas de 150 mg/3 mL (6 mL) em bolus; 2ª dose 150 mg (1 ampola)';
+
+    var acoes = st.rce
+      ? '<div class="pcr-card pcr-pos"><h3>❤️ Cuidados pós-PCR (pós-RCE)</h3><ul class="checks">' + POS_RCE.map(function (t, i) { return '<li><label><input type="checkbox" data-pos="' + i + '"' + ((st.pos || []).indexOf(i) >= 0 ? ' checked' : '') + '> ' + esc(t) + '</label></li>'; }).join('') + '</ul>' +
+        '<button class="btn danger" id="pcr-perdeu" type="button">💔 Perdeu pulso → retomar RCP</button></div>'
+      : '<div class="pcr-ritmos" role="group" aria-label="Ritmo encontrado"><span class="pcr-lbl">Ritmo na checagem:</span>' +
+          '<button type="button" class="rit rit-ch" data-rit="chocavel">⚡ FV / TV<small>sem pulso · chocável</small></button>' +
+          '<button type="button" class="rit" data-rit="aesp">〰️ AESP<small>não chocável</small></button>' +
+          '<button type="button" class="rit" data-rit="assistolia">➖ Assistolia<small>não chocável</small></button>' +
+          '<button type="button" class="rit rit-ok" id="pcr-rce">❤️ Pulso<small>RCE</small></button></div>' +
+        '<div class="pcr-card" id="pcr-ciclo"><div class="pcr-row"><span>Ciclo <b class="tab-num" id="pcr-ncic">' + st.nCiclos + '</b> de RCP (2 min)</span><b id="pcr-cic">02:00</b></div><div class="progress"><div class="bar" id="pcr-bar"></div></div>' +
+          '<button class="btn ghost" id="pcr-ritmo" type="button">🔄 Novo ciclo sem mudar o ritmo</button></div>' +
+        '<div class="pcr-card" id="pcr-adr"><div class="pcr-row"><span>💉 Adrenalina <small class="pcr-n" id="pcr-nadr"></small></span><b id="pcr-adr-st"></b></div><small>' + esc(adrPrep) + ' · a cada 3–5 min</small>' +
+          '<button class="btn" id="pcr-adr-b" type="button">Registrar adrenalina</button></div>' +
+        '<div class="pcr-grid">' +
+          '<button class="btn warnb" id="pcr-choque" type="button">⚡ Choque<small id="pcr-choque-s"></small></button>' +
+          '<button class="btn ghost" id="pcr-amio" type="button">💊 Amiodarona<small id="pcr-amio-s"></small></button>' +
+          '<button class="btn ghost" id="pcr-lido" type="button">💊 Lidocaína<small>' + esc(lidoTxt) + '</small></button>' +
+          '<button class="btn ghost" data-ev="Via aérea avançada instalada (confirmar com capnografia)" type="button">🫁 Via aérea avançada</button>' +
+          '<button class="btn ghost" data-ev="Acesso venoso/IO obtido" type="button">🩸 Acesso IV/IO</button>' +
+          '<button class="btn ghost" id="pcr-etco2" type="button">📈 EtCO₂<small>registrar valor</small></button>' +
+          '<button class="btn ghost" id="pcr-outro" type="button">✏️ Outro evento</button>' +
+          '<button class="btn ghost" id="pcr-metro" type="button">🎵 Metrônomo<small>110/min</small></button>' +
+        '</div>';
 
     $app.innerHTML =
-      '<div class="pcr-top"><div><small>Tempo total</small><b id="pcr-total">00:00</b></div><div><small>' + (ped ? 'Pediátrico · ' + fmt(st.peso, 1) + ' kg' : 'Adulto') + '</small><b id="pcr-clock"></b></div></div>' +
+      '<div class="pcr-top"><div><small>Tempo total</small><b id="pcr-total">00:00</b></div><div class="pcr-mid"><small>Ritmo</small><b id="pcr-rit-atual">' + esc(st.rce ? 'RCE' : st.ritmo ? E.RITMOS[st.ritmo] : '—') + '</b></div><div><small>' + (ped ? 'Pediátrico · ' + fmt(st.peso, 1) + ' kg' : 'Adulto') + '</small><b id="pcr-clock"></b></div></div>' +
       (st.fim ? '' :
-      '<div class="pcr-card" id="pcr-ciclo"><div class="pcr-row"><span>Ciclo de RCP (2 min)</span><b id="pcr-cic">02:00</b></div><div class="progress"><div class="bar" id="pcr-bar"></div></div>' +
-        '<button class="btn" id="pcr-ritmo" type="button">🔎 Ritmo checado / trocar compressor → novo ciclo</button></div>' +
-      '<div class="pcr-card" id="pcr-adr"><div class="pcr-row"><span>💉 Adrenalina</span><b id="pcr-adr-st"></b></div><small>' + esc(doses.adrenalina.txt) + ' · a cada 3–5 min</small>' +
-        '<button class="btn" id="pcr-adr-b" type="button">Registrar adrenalina</button></div>' +
-      '<div class="pcr-grid">' +
-        '<button class="btn warnb" id="pcr-choque" type="button">⚡ Choque<small id="pcr-choque-s"></small></button>' +
-        '<button class="btn ghost" id="pcr-amio" type="button">💊 Amiodarona<small id="pcr-amio-s"></small></button>' +
-        '<button class="btn ghost" data-ev="Via aérea avançada instalada" type="button">🫁 Via aérea avançada</button>' +
-        '<button class="btn ghost" data-ev="Acesso venoso/IO obtido" type="button">🩸 Acesso IV/IO</button>' +
-        '<button class="btn ghost" id="pcr-outro" type="button">✏️ Outro evento</button>' +
-        '<button class="btn okb" id="pcr-rce" type="button">❤️ RCE</button>' +
-      '</div>' +
-      '<div class="pcr-card"><div class="pcr-row"><span>🎵 Metrônomo 110/min</span><button class="btn sm ghost" id="pcr-metro" type="button">Ligar</button></div>' +
-        '<small>' + (ped ? 'Compressão ≥ 1/3 do diâmetro do tórax (~4 cm lactente, ~5 cm criança). 15:2 com 2 socorristas; com via aérea avançada, 1 ventilação a cada 2–3 s.'
-                        : 'Compressão 5–6 cm, 100–120/min, retorno total do tórax. 30:2; com via aérea avançada, 1 ventilação a cada 6 s.') + '</small></div>' +
-      '<details class="pcr-card"><summary>🧩 Causas reversíveis (5H e 5T)</summary><div class="chips causas">' + E.CAUSAS.map(function (c, i) {
-        return '<label class="chip"><input type="checkbox" data-c="' + i + '"' + (st.causas.indexOf(i) >= 0 ? ' checked' : '') + '><span>' + esc(c) + '</span></label>';
-      }).join('') + '</div></details>' +
-      '<button class="btn danger" id="pcr-fim" type="button">⏹ Encerrar PCR</button>') +
+        '<div class="pcr-next" id="pcr-next"><small>PRÓXIMA AÇÃO</small><b id="pcr-next-t"></b><span id="pcr-next-x"></span></div>' +
+        '<div class="pcr-cont"><span><b id="c-cic">' + st.nCiclos + '</b>ciclos</span><span><b id="c-adr">' + st.nAdr + '</b>adrenalinas</span><span><b id="c-ch">' + st.nChoques + '</b>choques</span><span><b id="c-am">' + st.nAmio + '</b>antiarrítm.</span></div>' +
+        acoes +
+        '<details class="pcr-card"><summary>✅ Qualidade da RCP</summary><ul class="pcr-list">' + QUALIDADE.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ul></details>' +
+        '<details class="pcr-card"><summary>🧩 Causas reversíveis (5H e 5T) <small id="pcr-ncausas"></small></summary><div class="causas-l">' + E.CAUSAS.map(function (c, i) {
+          return '<label class="causa"><input type="checkbox" data-c="' + i + '"' + (st.causas.indexOf(i) >= 0 ? ' checked' : '') + '><span><b>' + esc(c) + '</b><small>' + esc(CAUSAS_ACAO[i]) + '</small></span></label>';
+        }).join('') + '</div></details>' +
+        '<details class="pcr-card"><summary>💊 Drogas em situações especiais</summary>' + (ped ? '<p class="note">Pediatria: doses por peso em <a href="#/emergencia-ped">Emergência pediátrica</a>.</p>' : '') +
+          '<div class="esp-l">' + ESPECIAIS.map(function (x) { return '<div class="esp"><b>' + esc(x[0]) + '</b>' + (ped ? '' : '<span class="esp-d">' + esc(x[1]) + '</span>') + '<small>' + esc(x[2]) + '</small><button type="button" class="linklike" data-esp="' + esc(x[0]) + (ped ? '' : ' — ' + esc(x[1])) + '">registrar</button></div>'; }).join('') + '</div></details>' +
+        '<details class="pcr-card"><summary>👥 Papéis da equipe</summary><div class="papeis">' + PAPEIS.map(function (p) { return '<div><span>' + p[0] + '</span><b>' + esc(p[1]) + '</b><small>' + esc(p[2]) + '</small></div>'; }).join('') + '</div></details>' +
+        '<button class="btn danger" id="pcr-fim" type="button">⏹ Encerrar PCR</button>') +
       '<h2>Registro</h2><ol class="pcr-log" id="pcr-log"></ol>' +
       (st.fim ? '<button class="btn" id="pcr-share" type="button">📤 Copiar/compartilhar resumo</button><button class="btn ghost" id="pcr-nova" type="button">Nova PCR (apagar registro)</button>' : '');
 
@@ -2583,28 +2644,37 @@
         return '<li><b>' + rel(e.t) + '</b> <small>' + new Date(e.t).toLocaleTimeString('pt-BR') + '</small> ' + esc(e.txt) + '</li>';
       }).join('');
       if ($('pcr-choque-s')) {
-        var n = st.nChoques + 1;
-        $('pcr-choque-s').textContent = ped ? (n === 1 ? fmt(en.desf1, 0) : fmt(en.desf2, 0)) + ' J (' + (n === 1 ? '2' : '4') + ' J/kg)' : 'bifásico conforme aparelho';
+        $('pcr-choque-s').textContent = energiaTxt();
         var a = ped ? doses.amiodarona[0] : doses.amiodarona[Math.min(st.nAmio, 1)];
         $('pcr-amio-s').textContent = (ped && st.nAmio >= 3) || (!ped && st.nAmio >= 2) ? 'doses máximas registradas' : a.txt;
       }
+      if ($('c-adr')) { $('c-cic').textContent = st.nCiclos; $('c-adr').textContent = st.nAdr; $('c-ch').textContent = st.nChoques; $('c-am').textContent = st.nAmio; }
+      if ($('pcr-ncausas')) $('pcr-ncausas').textContent = st.causas.length ? '· ' + st.causas.length + ' marcada' + (st.causas.length > 1 ? 's' : '') : '';
+      if ($('pcr-rit-atual')) $('pcr-rit-atual').textContent = st.rce ? 'RCE' : st.ritmo ? E.RITMOS[st.ritmo] : '—';
+      $app.querySelectorAll('[data-rit]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-rit') === st.ritmo); });
     }
+    var ultimaAcao = null;
     function tick() {
       var agora = Date.now();
       $('pcr-total').textContent = E.mmss(((st.fim || agora) - st.inicio) / 1000);
       $('pcr-clock').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       if (st.fim) return;
+      var pa = E.proximaAcao(st, agora);
+      $('pcr-next').className = 'pcr-next n-' + pa.nivel;
+      $('pcr-next-t').textContent = pa.titulo; $('pcr-next-x').textContent = pa.txt;
+      if (ultimaAcao && pa.id !== ultimaAcao && (pa.nivel === 'bad' || pa.nivel === 'warn')) { beep(pa.nivel === 'bad' ? 990 : 740, 0.25); try { navigator.vibrate && navigator.vibrate(pa.nivel === 'bad' ? [250, 120, 250] : 200); } catch (e) { /* ok */ } }
+      ultimaAcao = pa.id;
+      if (st.rce) return;
       var dc = (agora - st.ciclo) / 1000, rest = 120 - dc;
       $('pcr-cic').textContent = rest > 0 ? E.mmss(rest) : '+' + E.mmss(-rest);
       $('pcr-bar').style.width = Math.min(100, dc / 120 * 100) + '%';
-      var alerta = rest <= 0;
-      $('pcr-ciclo').classList.toggle('alarm', alerta);
-      if (alerta && !st.avisouCiclo) { st.avisouCiclo = true; salvar(); beep(990, 0.4); try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) { /* ok */ } }
+      $('pcr-ciclo').classList.toggle('alarm', rest <= 0);
       var sa = E.statusAdrenalina(st.ultimaAdr ? (agora - st.ultimaAdr) / 1000 : null);
       $('pcr-adr-st').textContent = sa.txt;
       $('pcr-adr').className = 'pcr-card adr-' + sa.fase;
-      if (sa.fase === 'janela' && !st.avisouAdr) { st.avisouAdr = true; salvar(); beep(740, 0.3); }
+      $('pcr-nadr').textContent = st.nAdr ? '· ' + st.nAdr + ' dose' + (st.nAdr > 1 ? 's' : '') : '';
     }
+    function novoCiclo() { st.ciclo = Date.now(); st.nCiclos++; }
 
     renderLog(); tick();
     pararPCRTimers();
@@ -2612,42 +2682,60 @@
     try { if (navigator.wakeLock && !st.fim) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {}); } catch (e) { /* ok */ }
 
     if (!st.fim) {
-      $('pcr-ritmo').onclick = function () { st.ciclo = Date.now(); st.avisouCiclo = false; registrar('Checagem de ritmo / troca de compressor — novo ciclo'); };
-      $('pcr-adr-b').onclick = function () { st.ultimaAdr = Date.now(); st.avisouAdr = false; registrar('Adrenalina ' + doses.adrenalina.txt.split(' EV')[0].split(' = ')[0]); };
-      $('pcr-choque').onclick = function () {
-        st.nChoques++;
-        registrar('Choque nº ' + st.nChoques + (ped ? ' — ' + fmt(st.nChoques === 1 ? en.desf1 : en.desf2, 0) + ' J' : ''));
-      };
-      $('pcr-amio').onclick = function () {
-        var a = ped ? doses.amiodarona[0] : doses.amiodarona[Math.min(st.nAmio, 1)];
-        st.nAmio++; registrar('Amiodarona (dose ' + st.nAmio + ') — ' + fmt(a.mg, 3) + ' mg');
-      };
-      $app.querySelectorAll('[data-ev]').forEach(function (b) { b.onclick = function () { registrar(b.getAttribute('data-ev')); }; });
-      $('pcr-outro').onclick = function () { ask({ titulo: 'Outro evento', input: true, ph: 'Ex.: ritmo FV, intubação, bicarbonato 50 mEq', ok: 'Registrar' }).then(function (t) { if (t && t.trim()) registrar(t.trim().slice(0, 200)); }); };
-      $('pcr-rce').onclick = function () { registrar('RCE — retorno da circulação espontânea'); };
       $app.querySelectorAll('[data-c]').forEach(function (c) {
         c.onchange = function () {
           var i = +c.getAttribute('data-c');
           st.causas = st.causas.filter(function (x) { return x !== i; });
-          if (c.checked) { st.causas.push(i); registrar('Causa considerada/tratada: ' + E.CAUSAS[i]); } else salvar();
+          if (c.checked) { st.causas.push(i); registrar('Causa considerada/tratada: ' + E.CAUSAS[i]); } else { salvar(); renderLog(); }
         };
       });
-      $('pcr-metro').onclick = function () {
-        if (metroTimer) { clearInterval(metroTimer); metroTimer = null; this.textContent = 'Ligar'; return; }
-        beep(1200, 0.04); metroTimer = setInterval(function () { beep(1200, 0.04); }, 60000 / 110); this.textContent = 'Desligar';
-      };
+      $app.querySelectorAll('[data-esp]').forEach(function (b) { b.onclick = function () { registrar(b.getAttribute('data-esp')); toast('Registrado'); }; });
       $('pcr-fim').onclick = function () {
-        ask({ titulo: 'Encerrar PCR', msg: 'Desfecho (opcional):', input: true, ph: 'Ex.: RCE, óbito constatado, transferido', ok: 'Encerrar', perigo: true }).then(function (r) {
+        ask({ titulo: 'Encerrar PCR', msg: 'Desfecho (opcional):', input: true, ph: 'Ex.: RCE sustentado, óbito constatado, transferido', ok: 'Encerrar', perigo: true }).then(function (r) {
           if (r === null) return;
           st.eventos.push({ t: Date.now(), txt: 'Encerramento' + (r.trim() ? ': ' + r.trim().slice(0, 200) : '') });
           st.fim = Date.now(); salvar(); pararPCRTimers(); viewPCR();
         });
       };
+      if (st.rce) {
+        $app.querySelectorAll('[data-pos]').forEach(function (c) { c.onchange = function () { var i = +c.getAttribute('data-pos'); st.pos = (st.pos || []).filter(function (x) { return x !== i; }); if (c.checked) st.pos.push(i); salvar(); }; });
+        $('pcr-perdeu').onclick = function () { st.rce = false; st.ritmo = null; st.ciclo = Date.now(); st.nCiclos++; registrar('Perda de pulso — RCP retomada'); viewPCR(); };
+        return;
+      }
+      $app.querySelectorAll('[data-rit]').forEach(function (b) {
+        b.onclick = function () {
+          var r = b.getAttribute('data-rit'), primeira = !st.ritmo && st.nCiclos === 1 && !st.ritmos.length;
+          st.ritmo = r; st.ritmos.push(r); st.choquePendente = r === 'chocavel';
+          if (!primeira) novoCiclo(); else st.ciclo = Date.now();
+          registrar('Ritmo: ' + E.RITMOS[r] + (r === 'chocavel' ? ' — indicado choque' : ' — não chocável'));
+        };
+      });
+      $('pcr-rce').onclick = function () { st.rce = true; st.choquePendente = false; registrar('RCE — retorno da circulação espontânea'); viewPCR(); };
+      $('pcr-ritmo').onclick = function () { novoCiclo(); registrar('Checagem de ritmo / troca de compressor — novo ciclo'); };
+      $('pcr-adr-b').onclick = function () { st.ultimaAdr = Date.now(); st.nAdr++; registrar('Adrenalina nº ' + st.nAdr + ' — ' + fmt(doses.adrenalina.mg, 3) + ' mg'); };
+      $('pcr-choque').onclick = function () {
+        var e = energiaTxt(); st.nChoques++; st.choquePendente = false; st.ciclo = Date.now();
+        registrar('Choque nº ' + st.nChoques + (ped ? ' — ' + e : '') + ' · RCP retomada');
+      };
+      $('pcr-amio').onclick = function () {
+        var a = ped ? doses.amiodarona[0] : doses.amiodarona[Math.min(st.nAmio, 1)];
+        st.nAmio++; registrar('Amiodarona (dose ' + st.nAmio + ') — ' + fmt(a.mg, 3) + ' mg');
+      };
+      $('pcr-lido').onclick = function () { st.nAmio++; registrar('Lidocaína — ' + lidoTxt); };
+      $app.querySelectorAll('[data-ev]').forEach(function (b) { b.onclick = function () { registrar(b.getAttribute('data-ev')); }; });
+      $('pcr-etco2').onclick = function () { ask({ titulo: 'EtCO₂', msg: 'Valor medido na capnografia (mmHg):', input: true, ph: 'ex.: 18', ok: 'Registrar' }).then(function (t) { if (t && num(t) >= 0) registrar('EtCO₂ ' + num(t) + ' mmHg' + (num(t) < 10 ? ' — baixo: melhorar qualidade da RCP' : num(t) >= 35 ? ' — elevado: checar RCE' : '')); }); };
+      $('pcr-outro').onclick = function () { ask({ titulo: 'Outro evento', input: true, ph: 'Ex.: intubação, bicarbonato 50 mEq', ok: 'Registrar' }).then(function (t) { if (t && t.trim()) registrar(t.trim().slice(0, 200)); }); };
+      $('pcr-metro').onclick = function () {
+        if (metroTimer) { clearInterval(metroTimer); metroTimer = null; this.classList.remove('on'); return; }
+        beep(1200, 0.04); metroTimer = setInterval(function () { beep(1200, 0.04); }, 60000 / 110); this.classList.add('on');
+      };
     } else {
       $('pcr-share').onclick = function () {
         var txt = 'EnfCalc — registro de PCR (' + new Date(st.inicio).toLocaleDateString('pt-BR') + ')\n' +
-          'Paciente: ' + (ped ? 'pediátrico, ' + fmt(st.peso, 1) + ' kg' : 'adulto') + '\nDuração: ' + E.mmss((st.fim - st.inicio) / 1000) +
-          ' · Adrenalinas: ' + st.eventos.filter(function (e) { return /^Adrenalina/.test(e.txt); }).length + ' · Choques: ' + st.nChoques + '\n\n' +
+          'Paciente: ' + (ped ? 'pediátrico, ' + fmt(st.peso, 1) + ' kg' : 'adulto') + '\nInício: ' + new Date(st.inicio).toLocaleTimeString('pt-BR') + ' · Duração: ' + E.mmss((st.fim - st.inicio) / 1000) +
+          '\nRitmos: ' + (st.ritmos.length ? st.ritmos.map(function (r) { return E.RITMOS[r]; }).join(' → ') : 'não registrados') +
+          '\nCiclos: ' + st.nCiclos + ' · Adrenalinas: ' + st.nAdr + ' · Choques: ' + st.nChoques + ' · Antiarrítmico: ' + st.nAmio +
+          (st.causas.length ? '\nCausas consideradas: ' + st.causas.map(function (i) { return E.CAUSAS[i]; }).join(', ') : '') + '\n\n' +
           st.eventos.map(function (e) { return new Date(e.t).toLocaleTimeString('pt-BR') + ' (' + rel(e.t) + ') — ' + e.txt; }).join('\n') +
           '\n\nRegistro de apoio gerado pelo EnfCalc; transcrever para o prontuário.';
         compartilharTexto(txt, 'Registro de PCR');
