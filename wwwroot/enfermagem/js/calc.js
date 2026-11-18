@@ -275,11 +275,6 @@
   }
   function hhmmMin(t) { var h = Math.floor(t / 60), mi = t % 60; return (h < 10 ? '0' : '') + h + ':' + (mi < 10 ? '0' : '') + mi; }
 
-  // Superfície corporal (Mosteller): √(peso kg × altura cm / 3600)
-  function superficieCorporal(peso, altura) {
-    if (!(peso > 0) || !(altura > 0)) return null;
-    return Math.sqrt(peso * altura / 3600);
-  }
   // Cálcio total corrigido pela albumina: Ca + 0,8 × (4 − albumina g/dL)
   function calcioCorrigido(ca, alb) {
     if (!(ca > 0) || !(alb > 0)) return null;
@@ -297,7 +292,7 @@
     return dose / CORTICOIDES[de] * CORTICOIDES[para];
   }
   var api = {
-    superficieCorporal: superficieCorporal, calcioCorrigido: calcioCorrigido, deficitAguaLivre: deficitAguaLivre, CORTICOIDES: CORTICOIDES, equivCorticoide: equivCorticoide,
+    calcioCorrigido: calcioCorrigido, deficitAguaLivre: deficitAguaLivre, CORTICOIDES: CORTICOIDES, equivCorticoide: equivCorticoide,
     news2: news2, horariosDoDia: horariosDoDia,
     UNITS: UNITS, DOSE_UNITS: DOSE_UNITS,
     convert: convert, sameClass: sameClass,
