@@ -139,3 +139,23 @@ test('Adrogué-Madias, sódio corrigido e ânion gap', () => {
   assert.equal(C.anionGap(140, 100, 14).ag, 26);
   near(C.anionGap(140, 100, 14, 2).corrigido, 31);
 });
+
+test('NEWS2: pontuação por parâmetro e níveis de risco', () => {
+  const C = require('../../wwwroot/enfermagem/js/calc.js');
+  const n = C.news2({ fr: 24, spo2: 93, o2: true, pas: 95, fc: 115, consc: 'A', temp: 38.5 });
+  assert.strictEqual(n.score, 11); assert.strictEqual(n.nivel, 'alto');
+  assert.strictEqual(C.news2({ fr: 16, spo2: 98, o2: false, pas: 120, fc: 75, consc: 'A', temp: 36.8 }).score, 0);
+  const um3 = C.news2({ fr: 16, spo2: 98, o2: false, pas: 120, fc: 75, consc: 'CVPU', temp: 36.8 });
+  assert.strictEqual(um3.score, 3); assert.strictEqual(um3.nivel, 'baixo-medio');
+  assert.strictEqual(C.news2({ fr: 22, spo2: 95, o2: false, pas: 105, fc: 95, consc: 'A', temp: 38.2 }).nivel, 'medio');
+  assert.strictEqual(C.news2({ fr: 16 }), null);
+});
+
+test('horários do dia para a agenda do plantão', () => {
+  const C = require('../../wwwroot/enfermagem/js/calc.js');
+  assert.deepStrictEqual(C.horariosDoDia('08:00', 6), ['02:00', '08:00', '14:00', '20:00']);
+  assert.deepStrictEqual(C.horariosDoDia('22:00', 8), ['06:00', '14:00', '22:00']);
+  assert.deepStrictEqual(C.horariosDoDia('10:30', 0), ['10:30']);
+  assert.deepStrictEqual(C.horariosDoDia('09:00', 24), ['09:00']);
+  assert.deepStrictEqual(C.horariosDoDia('xx', 6), []);
+});

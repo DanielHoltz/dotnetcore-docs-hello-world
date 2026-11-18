@@ -772,6 +772,9 @@
     PR.PROTOCOLOS.forEach(function (p) { e.push({ key: 'prot:' + p.id, href: '#/protocolo/' + p.id, icon: '📑', title: p.nome, desc: 'Protocolo · ' + p.resumo, search: p.nome + ' ' + p.resumo + ' protocolo conduta' }); });
     e.push({ key: 'view:sri', href: '#/sri', icon: '🫁', title: 'Intubação — sequência rápida', desc: 'Doses por peso em mg e mL', search: 'intubacao sri iot etomidato cetamina rocuronio succinilcolina via aerea' });
     e.push({ key: 'view:hipo', href: '#/hipodermoclise', icon: '💧', title: 'Hipodermóclise', desc: 'Via subcutânea: hidratação e medicamentos', search: 'hipodermoclise subcutanea sc paliativo domiciliar' });
+    e.push({ key: 'view:scanner', href: '#/scanner', icon: '📷', title: 'Ler código de barras da caixa', desc: 'Identifica o medicamento pelo EAN', search: 'codigo de barras ean caixa camera scanner leitor' });
+    e.push({ key: 'view:plantao', href: '#/plantao', icon: '🗓️', title: 'Agenda de medicações do plantão', desc: 'Horários por leito, checagem e lembretes', search: 'agenda aprazamento horarios checagem plantao lembrete' });
+    e.push({ key: 'view:sbar', href: '#/sbar', icon: '📝', title: 'Passagem de plantão (SBAR)', desc: 'Com NEWS2 automático', search: 'passagem plantao sbar news2 handover' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
     BX.EXTRAS.forEach(function (x) { var mk = CT.mercado(x.id); e.push({ id: x.id, marcas: mk ? mk.marcas : [], nomes: mk ? mk.nomes : [], key: 'droga:' + x.id, href: '#/droga/' + x.id, icon: '📄', title: x.nome, desc: x.classe + ' · ficha resumida', search: x.nome + ' ' + x.classe + ' ' + x.ind + ' bula ' + marcasDe(x.id) }); });
@@ -832,6 +835,13 @@
       '<h2 class="hub-h">🧭 Ferramentas gerais</h2><div class="hub">' + SECOES.map(function (s) {
         return '<a class="hub-tile ' + (s.cls || '') + '" href="' + s.href + '"><span class="hub-ic">' + s.icon + '</span><b>' + esc(s.nome) + '</b><small>' + esc(s.desc) + '</small></a>';
       }).join('') + '</div>' +
+      (function () {
+        var r = resumoPlantao();
+        return '<h2 class="hub-h">🩺 Plantão</h2><div class="hub plantao-hub">' +
+          '<a class="hub-tile" href="#/scanner"><span class="hub-ic">📷</span><b>Ler caixa</b><small>Código de barras → medicamento</small></a>' +
+          '<a class="hub-tile" href="#/plantao"><span class="hub-ic">🗓️</span><b>Agenda</b><small>' + (r.total ? (r.atrasado ? '⏰ ' + r.atrasado + ' atrasada' + (r.atrasado > 1 ? 's' : '') + ' · ' : '') + r.feito + '/' + r.total + ' feitas' : 'Horários e checagem') + '</small></a>' +
+          '<a class="hub-tile" href="#/sbar"><span class="hub-ic">📝</span><b>Passagem</b><small>SBAR + NEWS2</small></a></div>';
+      })() +
       homeRecentes(entries) +
       (favEntries.length ? '<h2>★ Favoritos</h2><div class="list">' + favEntries.map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>' : '') +
       homeMaletas() +
@@ -839,6 +849,7 @@
       '</div>';
 
     var q = document.getElementById('q'), res = document.getElementById('search-res'), main = document.getElementById('home-main');
+    addVoz(q);
     q.addEventListener('input', function () {
       var t = norm(q.value.trim());
       if (!t) { res.innerHTML = ''; main.hidden = false; return; }
@@ -927,6 +938,7 @@
       '<div class="az" id="daz"></div><div id="dl"></div>' +
       '<p class="disclaimer">' + (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR') + ' medicamentos: ' + D.DRUGS.length + ' com preparo e dose, ' + BX.EXTRAS.length + ' em ficha resumida e ' + CT.total.toLocaleString('pt-BR') + ' no catálogo oficial (CMED e registros da Anvisa) · resumo de referência, não substitui a bula do fabricante. <a href="#/revisao">Fontes e revisão</a> · <a href="#/conferencia">Conferência das fichas</a></p>';
     var dl = document.getElementById('dl'), dq = document.getElementById('dq');
+    addVoz(dq);
     function render() {
       var t = norm(dq.value.trim());
       document.querySelectorAll('#dcat .chipnav-b').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === filtro); });
@@ -2801,6 +2813,299 @@
       })();
   }
 
+  // =====================================================================
+  // ---- Plantão: leitor de código de barras, agenda de medicações e SBAR
+  // =====================================================================
+  var pararCamera = null;
+  window.addEventListener('hashchange', function () { if (pararCamera) { pararCamera(); pararCamera = null; } });
+
+  function carregarEAN(cb) {
+    if (window.EAN_DB && window.EAN_DB.mapa) return cb(window.EAN_DB);
+    function prep() {
+      var db = window.EAN_DB; db.mapa = {};
+      db.E.split(',').forEach(function (x) { var k = x.indexOf(':'); db.mapa[x.slice(0, k)] = +x.slice(k + 1); });
+      cb(db);
+    }
+    if (window.EAN_DB) return prep();
+    var sc = document.createElement('script'); sc.src = 'js/ean.js';
+    sc.onload = prep; sc.onerror = function () { cb(null); };
+    document.head.appendChild(sc);
+  }
+  function nomeQualquer(id) {
+    var n = nomeMed(id);
+    if (n !== id) return n;
+    var ca = CT.CAT.filter(function (a) { return a[0] === id; })[0];
+    return ca ? ca[1] : id;
+  }
+  function eanResultadoHtml(db, codigo) {
+    var i = db.mapa[codigo];
+    if (i == null) return '<div class="alert warn">Código <b>' + esc(codigo) + '</b> não encontrado na lista oficial de preços (pode ser produto hospitalar sem preço CMED, manipulado, importado ou embalagem antiga). Busque pelo nome no Bulário.</div>';
+    var p = db.P[i], id = db.IDS[p[0]], marca = db.BR[p[1]], tipo = p[4];
+    var hist = store.get('scanHist', []).filter(function (h) { return h.c !== codigo; });
+    hist.unshift({ c: codigo, m: marca, id: id }); store.set('scanHist', hist.slice(0, 10));
+    return '<div class="scan-res"><div class="alias-box"><b>' + esc(marca) + '</b> <span class="tipo tipo-' + tipo + '">' + (tipo === 'R' ? '⭐ ' : '') + esc(TIPO_NOME[tipo] || 'Outro') + '</span>' +
+      '<br><small>Princípio ativo: <b>' + esc(nomeQualquer(id)) + '</b></small></div>' +
+      '<div class="sec"><p><b>Apresentação:</b> ' + esc(db.AP[p[2]] || '—') + '</p><p><b>Laboratório:</b> ' + esc(db.LABS[p[3]]) + '</p><p class="note">Código ' + esc(codigo) + ' · Fonte: lista CMED/Anvisa</p></div>' +
+      '<a class="btn" href="' + esc(hrefAlias(id, { n: marca })) + '">📖 Abrir ficha de ' + esc(marca) + '</a>' +
+      '<p class="note">Confira sempre o rótulo: nome, concentração, lote e validade.</p></div>';
+  }
+  function viewScanner() {
+    setHeader('Ler código de barras', true);
+    var hist = store.get('scanHist', []);
+    $app.innerHTML = '<p class="lead">Aponte a câmera para o código de barras da caixa ou digite os números que aparecem abaixo dele.</p>' +
+      '<div class="scan-area" id="scan-area" hidden><video id="scan-video" playsinline muted></video><div class="scan-mira"></div></div>' +
+      '<div class="ref-btns"><button class="btn" id="scan-cam" type="button">📷 Abrir câmera</button></div>' +
+      '<form class="form" id="scan-form" onsubmit="return false"><div class="field"><label for="scan-cod">Número do código de barras (EAN)</label>' +
+      '<div class="row"><input id="scan-cod" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="ex.: 7891058001155"><button class="btn sm" id="scan-ok" type="submit">Buscar</button></div></div></form>' +
+      '<div id="scan-out" aria-live="polite"></div>' +
+      (hist.length ? '<h2>🕘 Lidos recentemente</h2><div class="list">' + hist.map(function (h) { return card(hrefAlias(h.id, { n: h.m }), '📦', h.m, nomeQualquer(h.id) + ' · ' + h.c); }).join('') + '</div>' : '') +
+      '<p class="disclaimer">Base: códigos EAN da Lista de Preços CMED/Anvisa (' + esc(fmtData(CT.FONTE.data)) + '). Na primeira leitura o app baixa a base de códigos (≈ 1,6 MB).</p>';
+    var out = document.getElementById('scan-out'), cod = document.getElementById('scan-cod');
+    function buscar(c) {
+      c = String(c || '').replace(/\D/g, '');
+      if (c.length < 8) { out.innerHTML = '<div class="alert warn">Digite os 13 números do código de barras.</div>'; return; }
+      out.innerHTML = '<p class="note">Carregando base de códigos…</p>';
+      carregarEAN(function (db) { out.innerHTML = db ? eanResultadoHtml(db, c) : '<div class="alert bad">Não foi possível carregar a base de códigos. Verifique a conexão.</div>'; });
+    }
+    document.getElementById('scan-form').onsubmit = function () { buscar(cod.value); return false; };
+    carregarEAN(function () {});   // pré-carrega em segundo plano
+    document.getElementById('scan-cam').onclick = function () {
+      var area = document.getElementById('scan-area'), video = document.getElementById('scan-video');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { out.innerHTML = '<div class="alert warn">Este navegador não permite usar a câmera aqui. Digite o número do código.</div>'; return; }
+      function achou(c) {
+        if (pararCamera) { pararCamera(); pararCamera = null; }
+        area.hidden = true; cod.value = c; if (navigator.vibrate) navigator.vibrate(80); buscar(c);
+      }
+      if ('BarcodeDetector' in window) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+          area.hidden = false; video.srcObject = stream; video.play();
+          var det = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] }), vivo = true;
+          pararCamera = function () { vivo = false; stream.getTracks().forEach(function (t) { t.stop(); }); };
+          (function loop() {
+            if (!vivo) return;
+            det.detect(video).then(function (r) { if (r.length && vivo) achou(r[0].rawValue); else setTimeout(loop, 250); }).catch(function () { setTimeout(loop, 400); });
+          })();
+        }).catch(function () { out.innerHTML = '<div class="alert warn">Câmera não autorizada. Permita o acesso à câmera ou digite o número.</div>'; });
+        return;
+      }
+      // Navegadores sem BarcodeDetector (ex.: iPhone): biblioteca ZXing sob demanda
+      out.innerHTML = '<p class="note">Preparando o leitor…</p>';
+      function iniciarZXing() {
+        try {
+          var leitor = new window.ZXing.BrowserMultiFormatReader();
+          area.hidden = false; out.innerHTML = '';
+          leitor.decodeFromVideoDevice(null, video, function (res) { if (res) achou(res.getText()); });
+          pararCamera = function () { try { leitor.reset(); } catch (e) { /* ignore */ } };
+        } catch (e) { out.innerHTML = '<div class="alert warn">Não foi possível usar a câmera. Digite o número do código.</div>'; }
+      }
+      if (window.ZXing) return iniciarZXing();
+      var z = document.createElement('script'); z.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js';
+      z.onload = iniciarZXing; z.onerror = function () { out.innerHTML = '<div class="alert warn">Leitor indisponível sem internet neste aparelho. Digite o número do código.</div>'; };
+      document.head.appendChild(z);
+    };
+  }
+
+  // ---- Agenda de medicações do plantão ----
+  function hojeISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function agoraMin() { var d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+  function minDe(h) { var p = h.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  function loadPlantao() { var p = store.get('plantao', null); return p && Array.isArray(p.itens) ? p : { itens: [], feitos: {} }; }
+  function dosesDoDia(pl, dia) {
+    var out = [];
+    pl.itens.forEach(function (it) {
+      if (it.desde && dia < it.desde) return;
+      if (it.ate && dia > it.ate) return;
+      C.horariosDoDia(it.ini, +it.int).forEach(function (h) {
+        if (it.desde === dia && minDe(h) < minDe(it.ini)) return;   // no 1º dia, só a partir do 1º horário
+        var k = it.id + '|' + dia + '|' + h;
+        out.push({ it: it, h: h, k: k, feito: pl.feitos[k] || null });
+      });
+    });
+    return out.sort(function (a, b) { return minDe(a.h) - minDe(b.h) || (a.it.leito || '').localeCompare(b.it.leito || ''); });
+  }
+  function statusDose(d, dia) {
+    if (d.feito) return 'feito';
+    if (dia !== hojeISO()) return dia < hojeISO() ? 'atrasado' : 'futuro';
+    var diff = minDe(d.h) - agoraMin();
+    return diff < -30 ? 'atrasado' : diff <= 60 ? 'agora' : 'futuro';
+  }
+  function resumoPlantao() {
+    var pl = loadPlantao(), dia = hojeISO(), ds = dosesDoDia(pl, dia), r = { atrasado: 0, agora: 0, feito: 0, total: ds.length };
+    ds.forEach(function (d) { var s = statusDose(d, dia); if (r[s] != null) r[s]++; });
+    return r;
+  }
+  function viewPlantao() {
+    setHeader('Agenda do plantão', true);
+    var pl = loadPlantao(), dia = store.get('plantaoDia', hojeISO());
+    var nomes = D.DRUGS.map(function (d) { return d.nome; }).concat(BX.EXTRAS.map(function (x) { return x.nome; })).sort();
+    var ds = dosesDoDia(pl, dia), cont = { atrasado: 0, agora: 0, feito: 0 };
+    ds.forEach(function (d) { cont[statusDose(d, dia)] = (cont[statusDose(d, dia)] || 0) + 1; });
+    var aviso = store.get('plantaoAviso', false);
+    $app.innerHTML = '<p class="lead">Horários das medicações por leito, com checagem e alerta de atraso.</p>' +
+      '<div class="row"><label class="lbl" for="pl-dia">Dia</label><input type="date" id="pl-dia" value="' + esc(dia) + '"></div>' +
+      '<p class="badges"><span class="badge bad">⏰ Atrasadas: ' + (cont.atrasado || 0) + '</span><span class="badge warn">🔔 Próxima hora: ' + (cont.agora || 0) + '</span><span class="badge ok">✓ Feitas: ' + (cont.feito || 0) + ' de ' + ds.length + '</span></p>' +
+      '<details class="sheet-box" id="pl-add"' + (pl.itens.length ? '' : ' open') + '><summary>➕ Adicionar medicação</summary><form class="form" id="pl-form" onsubmit="return false">' +
+        '<div class="row2"><div class="field"><label for="pl-leito">Leito / paciente</label><input id="pl-leito" type="text" maxlength="40" placeholder="ex.: 12A" list="pl-leitos"></div>' +
+        '<div class="field"><label for="pl-via">Via</label><select id="pl-via">' + ['EV', 'IM', 'SC', 'VO', 'SNE/SNG', 'Inalatória', 'Tópica', 'Retal', 'Outra'].map(function (v) { return '<option>' + v + '</option>'; }).join('') + '</select></div></div>' +
+        '<datalist id="pl-leitos">' + pl.itens.map(function (i) { return i.leito; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; }).map(function (l) { return '<option value="' + esc(l) + '">'; }).join('') + '</datalist>' +
+        '<div class="field"><label for="pl-med">Medicamento</label><input id="pl-med" type="text" maxlength="80" list="pl-meds" placeholder="digite ou escolha"><datalist id="pl-meds">' + nomes.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist></div>' +
+        '<div class="field"><label for="pl-dose">Dose</label><input id="pl-dose" type="text" maxlength="40" placeholder="ex.: 1 g, 500 mg, 10 UI"></div>' +
+        '<div class="row2"><div class="field"><label for="pl-ini">1º horário</label><input id="pl-ini" type="time" value="08:00"></div>' +
+        '<div class="field"><label for="pl-int">Intervalo</label><select id="pl-int">' + [[0, 'Dose única'], [2, '2/2 h'], [3, '3/3 h'], [4, '4/4 h'], [6, '6/6 h'], [8, '8/8 h'], [12, '12/12 h'], [24, '1x ao dia']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === 8 ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+        '<button class="btn" type="submit">Adicionar</button></form></details>' +
+      '<div id="pl-lista">' + (ds.length ? ds.map(function (d) {
+        var st = statusDose(d, dia);
+        return '<div class="dose-row st-' + st + '"><span class="dose-h">' + d.h + '</span><span class="dose-t"><b>' + esc(d.it.med) + '</b> ' + esc(d.it.dose || '') + ' · ' + esc(d.it.via) +
+          '<small>Leito ' + esc(d.it.leito || '—') + (d.feito ? ' · checado às ' + esc(d.feito) : st === 'atrasado' ? ' · ATRASADA' : st === 'agora' ? ' · próxima hora' : '') + '</small></span>' +
+          '<button type="button" class="btn sm' + (d.feito ? ' ghost' : '') + '" data-chk="' + esc(d.k) + '">' + (d.feito ? '↩' : '✓') + '</button></div>';
+      }).join('') : '<p class="empty-msg">Nenhuma medicação para este dia. Toque em “Adicionar medicação”.</p>') + '</div>' +
+      (pl.itens.length ? '<details class="sheet-box"><summary>🗂️ Gerenciar prescrições (' + pl.itens.length + ')</summary><div class="list">' + pl.itens.map(function (it) {
+        return '<div class="card"><span class="card-ic">💊</span><span class="card-t"><b>' + esc(it.med) + ' ' + esc(it.dose || '') + '</b><small>Leito ' + esc(it.leito || '—') + ' · ' + esc(it.via) + ' · ' + (it.int > 0 ? 'de ' + it.int + '/' + it.int + ' h' : 'dose única') + ' a partir de ' + esc(it.ini) + '</small></span>' +
+          '<button type="button" class="btn sm ghost" data-del="' + esc(it.id) + '">Excluir</button></div>';
+      }).join('') + '</div><button type="button" class="btn ghost" id="pl-limpar">Limpar tudo</button></details>' : '') +
+      '<div class="ref-btns"><button type="button" class="btn sm ghost" id="pl-aviso">' + (aviso ? '🔕 Desativar lembretes' : '🔔 Ativar lembretes') + '</button>' +
+      '<button type="button" class="btn sm ghost" id="pl-copiar">📋 Copiar resumo</button><a class="btn sm ghost" href="#/sbar">📝 Passagem de plantão</a></div>' +
+      '<p class="disclaimer">Os dados ficam só neste aparelho. Os lembretes funcionam enquanto o app estiver aberto. A agenda não substitui a prescrição nem o registro oficial do prontuário.</p>';
+    document.getElementById('pl-dia').onchange = function (e) { store.set('plantaoDia', e.target.value || hojeISO()); viewPlantao(); };
+    document.getElementById('pl-form').onsubmit = function () {
+      var med = document.getElementById('pl-med').value.trim(), ini = document.getElementById('pl-ini').value;
+      if (!med || !ini) { toast('Informe o medicamento e o 1º horário.', true); return false; }
+      pl.itens.push({ id: 'p' + Date.now().toString(36), leito: document.getElementById('pl-leito').value.trim(), med: med, dose: document.getElementById('pl-dose').value.trim(),
+        via: document.getElementById('pl-via').value, ini: ini, int: +document.getElementById('pl-int').value, desde: dia });
+      store.set('plantao', pl); toast('Medicação adicionada.'); viewPlantao(); return false;
+    };
+    $app.querySelectorAll('[data-chk]').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-chk');
+        if (pl.feitos[k]) delete pl.feitos[k]; else { var n = new Date(); pl.feitos[k] = ('0' + n.getHours()).slice(-2) + ':' + ('0' + n.getMinutes()).slice(-2); }
+        store.set('plantao', pl); viewPlantao();
+      };
+    });
+    $app.querySelectorAll('[data-del]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-del');
+        ask({ titulo: 'Excluir prescrição?', msg: 'Os horários desta medicação saem da agenda.', ok: 'Excluir', perigo: true }).then(function (sim) {
+          if (!sim) return; pl.itens = pl.itens.filter(function (i) { return i.id !== id; }); store.set('plantao', pl); viewPlantao();
+        });
+      };
+    });
+    var lim = document.getElementById('pl-limpar');
+    if (lim) lim.onclick = function () { ask({ titulo: 'Limpar a agenda?', msg: 'Remove todas as prescrições e checagens deste aparelho.', ok: 'Limpar', perigo: true }).then(function (sim) { if (sim) { store.set('plantao', { itens: [], feitos: {} }); viewPlantao(); } }); };
+    document.getElementById('pl-aviso').onclick = function () {
+      if (aviso) { store.set('plantaoAviso', false); viewPlantao(); return; }
+      store.set('plantaoAviso', true);
+      if (window.Notification && Notification.permission === 'default') Notification.requestPermission().then(function () { viewPlantao(); });
+      else viewPlantao();
+      toast('Lembretes ativados: o app avisa no horário de cada dose (com o app aberto).');
+    };
+    document.getElementById('pl-copiar').onclick = function () {
+      var txt = 'Agenda de medicações — ' + dia.split('-').reverse().join('/') + '\n' + ds.map(function (d) {
+        return d.h + ' · Leito ' + (d.it.leito || '—') + ' · ' + d.it.med + ' ' + (d.it.dose || '') + ' ' + d.it.via + ' — ' + (d.feito ? 'feito às ' + d.feito : statusDose(d, dia) === 'atrasado' ? 'ATRASADA' : 'pendente');
+      }).join('\n');
+      copiarTexto(txt);
+    };
+  }
+  function copiarTexto(txt) {
+    try {
+      if (navigator.share && !EMBED && /Android|iPhone|iPad/i.test(navigator.userAgent)) { navigator.share({ text: txt }).catch(function () {}); return; }
+      navigator.clipboard.writeText(txt).then(function () { toast('Texto copiado.'); }, function () { toast('Não foi possível copiar neste navegador.', true); });
+    } catch (e) { toast('Não foi possível copiar neste navegador.', true); }
+  }
+  // Lembretes: verifica a cada minuto (com o app aberto)
+  var ultimoAviso = '';
+  setInterval(function () {
+    if (!store.get('plantaoAviso', false)) return;
+    var pl = loadPlantao(), dia = hojeISO(), agora = agoraMin();
+    dosesDoDia(pl, dia).forEach(function (d) {
+      if (d.feito || minDe(d.h) !== agora || ultimoAviso === d.k) return;
+      ultimoAviso = d.k;
+      var msg = d.h + ' — Leito ' + (d.it.leito || '—') + ': ' + d.it.med + ' ' + (d.it.dose || '') + ' ' + d.it.via;
+      toast('🔔 ' + msg);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      try { if (window.Notification && Notification.permission === 'granted') new Notification('Hora da medicação', { body: msg }); } catch (e) { /* ignore */ }
+    });
+  }, 20000);
+
+  // ---- Passagem de plantão (SBAR) com NEWS2 automático ----
+  function viewSBAR() {
+    setHeader('Passagem de plantão', true);
+    var todos = store.get('sbar', {}), atual = store.get('sbarAtual', '');
+    var f = todos[atual] || {};
+    function campo(id, lab, tipo, ph) {
+      return '<div class="field"><label for="sb-' + id + '">' + lab + '</label>' + (tipo === 'area' ? '<textarea id="sb-' + id + '" data-sb="' + id + '" rows="3" placeholder="' + esc(ph || '') + '">' + esc(f[id] || '') + '</textarea>'
+        : '<input id="sb-' + id + '" data-sb="' + id + '" type="text" inputmode="' + (tipo === 'num' ? 'decimal' : 'text') + '" value="' + esc(f[id] || '') + '" placeholder="' + esc(ph || '') + '">') + '</div>';
+    }
+    var salvos = Object.keys(todos);
+    $app.innerHTML = '<p class="lead">Passagem estruturada (SBAR): Situação, Breve histórico, Avaliação e Recomendações. O NEWS2 é calculado com os sinais vitais.</p>' +
+      (salvos.length ? '<div class="chipnav">' + salvos.map(function (k) { return '<button type="button" class="chipnav-b' + (k === atual ? ' on' : '') + '" data-pac="' + esc(k) + '">🛏️ ' + esc(k) + '</button>'; }).join('') + '<button type="button" class="chipnav-b" data-pac="">➕ Novo</button></div>' : '') +
+      '<form class="form" id="sb-form" onsubmit="return false">' + campo('leito', 'Leito / paciente', 'txt', 'ex.: 12A — Maria S.') + campo('dx', 'Diagnóstico / motivo da internação', 'txt') +
+      '<h3 class="sub-h">S — Situação</h3>' + campo('s', 'O que está acontecendo agora', 'area', 'queixa atual, mudanças no plantão') +
+      '<h3 class="sub-h">B — Breve histórico</h3>' + campo('b', 'Antecedentes, alergias, dispositivos, isolamento', 'area', 'ex.: HAS, DM; alergia a dipirona; AVP MSE (dia 2), SVD') +
+      '<h3 class="sub-h">A — Avaliação</h3><div class="row2">' + campo('fr', 'FR (irpm)', 'num') + campo('spo2', 'SpO₂ (%)', 'num') + campo('pas', 'PA sistólica', 'num') + campo('pad', 'PA diastólica', 'num') +
+      campo('fc', 'FC (bpm)', 'num') + campo('temp', 'Temperatura (°C)', 'num') + campo('gli', 'Glicemia (mg/dL)', 'num') + campo('dor', 'Dor (0–10)', 'num') + '</div>' +
+      '<div class="field"><span class="lbl">Oxigênio suplementar</span><div class="seg"><label class="seg-opt"><input type="radio" name="sb-o2" value="n"' + (f.o2 !== 's' ? ' checked' : '') + '><span>Não (ar ambiente)</span></label><label class="seg-opt"><input type="radio" name="sb-o2" value="s"' + (f.o2 === 's' ? ' checked' : '') + '><span>Sim</span></label></div></div>' +
+      '<div class="field"><span class="lbl">Consciência</span><div class="seg"><label class="seg-opt"><input type="radio" name="sb-consc" value="A"' + (f.consc !== 'CVPU' ? ' checked' : '') + '><span>Alerta</span></label><label class="seg-opt"><input type="radio" name="sb-consc" value="CVPU"' + (f.consc === 'CVPU' ? ' checked' : '') + '><span>Confusão nova / voz / dor / sem resposta</span></label></div></div>' +
+      '<div id="sb-news"></div>' + campo('a', 'Sua avaliação', 'area', 'ex.: estável, melhora da dispneia; diurese 0,8 mL/kg/h') +
+      '<h3 class="sub-h">R — Recomendações</h3>' + campo('r', 'Pendências e cuidados para o próximo plantão', 'area', 'exames, reavaliações, cuidados') +
+      '<div id="sb-pend"></div></form>' +
+      '<div class="ref-btns"><button type="button" class="btn" id="sb-copiar">📋 Copiar / enviar passagem</button><button type="button" class="btn ghost" id="sb-excluir">Excluir este paciente</button></div>' +
+      '<p class="disclaimer">Os dados ficam só neste aparelho. Evite dados identificáveis desnecessários e siga a política de privacidade da instituição. NEWS2: Royal College of Physicians (2017).</p>';
+    var form = document.getElementById('sb-form');
+    function ler() {
+      var o = {}; form.querySelectorAll('[data-sb]').forEach(function (el) { o[el.getAttribute('data-sb')] = el.value; });
+      o.o2 = form.querySelector('input[name=sb-o2]:checked').value; o.consc = form.querySelector('input[name=sb-consc]:checked').value; return o;
+    }
+    function pendencias(leito) {
+      if (!leito) return [];
+      var pl = loadPlantao(), dia = hojeISO(), ag = agoraMin(), chave = norm(leito).split(/\s|—|-/)[0];
+      return dosesDoDia(pl, dia).filter(function (d) { return !d.feito && d.it.leito && norm(d.it.leito).split(/\s|—|-/)[0] === chave && minDe(d.h) >= ag - 120 && minDe(d.h) <= ag + 360; });
+    }
+    function news(o) { return C.news2({ fr: num(o.fr), spo2: num(o.spo2), o2: o.o2 === 's', pas: num(o.pas), fc: num(o.fc), consc: o.consc, temp: num(o.temp) }); }
+    var NIVEL = { baixo: ['ok', 'Risco baixo — manter monitorização de rotina'], 'baixo-medio': ['warn', 'Um parâmetro com 3 pontos — avaliação urgente pela equipe'], medio: ['warn', 'Risco médio — avaliação urgente; aumentar a frequência dos sinais vitais'], alto: ['bad', 'Risco alto — avaliação de emergência (time de resposta rápida)'] };
+    function render() {
+      var o = ler(), n = news(o), el = document.getElementById('sb-news');
+      el.innerHTML = n ? '<div class="alert ' + (NIVEL[n.nivel][0] === 'ok' ? 'info' : NIVEL[n.nivel][0]) + '"><b>NEWS2 = ' + n.score + '</b> — ' + NIVEL[n.nivel][1] + '</div>' : '<p class="note">Preencha FR, SpO₂, PA sistólica, FC e temperatura para calcular o NEWS2.</p>';
+      var pd = pendencias(o.leito);
+      document.getElementById('sb-pend').innerHTML = pd.length ? '<div class="sec"><h3>🗓️ Pendências da agenda (próximas horas)</h3><ul class="howto">' + pd.map(function (d) { return '<li>' + d.h + ' — ' + esc(d.it.med + ' ' + (d.it.dose || '') + ' ' + d.it.via) + '</li>'; }).join('') + '</ul></div>' : '';
+      var k = (o.leito || '').trim();
+      if (k) { todos[k] = o; if (atual && atual !== k) delete todos[atual]; atual = k; store.set('sbar', todos); store.set('sbarAtual', k); }
+    }
+    form.addEventListener('input', render); form.addEventListener('change', render); render();
+    $app.querySelectorAll('[data-pac]').forEach(function (b) { b.onclick = function () { store.set('sbarAtual', b.getAttribute('data-pac')); viewSBAR(); }; });
+    document.getElementById('sb-copiar').onclick = function () {
+      var o = ler(), n = news(o), pd = pendencias(o.leito);
+      var sv = ['FR ' + (o.fr || '—'), 'SpO₂ ' + (o.spo2 || '—') + '%' + (o.o2 === 's' ? ' (com O₂)' : ''), 'PA ' + (o.pas || '—') + 'x' + (o.pad || '—'), 'FC ' + (o.fc || '—'), 'T ' + (o.temp || '—') + '°C'];
+      if (o.gli) sv.push('Glicemia ' + o.gli); if (o.dor) sv.push('Dor ' + o.dor + '/10');
+      var txt = 'PASSAGEM DE PLANTÃO (SBAR)\n' + (o.leito ? 'Leito/paciente: ' + o.leito + '\n' : '') + (o.dx ? 'Diagnóstico: ' + o.dx + '\n' : '') +
+        '\nS — ' + (o.s || '—') + '\nB — ' + (o.b || '—') + '\nA — ' + sv.join(' · ') + (o.consc === 'CVPU' ? ' · Alteração de consciência' : ' · Alerta') +
+        (n ? '\n    NEWS2 = ' + n.score + ' (' + NIVEL[n.nivel][1] + ')' : '') + (o.a ? '\n    ' + o.a : '') +
+        '\nR — ' + (o.r || '—') + (pd.length ? '\n    Medicações pendentes: ' + pd.map(function (d) { return d.h + ' ' + d.it.med + ' ' + (d.it.dose || ''); }).join('; ') : '');
+      copiarTexto(txt);
+    };
+    document.getElementById('sb-excluir').onclick = function () {
+      if (!atual) { viewSBAR(); return; }
+      ask({ titulo: 'Excluir ' + atual + '?', msg: 'Remove a passagem deste paciente deste aparelho.', ok: 'Excluir', perigo: true }).then(function (sim) {
+        if (!sim) return; delete todos[atual]; store.set('sbar', todos); store.set('sbarAtual', ''); viewSBAR();
+      });
+    };
+  }
+
+  // ---- Busca por voz (quando o navegador permite) ----
+  function addVoz(input) {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || !input || EMBED) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'voz-btn'; b.setAttribute('aria-label', 'Buscar por voz'); b.textContent = '🎤';
+    input.parentNode.classList.add('com-voz'); input.parentNode.appendChild(b);
+    b.onclick = function () {
+      var r = new SR(); r.lang = 'pt-BR'; r.interimResults = false; r.maxAlternatives = 1;
+      b.classList.add('ouvindo');
+      r.onresult = function (e) { input.value = e.results[0][0].transcript.replace(/\.$/, ''); input.dispatchEvent(new Event('input', { bubbles: true })); };
+      r.onend = function () { b.classList.remove('ouvindo'); };
+      r.onerror = function () { b.classList.remove('ouvindo'); toast('Não foi possível ouvir. Verifique a permissão do microfone.', true); };
+      r.start();
+    };
+  }
+
   // ---- Escalas ----
   function viewScales() {
     setHeader('Escalas', false);
@@ -2883,7 +3188,7 @@
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1] }[parts[0]];
+    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', plantao: 'view:plantao', sbar: 'view:sbar' }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -2905,6 +3210,9 @@
       case 'sri': viewSRI(); break;
       case 'hipodermoclise': viewHipo(); break;
       case 'ferramentas': viewFerramentas(); break;
+      case 'scanner': viewScanner(); break;
+      case 'plantao': viewPlantao(); break;
+      case 'sbar': viewSBAR(); break;
       case 'atender': viewAtender('lib'); break;
       case 'emergencia-ped': viewEmergPed(); break;
       case 'compatibilidade': viewCompat(parts[1]); break;
