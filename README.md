@@ -4,6 +4,9 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 
 ## Funcionalidades
 
+- **Navegação por tarefa (design v2):** a tela inicial é organizada pelo que o profissional precisa fazer: busca única, ações rápidas (PCR, Atender, Ler caixa, Infusão), painel "Meu plantão" (agenda com a próxima dose e atrasos, paciente em atendimento, validade das maletas), "Consultar" (Bulário, Cálculos, Protocolos, Escalas) e áreas de atuação. A barra inferior tem Início · Bulário · Cálculos · Protocolos · Plantão (hub com agenda, SBAR, leitor de caixa, maletas, interações e escalas de beira de leito).
+- **Fichas de medicamento padronizadas:** cabeçalho com nome digitado (ou nome comercial), princípio ativo, classe, alta vigilância, tarja, uso hospitalar e genérico; conteúdo em abas (Resumo/Preparo · Calcular · Classe · Mercado · Fontes).
+- **Perfis de classe terapêutica:** 180+ perfis (texto próprio) com mecanismo de ação, efeitos adversos comuns, cuidados de enfermagem e alertas, exibidos na ficha de cada medicamento e na página da classe, junto com os demais medicamentos da mesma classe.
 - **Infusão e gotejamento:** gotas/min e microgotas/min, tempo de infusão, vazão em bomba (mL/h).
 - **Infusão contínua / drogas vasoativas:** dose ↔ mL/h (mcg/kg/min, mcg/min, mg/kg/h, UI/min, UI/kg/h, mUI/min…) com 15 soluções padrão (noradrenalina, adrenalina, dobutamina, dopamina, nitroprussiato, nitroglicerina, vasopressina, amiodarona, midazolam, fentanil, propofol, dexmedetomidina, insulina, heparina, ocitocina), aviso de dose fora da faixa e tabela de titulação.
 - **Preparo de medicação:** regra de três com conversão de unidades, reconstituição de pó (com volume do pó, diluição e gotejamento), penicilina cristalina.
@@ -56,6 +59,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - `js/doses.js` — doses de referência, grupos, alergias, antídotos e interações (revisar com farmácia clínica)
 - `js/paciente.js` — motor do modo atendimento (perfil, dose, preparo, alertas, interações), testado
 - `js/revisoes.js` — fontes, termos de busca na Anvisa e registro de revisões profissionais (`REVISOES`)
+- `js/perfis.js` — perfis das classes terapêuticas (mecanismo, efeitos adversos, enfermagem, alertas), por código CMED/EphMRA, testado
 - `js/protocolos.js` — protocolos clínicos resumidos (texto próprio) com links para o Manual MSD
 - `js/apresentacoes.js` — apresentações comerciais usuais (para escolher a ampola)
 - `js/bulario_extra.js` — bulário ampliado (fichas resumidas)
