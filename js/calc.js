@@ -241,7 +241,42 @@
   function celsiusParaF(c) { return c * 9 / 5 + 32; }
   function fParaCelsius(f) { return (f - 32) * 5 / 9; }
 
+  // NEWS2 (Royal College of Physicians, 2017) — escala 1 de SpO₂
+  // v: { fr, spo2, o2 (bool), pas, fc, consc ('A' alerta | 'CVPU' confusão nova/voz/dor/sem resposta), temp }
+  function news2(v) {
+    function faixa(x, regras) { for (var i = 0; i < regras.length; i++) if (x <= regras[i][0]) return regras[i][1]; return regras[regras.length - 1][1]; }
+    if (!(v.fr > 0) || !(v.spo2 > 0) || !(v.pas > 0) || !(v.fc > 0) || !(v.temp > 0) || !v.consc) return null;
+    var p = {
+      fr: faixa(v.fr, [[8, 3], [11, 1], [20, 0], [24, 2], [Infinity, 3]]),
+      spo2: faixa(v.spo2, [[91, 3], [93, 2], [95, 1], [Infinity, 0]]),
+      o2: v.o2 ? 2 : 0,
+      pas: faixa(v.pas, [[90, 3], [100, 2], [110, 1], [219, 0], [Infinity, 3]]),
+      fc: faixa(v.fc, [[40, 3], [50, 1], [90, 0], [110, 1], [130, 2], [Infinity, 3]]),
+      consc: v.consc === 'A' ? 0 : 3,
+      temp: faixa(v.temp, [[35.0, 3], [36.0, 1], [38.0, 0], [39.0, 1], [Infinity, 2]])
+    };
+    var score = 0, tres = false;
+    Object.keys(p).forEach(function (k) { score += p[k]; if (p[k] === 3) tres = true; });
+    var nivel = score >= 7 ? 'alto' : score >= 5 ? 'medio' : tres ? 'baixo-medio' : 'baixo';
+    return { score: score, nivel: nivel, parciais: p, tres: tres };
+  }
+
+  // Horários de um medicamento no dia (00:00–23:59), a partir do 1º horário e do intervalo em horas (0 = dose única)
+  function horariosDoDia(ini, intervaloH) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(ini || '');
+    if (!m) return [];
+    var t0 = (+m[1]) * 60 + (+m[2]);
+    if (t0 >= 1440) return [];
+    var out = [], passo = intervaloH > 0 ? intervaloH * 60 : 0;
+    if (!passo) return [hhmmMin(t0)];
+    var t = t0 % passo;                     // primeiro horário do dia na mesma "grade"
+    for (; t < 1440; t += passo) out.push(hhmmMin(t));
+    return out;
+  }
+  function hhmmMin(t) { var h = Math.floor(t / 60), mi = t % 60; return (h < 10 ? '0' : '') + h + ':' + (mi < 10 ? '0' : '') + mi; }
+
   var api = {
+    news2: news2, horariosDoDia: horariosDoDia,
     UNITS: UNITS, DOSE_UNITS: DOSE_UNITS,
     convert: convert, sameClass: sameClass,
     gotejamento: gotejamento, tempoInfusao: tempoInfusao,

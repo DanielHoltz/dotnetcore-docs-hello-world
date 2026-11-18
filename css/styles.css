@@ -538,3 +538,27 @@ details.mais summary { cursor: pointer; color: var(--primary); font-size: .85rem
 .alias-box small { font-size: .85rem; color: var(--text); }
 .refs .ref-sub { margin: 10px 0 4px; font-weight: 700; font-size: .88rem; color: var(--muted); }
 .refs .fontes li { margin-bottom: 6px; line-height: 1.4; }
+
+/* Plantão: leitor, agenda e SBAR */
+.plantao-hub { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.scan-area { position: relative; border-radius: 14px; overflow: hidden; background: #000; margin: 8px 0 12px; aspect-ratio: 4 / 3; }
+.scan-area video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-mira { position: absolute; left: 10%; right: 10%; top: 38%; height: 24%; border: 3px solid #22c55e; border-radius: 10px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); }
+.scan-res { margin-top: 8px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > input { flex: 1; min-width: 0; }
+.dose-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); border-left-width: 5px; }
+.dose-row .dose-h { font-weight: 800; font-size: 1.05rem; min-width: 52px; font-variant-numeric: tabular-nums; }
+.dose-row .dose-t { flex: 1; min-width: 0; line-height: 1.35; }
+.dose-row .dose-t small { display: block; color: var(--muted); }
+.dose-row.st-feito { opacity: .7; border-left-color: var(--ok); }
+.dose-row.st-atrasado { border-left-color: var(--bad); background: var(--bad-bg); }
+.dose-row.st-agora { border-left-color: var(--warn); background: var(--warn-bg); }
+.dose-row.st-futuro { border-left-color: var(--line); }
+textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); resize: vertical; }
+.sub-h { margin: 16px 0 6px; color: var(--primary); }
+.com-voz { position: relative; }
+.com-voz input { padding-right: 48px; }
+.voz-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--primary-soft); font-size: 1.1rem; cursor: pointer; }
+.voz-btn.ouvindo { background: var(--bad-bg); animation: pulsa 1s infinite; }
+@keyframes pulsa { 50% { transform: translateY(-50%) scale(1.12); } }
