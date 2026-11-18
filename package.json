@@ -3,7 +3,8 @@
   "private": true,
   "description": "EnfCalc — calculadora de enfermagem (PWA em wwwroot/enfermagem)",
   "scripts": {
-    "test": "node --test tests/enfermagem/calc.test.js tests/enfermagem/maletas.test.js tests/enfermagem/paciente.test.js tests/enfermagem/revisoes.test.js tests/enfermagem/emergencia.test.js",
-    "start": "cd wwwroot && python3 -m http.server 8080"
+    "test": "node --test tests/enfermagem/*.test.js",
+    "start": "cd wwwroot && python3 -m http.server 8080",
+    "test:e2e": "node tests/e2e/revisao.js && node tests/e2e/offline.js"
   }
 }

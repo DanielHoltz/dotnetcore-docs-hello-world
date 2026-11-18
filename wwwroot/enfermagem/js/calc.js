@@ -291,7 +291,21 @@
     if (!(dose > 0) || !CORTICOIDES[de] || !CORTICOIDES[para]) return null;
     return dose / CORTICOIDES[de] * CORTICOIDES[para];
   }
+  // Leitura estrita de números digitados (pt-BR): ver comentário em numInfo
+  function numInfo(s) {
+    if (s == null) return { v: NaN, erro: '' };
+    s = String(s).trim().replace(/\s/g, '');
+    if (s === '') return { v: NaN, erro: '' };
+    if (/^-?\d+$/.test(s)) return { v: parseFloat(s), erro: '' };
+    if (/^-?\d+,\d+$/.test(s)) return { v: parseFloat(s.replace(',', '.')), erro: '' };
+    if (/^-?\d{1,3}(\.\d{3})+,\d+$/.test(s)) return { v: parseFloat(s.replace(/\./g, '').replace(',', '.')), erro: '' };
+    if (/^-?\d{1,3}(\.\d{3}){2,}$/.test(s)) return { v: parseFloat(s.replace(/\./g, '')), erro: '' };
+    if (/^-?\d{1,3}\.\d{3}$/.test(s)) return { v: NaN, erro: 'ambiguo' };
+    if (/^-?\d*\.\d+$/.test(s)) return { v: parseFloat(s), erro: '' };
+    return { v: NaN, erro: 'invalido' };
+  }
   var api = {
+    numInfo: numInfo,
     calcioCorrigido: calcioCorrigido, deficitAguaLivre: deficitAguaLivre, CORTICOIDES: CORTICOIDES, equivCorticoide: equivCorticoide,
     news2: news2, horariosDoDia: horariosDoDia,
     UNITS: UNITS, DOSE_UNITS: DOSE_UNITS,

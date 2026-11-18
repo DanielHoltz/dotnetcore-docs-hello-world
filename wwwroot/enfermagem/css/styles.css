@@ -867,3 +867,48 @@ body.pal-aberta { overflow: hidden; }
   .paleta { padding-top: 10vh; }
 }
 @media (min-width: 1440px) { .container { max-width: 1180px; } }
+
+/* ===== Guia de antimicrobianos ===== */
+.am-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.am-chip { display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: start; text-align: left; padding: 10px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.am-chip span { grid-row: 1 / 3; font-size: 1.2rem; }
+.am-chip b { font-size: .86rem; line-height: 1.25; }
+.am-chip small { color: var(--muted); font-size: .7rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.am-chip.on { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
+.am-perg { display: flex; flex-direction: column; gap: 8px; }
+.am-q { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; line-height: 1.4; }
+.am-q input { width: 20px; height: 20px; margin-top: 1px; flex: none; accent-color: var(--bad); }
+.am-q:has(input:checked) { border-color: var(--bad); background: var(--bad-bg); }
+.am-sel { flex-direction: column; }
+.am-sel select { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; }
+.am-card { margin-top: 16px; padding: 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.am-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--accent), var(--accent-2)); }
+.am-tag { font: 700 .68rem var(--mono); letter-spacing: .1em; color: var(--muted); }
+.am-t { margin: 4px 0 2px; font-size: 1.2rem; text-transform: none; letter-spacing: -.01em; color: var(--text); }
+.am-sit { margin: 0 0 8px; color: var(--muted); font-size: .9rem; }
+.am-prec { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; margin: 10px 0 4px; border: 1px solid var(--line); }
+.am-prec small { color: var(--text); opacity: .85; line-height: 1.45; }
+.am-prec-contato, .am-prec-esporo { background: var(--warn-bg); border-color: var(--warn); }
+.am-prec-contato b, .am-prec-esporo b { color: var(--warn); }
+.am-ops { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.am-op { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); border-left-width: 4px; display: flex; flex-direction: column; gap: 3px; }
+.am-op.ativo { border-left-color: var(--ok); }
+.am-op.fora { border-left-color: var(--warn); opacity: .9; }
+.am-op.evitar { border-left-color: var(--bad); }
+.am-op-n a, .am-op-n b { font-weight: 700; text-decoration: none; }
+.am-op small { color: var(--muted); line-height: 1.4; }
+.am-av { color: var(--warn) !important; }
+.am-ap { margin: 4px 0 0; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); font-size: .84rem; line-height: 1.45; }
+@media (min-width: 1024px) { .am-ops { grid-template-columns: 1fr 1fr; } }
+input.inv { border-color: var(--bad) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 18%, transparent); }
+.num-err { display: block; color: var(--bad); font-size: .8rem; margin-top: 4px; font-weight: 600; }
+/* foco visível com contraste ≥ 3:1 nos dois temas */
+:root { --focus: #0e7490; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --focus: #67e8f9; } }
+:root[data-theme="dark"] { --focus: #67e8f9; }
+:focus-visible { outline: 3px solid var(--focus) !important; outline-offset: 2px; }
+.home-hero :focus-visible, .topbar :focus-visible, .tabbar :focus-visible, .pcr-top :focus-visible { outline-color: #67e8f9 !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.scan-base { font-size: .85rem; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); margin: 8px 0; }
+.scan-base.ok { background: var(--ok-bg); color: var(--ok); }
+.scan-base.bad { background: var(--warn-bg); color: var(--warn); }
