@@ -841,6 +841,61 @@
       (pf.completo ? esc(pacienteResumo(pf)) + ' · toque para doses e preparos' : 'Informe peso e idade e veja dose, diluição e alertas de qualquer medicamento') + '</small></span><span class="chev">›</span></a>';
   }
 
+  // ---- Busca rápida (paleta): abre em qualquer tela com / ou Ctrl+K ----
+  function rankBusca(entries, txt) {
+    var t = norm(txt.trim()); if (!t) return { hits: [], t: t, words: [] };
+    var words = t.split(/\s+/);
+    var hits = entries.filter(function (e) { var x = norm(e.search + ' ' + e.title); return words.every(function (w) { return x.indexOf(w) >= 0; }); });
+    var relH = function (e) {
+      var ns = [e.title].concat(nomesMarcas(e.marcas), e.nomes || []).map(norm);
+      return (ns.some(function (n) { return n === t; }) ? 0 : ns.some(function (n) { return n.indexOf(t) === 0; }) ? 1 : 2) * 10 + (e.title.indexOf('+') >= 0 ? 5 : 0);
+    };
+    hits = hits.map(function (e, i) { return [e, relH(e), i]; }).sort(function (a, b) { return a[1] - b[1] || a[2] - b[2]; }).map(function (x) { return x[0]; });
+    var aprox = false;
+    if (!hits.length && t.length >= 4) { hits = aproximados(entries, function (e) { return norm(e.title + ' ' + e.search); }, words, function (e) { return e.title; }); aprox = hits.length > 0; }
+    return { hits: hits, t: t, words: words, aprox: aprox };
+  }
+  function cartaoBusca(e, t, words) {
+    var al = e.id ? nomeBuscado(e.title, e.marcas, e.nomes, t, words) : null;
+    return al ? card(hrefAlias(e.id, al), al.k === 'v' ? '💊' : '🏷️', al.n, descAlias(al, e.classe || e.desc.replace(/^🏷️ [^·]*· /, ''))) : card(e.href, e.icon, e.title, e.desc);
+  }
+  var PALETA_SUG = [['#/pcr', '🚨', 'Modo PCR', 'Cronômetro e doses'], ['#/maleta/lib/atender', '👤', 'Atender paciente', 'Dose e preparo pelo peso'], ['#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h'],
+    ['#/calc/gotejamento', '💧', 'Gotejamento', 'Gotas/min e mL/h'], ['#/escalas', '📋', 'Escalas', 'Glasgow, NEWS2, Braden…'], ['#/scanner', '📷', 'Ler caixa', 'Código de barras']];
+  function abrirPaleta() {
+    if (document.getElementById('paleta')) return;
+    var entries = allEntries();
+    var w = document.createElement('div'); w.id = 'paleta'; w.className = 'paleta';
+    w.innerHTML = '<div class="pal-box" role="dialog" aria-modal="true" aria-label="Busca rápida"><div class="pal-in"><span>🔍</span><input id="pal-q" type="search" autocomplete="off" placeholder="Buscar medicamento, nome comercial, cálculo, escala ou protocolo…" aria-label="Buscar"><button type="button" class="pal-x" aria-label="Fechar">Esc</button></div><div class="pal-res" id="pal-res"></div><p class="pal-dica">↑ ↓ para navegar · Enter para abrir · Esc para fechar</p></div>';
+    document.body.appendChild(w); document.body.classList.add('pal-aberta');
+    var q = w.querySelector('#pal-q'), res = w.querySelector('#pal-res'), sel = 0;
+    addVoz(q);
+    function itens() { return [].slice.call(res.querySelectorAll('a.card')); }
+    function marca() { itens().forEach(function (a, i) { a.classList.toggle('sel', i === sel); if (i === sel) a.scrollIntoView({ block: 'nearest' }); }); }
+    function render() {
+      var r = rankBusca(entries, q.value); sel = 0;
+      if (!r.t) {
+        var rec = store.get('recentes', []).map(function (k) { return entries.filter(function (e) { return e.key === k; })[0]; }).filter(Boolean).slice(0, 5);
+        res.innerHTML = (rec.length ? '<h3 class="sub-h">Recentes</h3><div class="list">' + rec.map(function (e) { return card(e.href, e.icon, e.title, e.desc); }).join('') + '</div>' : '') +
+          '<h3 class="sub-h">Atalhos</h3><div class="list">' + PALETA_SUG.map(function (x) { return card(x[0], x[1], x[2], x[3]); }).join('') + '</div>';
+      } else res.innerHTML = r.hits.length ? (r.aprox ? '<p class="note">Você quis dizer:</p>' : '<p class="note">' + r.hits.length.toLocaleString('pt-BR') + ' resultado' + (r.hits.length > 1 ? 's' : '') + '</p>') + '<div class="list">' + r.hits.slice(0, 30).map(function (e) { return cartaoBusca(e, r.t, r.words); }).join('') + '</div>'
+        : '<p class="empty-msg">Nada encontrado para “' + esc(q.value) + '”.</p>';
+      marca();
+    }
+    function fechar() { document.removeEventListener('keydown', tecla); w.remove(); document.body.classList.remove('pal-aberta'); }
+    function tecla(e) {
+      var its = itens();
+      if (e.key === 'Escape') { fechar(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(its.length - 1, sel + 1); marca(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); marca(); }
+      if (e.key === 'Enter' && its[sel]) { e.preventDefault(); location.hash = its[sel].getAttribute('href'); fechar(); }
+    }
+    document.addEventListener('keydown', tecla);
+    q.addEventListener('input', render);
+    res.addEventListener('click', function (e) { if (e.target.closest('a')) fechar(); });
+    w.addEventListener('click', function (e) { if (e.target === w || e.target.closest('.pal-x')) fechar(); });
+    render(); setTimeout(function () { q.focus(); }, 30);
+  }
+
   // ---- Início: organizado por tarefa ----
   function saudacao() { var h = new Date().getHours(); return h < 5 ? 'Boa noite' : h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; }
   function qa(href, ic, t, cls) { return '<a class="qa-b ' + (cls || '') + '" href="' + href + '"><span class="qa-ic">' + ic + '</span>' + esc(t) + '</a>'; }
@@ -869,8 +924,11 @@
     var nDrog = (D.DRUGS.length + BX.EXTRAS.length + CT.total).toLocaleString('pt-BR');
     var hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     $app.innerHTML =
-      '<section class="home-hero"><p class="hh-data">' + esc(hoje) + '</p><h2 class="hh-t">' + saudacao() + '! O que você precisa agora?</h2>' +
-      '<div class="search"><input id="q" type="search" placeholder="Medicamento, nome comercial, cálculo ou escala…" autocomplete="off" aria-label="Buscar"></div></section>' +
+      '<section class="home-hero"><svg class="ecg" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 34 H170 l10 -4 l8 4 H220 l8 -26 l10 48 l9 -30 l6 8 H330 l12 -6 l10 6 H600"/></svg>' +
+        '<div class="hh-top"><span id="hh-status" class="hh-status on">Online</span><span class="hh-clock" id="hh-clock">--:--</span></div>' +
+        '<p class="hh-data">' + esc(hoje) + '</p><h2 class="hh-t">' + saudacao() + '! O que você precisa agora?</h2>' +
+        '<button type="button" class="hh-search" id="hh-search"><span>🔍</span><span class="hh-ph">Medicamento, nome comercial, cálculo, protocolo…</span><kbd>/</kbd></button>' +
+        '<div class="hh-stats"><span><b data-count="' + (D.DRUGS.length + BX.EXTRAS.length + CT.total) + '">' + nDrog + '</b> medicamentos</span><span><b data-count="' + PR.PROTOCOLOS.length + '">' + PR.PROTOCOLOS.length + '</b> protocolos</span><span><b data-count="' + D.SCALES.length + '">' + D.SCALES.length + '</b> escalas</span><span><b data-count="' + (CALCS.length + 2) + '">' + (CALCS.length + 2) + '</b> cálculos</span></div></section>' +
       '<div id="search-res"></div>' +
       '<div id="home-main">' +
       '<div class="qa">' + qa('#/pcr', '🚨', 'PCR', 'qa-red') + qa('#/maleta/lib/atender', '👤', 'Atender') + qa('#/scanner', '📷', 'Ler caixa') + qa('#/infusao', '🫀', 'Infusão') + '</div>' +
@@ -895,27 +953,7 @@
       '<p class="disclaimer">Ferramenta de apoio. Confira sempre a prescrição, a bula e os protocolos da instituição. <a href="#/sobre">Sobre</a></p>' +
       '</div>';
 
-    var q = document.getElementById('q'), res = document.getElementById('search-res'), main = document.getElementById('home-main');
-    addVoz(q);
-    q.addEventListener('input', function () {
-      var t = norm(q.value.trim());
-      if (!t) { res.innerHTML = ''; main.hidden = false; return; }
-      main.hidden = true;
-      var words = t.split(/\s+/);
-      var hits = entries.filter(function (e) { var s = norm(e.search + ' ' + e.title); return words.every(function (w) { return s.indexOf(w) >= 0; }); });
-      var relH = function (e) {
-        var ns = [e.title].concat(nomesMarcas(e.marcas), e.nomes || []).map(norm);
-        return (ns.some(function (n) { return n === t; }) ? 0 : ns.some(function (n) { return n.indexOf(t) === 0; }) ? 1 : 2) * 10 + (e.title.indexOf('+') >= 0 ? 5 : 0);
-      };
-      hits = hits.map(function (e, i) { return [e, relH(e), i]; }).sort(function (a, b) { return a[1] - b[1] || a[2] - b[2]; }).map(function (x) { return x[0]; });
-      var aprox = false;
-      if (!hits.length && t.length >= 4) { hits = aproximados(entries, function (e) { return norm(e.title + ' ' + e.search); }, words, function (e) { return e.title; }); aprox = hits.length > 0; }
-      res.innerHTML = hits.length ? (aprox ? '<div class="alert info">Nenhum resultado exato para “' + esc(q.value.trim()) + '”. Você quis dizer:</div>' : '') + '<div class="list">' + hits.slice(0, 40).map(function (e) {
-          var al = e.id ? nomeBuscado(e.title, e.marcas, e.nomes, t, words) : null;
-          return al ? card(hrefAlias(e.id, al), al.k === 'v' ? '💊' : '🏷️', al.n, descAlias(al, e.classe || e.desc.replace(/^🏷️ [^·]*· /, ''))) : card(e.href, e.icon, e.title, e.desc);
-        }).join('') + '</div>'
-        : '<p class="empty-msg">Nada encontrado para “' + esc(q.value) + '”.</p>';
-    });
+    document.getElementById('hh-search').onclick = function () { abrirPaleta(); };
   }
 
   // ---- Plantão: hub das ferramentas do turno ----
@@ -3399,7 +3437,9 @@
       if (missing) { ultimo = null; bar.className = 'score-bar'; bar.innerHTML = '<span>Faltam ' + missing + ' ' + (missing > 1 ? 'itens' : 'item') + '</span><b>' + (vals.length ? sum : '—') + '</b>'; return; }
       var r = s.interp(sum, vals);
       ultimo = r;
-      bar.className = 'score-bar ' + r.level;
+      var mn = 0, mx = 0; s.items.forEach(function (it) { var ps = it.opts.map(function (o) { return o[0]; }); mn += Math.min.apply(null, ps); mx += Math.max.apply(null, ps); });
+      bar.style.setProperty('--p', mx > mn ? Math.round((r.score - mn) / (mx - mn) * 100) : 0);
+      bar.className = 'score-bar gauge ' + r.level;
       bar.innerHTML = '<span>' + esc(r.txt) + (r.label ? '<small>' + esc(r.label) + '</small>' : '') + '</span><b>' + (r.score > 0 && s.id === 'rass' ? '+' : '') + r.score + '</b>';
     }
     form.addEventListener('change', run);
@@ -3462,6 +3502,7 @@
 
   // ---------- roteador ----------
   function route() {
+    var pal = document.getElementById('paleta'); if (pal) { pal.remove(); document.body.classList.remove('pal-aberta'); }
     var h = location.hash.replace(/^#\/?/, '');
     var parts = h.split('/');
     window.scrollTo(0, 0);
@@ -3550,5 +3591,5 @@
   }
 
   // exposto para testes
-  window.EnfCalc = { CALCS: CALCS, num: num, fmt: fmt };
+  window.EnfCalc = { CALCS: CALCS, num: num, fmt: fmt, palette: abrirPaleta, toast: toast };
 })();

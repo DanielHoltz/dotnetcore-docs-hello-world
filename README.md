@@ -4,6 +4,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 
 ## Funcionalidades
 
+- **Visual health-tech e interações (design v3):** painel inicial escuro com grade, linha de ECG animada, relógio e status online/offline; números em fonte de monitor; **busca rápida** que abre de qualquer tela (🔍, tecla / ou Ctrl+K) com navegação pelo teclado; ondulação e vibração leve ao tocar; transições entre telas; contadores animados; deslizar o dedo para trocar de aba nas fichas; medidor circular nas escalas; botão de tema (automático, escuro, claro). Respeita a preferência de "reduzir movimento" do aparelho.
 - **Navegação por tarefa (design v2):** a tela inicial é organizada pelo que o profissional precisa fazer: busca única, ações rápidas (PCR, Atender, Ler caixa, Infusão), painel "Meu plantão" (agenda com a próxima dose e atrasos, paciente em atendimento, validade das maletas), "Consultar" (Bulário, Cálculos, Protocolos, Escalas) e áreas de atuação. A barra inferior tem Início · Bulário · Cálculos · Protocolos · Plantão (hub com agenda, SBAR, leitor de caixa, maletas, interações e escalas de beira de leito).
 - **Fichas de medicamento padronizadas:** cabeçalho com nome digitado (ou nome comercial), princípio ativo, classe, alta vigilância, tarja, uso hospitalar e genérico; conteúdo em abas (Resumo/Preparo · Calcular · Classe · Mercado · Fontes).
 - **Escalas (41), com busca e grupos:** inclui NIHSS, Rankin, Glasgow pediátrica, CAM-ICU, SOFA, BPS, POSS (sedação por opioide), flebite e infiltração (INS), CHA₂DS₂-VASc, HAS-BLED, Wells-TVP, Pádua, Barthel, Fugulin (dimensionamento COFEN), Downton, Humpty Dumpty, Silverman-Andersen, Child-Pugh, Hunt-Hess e Karnofsky. O resultado pode ser copiado para a evolução ou salvo no aparelho (com leito), e cada escala leva ao protocolo relacionado.
@@ -70,6 +71,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 - `js/emergencia.js` — estimativas pediátricas e apoio ao modo PCR, testado
 - `js/maletas.js` — modelo de dados das maletas (validade, importar/exportar), testado em `tests/enfermagem/`
 - `js/app.js` — interface e calculadoras
+- `js/ui.js` — camada de interação (toque, transições, swipe, tema, atalhos)
 - `sw.js`, `manifest.webmanifest` — PWA/offline
 
 ---
