@@ -275,7 +275,29 @@
   }
   function hhmmMin(t) { var h = Math.floor(t / 60), mi = t % 60; return (h < 10 ? '0' : '') + h + ':' + (mi < 10 ? '0' : '') + mi; }
 
+  // Superfície corporal (Mosteller): √(peso kg × altura cm / 3600)
+  function superficieCorporal(peso, altura) {
+    if (!(peso > 0) || !(altura > 0)) return null;
+    return Math.sqrt(peso * altura / 3600);
+  }
+  // Cálcio total corrigido pela albumina: Ca + 0,8 × (4 − albumina g/dL)
+  function calcioCorrigido(ca, alb) {
+    if (!(ca > 0) || !(alb > 0)) return null;
+    return ca + 0.8 * (4 - alb);
+  }
+  // Déficit de água livre (L) = fator × peso × (Na/140 − 1); fator: 0,6 homem, 0,5 mulher/homem idoso, 0,45 mulher idosa
+  function deficitAguaLivre(peso, na, fator) {
+    if (!(peso > 0) || !(na > 0) || !(fator > 0)) return null;
+    return fator * peso * (na / 140 - 1);
+  }
+  // Equivalência anti-inflamatória dos corticoides (mg equivalentes)
+  var CORTICOIDES = { hidrocortisona: 20, cortisona: 25, prednisona: 5, prednisolona: 5, metilprednisolona: 4, triancinolona: 4, dexametasona: 0.75, betametasona: 0.6 };
+  function equivCorticoide(dose, de, para) {
+    if (!(dose > 0) || !CORTICOIDES[de] || !CORTICOIDES[para]) return null;
+    return dose / CORTICOIDES[de] * CORTICOIDES[para];
+  }
   var api = {
+    superficieCorporal: superficieCorporal, calcioCorrigido: calcioCorrigido, deficitAguaLivre: deficitAguaLivre, CORTICOIDES: CORTICOIDES, equivCorticoide: equivCorticoide,
     news2: news2, horariosDoDia: horariosDoDia,
     UNITS: UNITS, DOSE_UNITS: DOSE_UNITS,
     convert: convert, sameClass: sameClass,

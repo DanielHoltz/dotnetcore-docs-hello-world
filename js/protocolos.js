@@ -685,6 +685,226 @@
           'Antibiótico de amplo espectro com ação antipseudomonas em até 60 min, conforme protocolo (ex.: cefepima).', 'Associar vancomicina se suspeita de infecção de cateter, pele, pneumonia ou instabilidade.',
           'Precauções conforme o protocolo da CCIH; evitar procedimentos retais.'] },
         { t: 'Medicamentos', tipo: 'meds', itens: [['cefepima', '1ª linha usual'], ['pipe-tazo', 'Alternativa'], ['meropenem', 'Risco de multirresistência / instabilidade'], ['vancomicina', 'Situações específicas'], ['dipirona', 'Antitérmico (evitar AINE)'], ['filgrastim', 'Casos selecionados (prescrição)']] }
+      ] },
+
+    // ---------- Protocolos ampliados ----------
+    { id: 'fa', nome: 'Fibrilação atrial aguda', icon: '💓', grupo: 'cardio',
+      resumo: 'Instável: cardioversão elétrica sincronizada. Estável: controle da frequência, avaliação do risco de AVC (CHA₂DS₂-VASc) e anticoagulação.',
+      msd: [['Fibrilação atrial', '/pt/profissional/doenças-cardiovasculares/arritmias-cardíacas-específicas/fibrilação-atrial']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Pulso irregularmente irregular; ECG com ausência de onda P e intervalos RR irregulares.', 'Sinais de instabilidade: hipotensão, choque, dor torácica isquêmica, insuficiência cardíaca aguda, alteração da consciência.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Monitorização cardíaca, oximetria, PA, acesso venoso e ECG de 12 derivações.',
+          'Instável: preparar cardioversão elétrica sincronizada com sedação (modo SINC ligado a cada choque).',
+          'Estável: controle da frequência com betabloqueador ou bloqueador de cálcio não di-hidropiridínico (evitar este na IC com fração de ejeção reduzida); amiodarona ou digoxina em situações específicas, conforme prescrição.',
+          'FA com mais de 48 h ou duração desconhecida: não cardioverter eletivamente sem anticoagulação adequada ou ecocardiograma transesofágico.',
+          'Calcular CHA₂DS₂-VASc (risco de AVC) e HAS-BLED (sangramento) para decidir anticoagulação.', 'Tratar causas: infecção, hipovolemia, distúrbios eletrolíticos, hipertireoidismo, álcool.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['metoprolol', 'Controle de frequência'], ['diltiazem', 'Controle de frequência (evitar na IC com FE reduzida)'], ['amiodarona', 'Controle de ritmo/frequência'], ['digoxina', 'Controle de frequência na IC'], ['heparina', 'Anticoagulação inicial'], ['apixabana', 'Anticoagulante oral'], ['rivaroxabana', 'Anticoagulante oral']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Registrar FC (apical) e ritmo; observar sinais de baixo débito.', 'Na cardioversão: jejum, consentimento, desfibrilador pronto, via aérea e material de sedação.', 'Orientar adesão e sinais de sangramento quando anticoagulado.'] }
+      ] },
+
+    { id: 'pneumonia', nome: 'Pneumonia adquirida na comunidade', icon: '🫁', grupo: 'resp',
+      resumo: 'Avaliar gravidade (CURB-65, sinais de sepse), oxigênio se necessário, culturas nos casos graves e antibiótico precoce.',
+      msd: [['Pneumonia adquirida na comunidade', '/pt/profissional/distúrbios-pulmonares/pneumonia/pneumonia-adquirida-na-comunidade']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Tosse, febre, dispneia, dor pleurítica, crepitações; em idosos pode haver só confusão ou queda do estado geral.', 'Gravidade: CURB-65, SpO₂, FR, PA, lactato; procurar critérios de sepse.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Oxigênio para manter SpO₂ ≥ 92% (88–92% em retentores de CO₂).', 'Internados: hemoculturas e escarro antes do antibiótico, sem atrasar a primeira dose.',
+          'Antibiótico na primeira hora em sepse/choque; nos demais, o mais cedo possível após o diagnóstico.', 'Hidratação, antitérmico e fisioterapia respiratória conforme a necessidade.',
+          'Reavaliar em 48–72 h; trocar para via oral quando estável e aceitando dieta.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['amoxicilina', 'Ambulatorial sem comorbidades'], ['azitromicina-oral', 'Cobertura de atípicos'], ['amoxi-clav', 'Com comorbidades'], ['ceftriaxona', 'Internação'], ['azitromicina-ev', 'Associação na internação'], ['levofloxacino', 'Alternativa (quinolona respiratória)'], ['claritromicina', 'Alternativa macrolídeo']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Cabeceira elevada; monitorar FR, SpO₂ e nível de consciência.', 'Registrar o horário da 1ª dose de antibiótico.', 'Incentivar tosse, mobilização precoce e hidratação; checar vacinação (influenza, pneumocócica) na alta.'] }
+      ] },
+
+    { id: 'itu', nome: 'Infecção urinária e pielonefrite', icon: '🚽', grupo: 'infecto',
+      resumo: 'Diferenciar cistite de pielonefrite, colher urocultura corretamente antes do antibiótico e observar sinais de sepse.',
+      msd: [['Infecções bacterianas do trato urinário', '/pt/profissional/doenças-infecciosas/infecções-do-trato-urinário/infecções-bacterianas-do-trato-urinário']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Cistite: disúria, polaciúria, urgência, dor suprapúbica, sem febre.', 'Pielonefrite: febre, calafrios, dor lombar (Giordano positivo), náuseas/vômitos.', 'Idosos: confusão e queda funcional podem ser os únicos sinais; bacteriúria assintomática geralmente não se trata (exceto gestantes e antes de procedimentos urológicos).'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Urocultura de jato médio (higiene prévia) ou por punção do dispositivo de coleta da sonda — nunca da bolsa coletora.',
+          'Cistite não complicada: antibiótico oral de curta duração conforme prescrição.', 'Pielonefrite: hidratação, analgesia, antitérmico e antibiótico (oral ou EV conforme gravidade).',
+          'Sinais de sepse: acionar protocolo de sepse.', 'Gestantes: sempre tratar e fazer controle de cura.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['nitrofurantoina', 'Cistite'], ['fosfomicina', 'Cistite (dose única)'], ['cefalexina', 'Cistite (alternativa, gestantes)'], ['ceftriaxona', 'Pielonefrite'], ['ciprofloxacino', 'Pielonefrite (quando indicado)'], ['dipirona', 'Analgesia e febre']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Balanço hídrico e diurese.', 'Orientar hidratação, micção frequente e completar o antibiótico.', 'Em sondados: avaliar necessidade diária da sonda.'] }
+      ] },
+
+    { id: 'cefaleia', nome: 'Cefaleia na emergência', icon: '🤕', grupo: 'neuro',
+      resumo: 'Procurar sinais de alarme (cefaleia secundária). Na crise de enxaqueca: analgesia, antiemético, hidratação e ambiente calmo.',
+      msd: [['Abordagem do paciente com cefaleia', '/pt/profissional/distúrbios-neurológicos/cefaleia/abordagem-do-paciente-com-cefaleia'], ['Enxaqueca', '/pt/profissional/distúrbios-neurológicos/cefaleia/enxaqueca']],
+      secoes: [
+        { t: 'Sinais de alarme', tipo: 'lista', itens: ['Início súbito e máximo em segundos ("a pior da vida") — suspeitar de hemorragia subaracnóidea.', 'Febre com rigidez de nuca; déficit neurológico focal, convulsão ou alteração da consciência.',
+          'Início após os 50 anos, padrão novo ou progressivo; imunossupressão, câncer, gestação/puerpério, anticoagulação ou trauma recente.', 'Piora com Valsalva ou ao deitar; papiledema.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Sinais vitais, glicemia, avaliação neurológica (Glasgow, pupilas, força).', 'Com sinal de alarme: comunicar imediatamente, preparar para imagem.',
+          'Enxaqueca: analgésico/anti-inflamatório + antiemético EV conforme prescrição; hidratação; dexametasona pode reduzir recorrência.', 'Evitar opioides como primeira escolha na enxaqueca.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['dipirona', 'Analgésico'], ['cetoprofeno-ev', 'Anti-inflamatório'], ['metoclopramida', 'Antiemético (também analgésico na enxaqueca)'], ['dexametasona', 'Prevenção de recorrência'], ['soro-fisiologico', 'Hidratação']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Ambiente escuro e silencioso.', 'Reavaliar dor (escala 0–10) após 30–60 min.', 'Observar acatisia/distonia após metoclopramida.'] }
+      ] },
+
+    { id: 'agitacao', nome: 'Agitação psicomotora', icon: '🧠', grupo: 'neuro',
+      resumo: 'Segurança de todos, desescalada verbal primeiro, investigar causas orgânicas; contenção química ou mecânica só quando necessário e com monitorização.',
+      msd: [['Agitação e confusão em pacientes criticamente enfermos', '/pt/profissional/medicina-de-cuidados-críticos/abordagem-do-paciente-criticamente-enfermo/agitação-confusão-e-bloqueio-neuromuscular-em-pacientes-criticamente-enfermos']],
+      secoes: [
+        { t: 'Conduta', tipo: 'passos', itens: ['Ambiente seguro: retirar objetos perigosos, manter rota de saída, equipe suficiente.',
+          'Desescalada verbal: tom calmo, frases curtas, escuta, oferecer escolhas.', 'Investigar causas orgânicas: hipoglicemia, hipóxia, dor, retenção urinária, infecção, intoxicação ou abstinência, delirium.',
+          'Contenção química conforme prescrição, preferindo via oral quando o paciente aceita.', 'Contenção mecânica: último recurso, com prescrição, técnica adequada, equipe treinada e registro (Resolução COFEN 427/2012).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['haloperidol', 'Antipsicótico'], ['prometazina', 'Associada ao haloperidol'], ['midazolam', 'Sedação (monitorar respiração)'], ['olanzapina', 'Antipsicótico atípico'], ['lorazepam', 'Abstinência alcoólica'], ['biperideno', 'Se distonia aguda']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Na contenção: sinais vitais, perfusão, pele e conforto dos membros em intervalos curtos; liberar o quanto antes.', 'Após sedação: FR, SpO₂ e nível de consciência; ECG se haloperidol EV ou doses repetidas.', 'Registrar motivo, horário, técnica e reavaliações.'] }
+      ] },
+
+    { id: 'irpa', nome: 'Insuficiência respiratória e oxigenoterapia', icon: '💨', grupo: 'resp',
+      resumo: 'Reconhecer o desconforto respiratório, escolher o dispositivo de O₂ pelo alvo de saturação e escalar suporte (CNAF, VNI, intubação) a tempo.',
+      msd: [['Insuficiência respiratória hipoxêmica aguda', '/pt/profissional/medicina-de-cuidados-críticos/insuficiência-respiratória-e-ventilação-mecânica/insuficiência-respiratória-hipoxêmica-aguda-irha-sdra'], ['Insuficiência ventilatória', '/pt/profissional/medicina-de-cuidados-críticos/insuficiência-respiratória-e-ventilação-mecânica/insuficiência-ventilatória']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Taquipneia, uso de musculatura acessória, tiragem, fala entrecortada, cianose, SpO₂ baixa.', 'Sinais de exaustão: respiração paradoxal, sonolência, bradipneia — risco de parada.'] },
+        { t: 'Oxigenoterapia', tipo: 'passos', itens: ['Alvo de SpO₂ 92–96% na maioria; 88–92% em retentores de CO₂ (DPOC, obesidade-hipoventilação).',
+          'Cateter nasal: baixo fluxo, para hipoxemia leve.', 'Máscara simples ou Venturi: FiO₂ intermediária/controlada (Venturi indicada quando se quer FiO₂ precisa).',
+          'Máscara com reservatório: hipoxemia grave, fluxo alto suficiente para manter a bolsa inflada.', 'Cânula nasal de alto fluxo ou VNI conforme indicação; preparar intubação se não houver melhora.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['salbutamol', 'Broncoespasmo'], ['ipratropio', 'Broncoespasmo (associado)'], ['furosemida', 'Congestão pulmonar'], ['metilprednisolona', 'Asma/DPOC graves']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Posição sentada/Fowler; reavaliar SpO₂ e FR após cada ajuste.', 'Umidificar O₂ em fluxos altos e prolongados; proteger pele de pressão da máscara.', 'Use a calculadora de oxigênio e a relação P/F do app.'] }
+      ] },
+
+    { id: 'pcr-ped', nome: 'PCR pediátrica (PALS)', icon: '🧸', grupo: 'ped',
+      resumo: 'Compressões de qualidade, ventilação, adrenalina precoce nos ritmos não chocáveis e desfibrilação por peso nos chocáveis.',
+      msd: [['RCP em lactentes e crianças', '/pt/profissional/medicina-de-cuidados-críticos/parada-cardíaca-e-reanimação-cardiopulmonar-rcp/reanimação-cardiopulmonar-rcp-em-lactentes-e-crianças']],
+      secoes: [
+        { t: 'RCP de alta qualidade', tipo: 'passos', itens: ['Compressões 100–120/min, profundidade de ao menos 1/3 do diâmetro do tórax (≈ 4 cm no lactente, ≈ 5 cm na criança), retorno completo, mínimas interrupções.',
+          'Sem via aérea avançada: 30:2 com um socorrista, 15:2 com dois.', 'Com via aérea avançada: compressões contínuas e 1 ventilação a cada 2–3 s.', 'Trocar quem comprime a cada 2 min.'] },
+        { t: 'Ritmos', tipo: 'passos', itens: ['Não chocável (assistolia/AESP): adrenalina o quanto antes e a cada 3–5 min.',
+          'Chocável (FV/TV sem pulso): choque 2 J/kg, depois 4 J/kg; seguintes ≥ 4 J/kg (máximo 10 J/kg ou dose de adulto).', 'Após o 2º choque: adrenalina; amiodarona ou lidocaína na FV/TV refratária.',
+          'Causas reversíveis (Hs e Ts): hipóxia é a mais comum em crianças.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['adrenalina', '0,01 mg/kg EV/IO (máx. 1 mg) a cada 3–5 min'], ['amiodarona', '5 mg/kg em bolus na FV/TV refratária (até 3 doses)'], ['lidocaina', 'Alternativa à amiodarona'], ['glicose-50', 'Se hipoglicemia (diluir para criança)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Use a Emergência pediátrica do app para doses e cânula pelo peso/idade.', 'Acesso intraósseo se o venoso não for obtido rapidamente.', 'Registrar horários de doses e choques; acolher a família.'] }
+      ] },
+
+    { id: 'sifilis-gestacao', nome: 'Sífilis na gestação', icon: '🤰', grupo: 'obst',
+      resumo: 'Testar no pré-natal e no parto, tratar a gestante e a parceria com penicilina benzatina conforme o estágio e acompanhar com VDRL.',
+      msd: [['Sífilis', '/pt/profissional/doenças-infecciosas/infecções-sexualmente-transmissíveis/sífilis'], ['Sífilis congênita', '/pt/profissional/pediatria/infecções-em-neonatos/sífilis-congênita']],
+      secoes: [
+        { t: 'Rastreio', tipo: 'lista', itens: ['Teste rápido/VDRL na 1ª consulta, no 3º trimestre, no parto ou aborto, e após exposição de risco.', 'Teste rápido reagente: iniciar tratamento sem aguardar o VDRL (gestante).'] },
+        { t: 'Tratamento (PCDT-IST)', tipo: 'passos', itens: ['Sífilis recente (primária, secundária, latente recente): penicilina benzatina 2,4 milhões UI IM em dose única (1,2 milhão em cada glúteo).',
+          'Sífilis tardia ou de duração ignorada: 2,4 milhões UI IM por semana, 3 semanas (total 7,2 milhões UI).', 'Na gestante, se o intervalo entre doses ultrapassar o permitido no protocolo, reiniciar o esquema.',
+          'Tratar a(s) parceria(s) sexual(is).', 'Somente a penicilina benzatina é considerada tratamento adequado da gestante para prevenção da sífilis congênita.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['penicilina-benzatina', 'Tratamento de escolha'], ['ceftriaxona', 'Alternativa excepcional (não trata adequadamente o feto)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['IM profunda no glúteo (ventroglútea preferencial); nunca EV; observar por 30 min.', 'Orientar reação de Jarisch-Herxheimer (febre e mal-estar nas primeiras 24 h).', 'Notificação compulsória; VDRL mensal na gestante até o parto; avaliar o RN ao nascer.'] }
+      ] },
+
+    { id: 'extravasamento', nome: 'Extravasamento, infiltração e flebite', icon: '💉', grupo: 'feridas',
+      resumo: 'Interromper a infusão, aspirar o resíduo, retirar o cateter, delimitar e tratar conforme o agente; prevenir com escolha do acesso e vigilância.',
+      msd: [['Acesso vascular', '/pt/profissional/medicina-de-cuidados-críticos/abordagem-do-paciente-criticamente-enfermo/acesso-vascular']],
+      secoes: [
+        { t: 'Conduta imediata', tipo: 'passos', itens: ['Interromper a infusão; não lavar a via.', 'Aspirar o resíduo pelo cateter e então retirá-lo (exceto quando o protocolo pede manter para antídoto).',
+          'Delimitar a área, fotografar e medir; elevar o membro.', 'Compressa conforme o agente (frio para a maioria; calor para alcaloides da vinca e algumas soluções), segundo o protocolo institucional.',
+          'Comunicar o médico, aplicar antídoto quando indicado e notificar o evento.'] },
+        { t: 'Prevenção', tipo: 'lista', itens: ['Vesicantes e vasopressores: preferir acesso central; se periférico, veia calibrosa, longe de articulações, com refluxo testado.', 'Avaliar o sítio antes de cada administração e a cada turno (escalas de flebite e infiltração da INS).', 'Fixação adequada e orientação ao paciente para relatar dor ou ardor.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['noradrenalina', 'Vasopressor vesicante'], ['gluconato-calcio', 'Irritante'], ['bicarbonato', 'Vesicante'], ['fenitoina', 'Vesicante (síndrome da luva roxa)'], [null, 'Antídotos conforme o agente e protocolo: fentolamina (vasopressores), hialuronidase (soluções hiperosmolares, alguns citostáticos), dexrazoxano (antraciclinas)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Aplicar as escalas de flebite e infiltração do app.', 'Reavaliar o local em 24, 48 h e até a resolução.'] }
+      ] },
+
+    { id: 'hemotransfusao', nome: 'Administração segura de hemocomponentes', icon: '🩸', grupo: 'outros',
+      resumo: 'Dupla checagem à beira do leito, sinais vitais, infusão lenta nos primeiros 15 min com observação e tempo máximo de infusão.',
+      msd: [['Técnicas transfusionais', '/pt/profissional/hematologia/medicina-transfusional/técnicas-transfusionais'], ['Hemoderivados', '/pt/profissional/hematologia/medicina-transfusional/hemoderivados']],
+      secoes: [
+        { t: 'Antes', tipo: 'passos', itens: ['Conferir prescrição, consentimento e identificação do paciente (pulseira e verbal) com a etiqueta da bolsa — dupla checagem por dois profissionais.',
+          'Verificar tipo, validade, integridade e aspecto da bolsa.', 'Sinais vitais basais (temperatura, PA, FC, FR, SpO₂).'] },
+        { t: 'Durante', tipo: 'passos', itens: ['Equipo exclusivo com filtro; via sem outros medicamentos (somente SF 0,9% é compatível).',
+          'Infundir lentamente nos primeiros 15 min, permanecendo junto ao paciente; repetir sinais vitais.', 'Concentrado de hemácias: concluir em até 4 h; plaquetas e plasma: conforme orientação do serviço de hemoterapia.',
+          'Não aquecer fora de aquecedor próprio nem refrigerar plaquetas.'] },
+        { t: 'Reação transfusional', tipo: 'passos', itens: ['Parar a transfusão, manter o acesso com SF 0,9% e chamar o médico.', 'Conferir novamente bolsa e paciente; devolver a bolsa e o equipo à agência transfusional.', 'Notificar (hemovigilância).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['soro-fisiologico', 'Única solução compatível na via'], ['furosemida', 'Sobrecarga volêmica, se prescrita'], ['difenidramina', 'Reações alérgicas'], ['hidrocortisona', 'Reações alérgicas'], ['adrenalina', 'Anafilaxia']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Registrar horário de início e fim, número da bolsa e sinais vitais.', 'Veja também o protocolo de reação transfusional.'] }
+      ] },
+
+    { id: 'nutricao-enteral', nome: 'Sondas: dieta e medicamentos', icon: '🥤', grupo: 'outros',
+      resumo: 'Confirmar posição, cabeceira elevada, lavar a sonda entre medicamentos e nunca triturar formas de liberação prolongada ou com revestimento entérico.',
+      msd: [['Nutrição enteral', '/pt/profissional/distúrbios-nutricionais/suporte-nutricional/nutrição-enteral']],
+      secoes: [
+        { t: 'Segurança', tipo: 'passos', itens: ['Confirmar o posicionamento após a passagem (radiografia para sondas de alimentação) e verificar a marcação externa antes de cada uso.',
+          'Cabeceira a 30–45° durante a dieta e por 30–60 min após.', 'Conectores próprios para enteral (nunca conectar a vias venosas).', 'Rotular equipo e frasco; seguir validade e troca conforme protocolo.'] },
+        { t: 'Medicamentos pela sonda', tipo: 'passos', itens: ['Preferir formas líquidas; triturar comprimidos simples separadamente e diluir em água.',
+          'Não triturar: liberação prolongada (LP, XR, retard), revestimento entérico, sublinguais, citotóxicos.', 'Lavar a sonda com água antes, entre cada medicamento e depois (volume conforme protocolo; adultos em geral 15–30 mL).',
+          'Não misturar medicamentos entre si nem com a dieta; pausar a dieta quando houver interação (ex.: fenitoína, levotiroxina), conforme protocolo.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['fenitoina', 'Interage com a dieta: pausar conforme protocolo'], ['levotiroxina', 'Em jejum: pausar a dieta'], ['omeprazol-oral', 'Não triturar os microgrânulos'], [null, 'Consultar a farmácia para formas que não podem ser trituradas']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Sonda obstruída: água morna com seringa de 20 mL e movimentos suaves; nunca usar fio-guia para desobstruir.', 'Observar distensão, vômitos, diarreia e glicemia.', 'Higiene oral e da narina; trocar a fixação diariamente.'] }
+      ] },
+
+    { id: 'pav', nome: 'Prevenção de pneumonia associada à ventilação', icon: '🫁', grupo: 'infecto',
+      resumo: 'Pacote de medidas (bundle): cabeceira elevada, interrupção diária da sedação, higiene oral, cuff adequado e cuidados com o circuito.',
+      msd: [['Pneumonia associada ao ventilador', '/pt/profissional/distúrbios-pulmonares/pneumonia/pneumonia-associada-ao-ventilador']],
+      secoes: [
+        { t: 'Bundle', tipo: 'passos', itens: ['Cabeceira elevada a 30–45°.', 'Interrupção diária da sedação e avaliação da possibilidade de extubação.',
+          'Higiene oral com escovação conforme protocolo institucional.', 'Pressão do cuff entre 20 e 30 cmH₂O, verificada periodicamente.',
+          'Aspiração subglótica quando o tubo permitir; evitar trocas rotineiras do circuito (trocar se sujo ou com mau funcionamento).', 'Drenar condensado do circuito para longe do paciente.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['clorexidina', 'Higiene oral conforme protocolo'], ['dexmedetomidina', 'Sedação mais leve'], ['propofol', 'Sedação (interrupção diária)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Checar o bundle a cada turno e registrar adesão.', 'Higiene das mãos antes e depois de manipular a via aérea.', 'Aspiração traqueal só quando necessária, com técnica asséptica.'] }
+      ] },
+
+    { id: 'ics-cvc', nome: 'Prevenção de infecção de cateter central', icon: '🧷', grupo: 'infecto',
+      resumo: 'Bundle de inserção e de manutenção: barreira máxima, clorexidina, desinfecção dos conectores, curativo íntegro e retirada assim que possível.',
+      msd: [['Acesso vascular', '/pt/profissional/medicina-de-cuidados-críticos/abordagem-do-paciente-criticamente-enfermo/acesso-vascular'], ['Bacteremia', '/pt/profissional/doenças-infecciosas/biologia-das-doenças-infecciosas/bacteremia']],
+      secoes: [
+        { t: 'Inserção', tipo: 'passos', itens: ['Higiene das mãos e precaução de barreira máxima (gorro, máscara, avental e luvas estéreis, campo amplo).',
+          'Antissepsia da pele com clorexidina alcoólica, aguardando secar.', 'Preferir subclávia ou jugular a femoral em adultos; usar ultrassom; checklist de inserção.'] },
+        { t: 'Manutenção', tipo: 'passos', itens: ['Desinfetar conectores e torneirinhas com álcool 70% por fricção antes de cada acesso.',
+          'Curativo transparente trocado conforme protocolo (em geral a cada 7 dias) ou gaze a cada 48 h — ou antes, se úmido, solto ou sujo.', 'Trocar equipos conforme o tipo de infusão e protocolo.',
+          'Avaliar diariamente a necessidade do cateter e retirar o quanto antes.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['clorexidina', 'Antissepsia da pele'], [null, 'Álcool 70% para desinfecção de conectores']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Inspecionar o sítio a cada turno (hiperemia, secreção, dor).', 'Febre sem foco em paciente com cateter: comunicar, colher hemoculturas conforme protocolo.'] }
+      ] },
+
+    { id: 'itu-cateter', nome: 'Prevenção de ITU associada à sonda vesical', icon: '🧪', grupo: 'infecto',
+      resumo: 'Indicar corretamente, inserir com técnica asséptica, manter sistema fechado e retirar a sonda o mais cedo possível.',
+      msd: [['ITU relacionada a cateter', '/pt/profissional/doenças-infecciosas/infecções-do-trato-urinário/infecções-bacterianas-do-trato-urinário-relacionadas-a-catéter'], ['Cateterismo vesical', '/pt/profissional/distúrbios-geniturinários/abordagem-do-paciente-com-problemas-urológicos/cateterismo-vesical']],
+      secoes: [
+        { t: 'Bundle', tipo: 'passos', itens: ['Sondar só com indicação (retenção, débito urinário em pacientes críticos, cirurgias específicas, cuidados de fim de vida); considerar alternativas.',
+          'Técnica asséptica, material estéril e o menor calibre adequado.', 'Sistema fechado; bolsa abaixo do nível da bexiga, sem tocar o chão; fluxo sem dobras.',
+          'Esvaziar a bolsa com frasco individual, sem contato da saída com o frasco.', 'Fixar a sonda (coxa ou abdome) e higienizar o meato com água e sabão diariamente.', 'Rever a necessidade todos os dias e retirar assim que possível.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['clorexidina', 'Antissepsia na inserção (conforme protocolo)'], ['lidocaina', 'Gel anestésico para inserção']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Não trocar a sonda rotineiramente em intervalos fixos.', 'Coletar urina pelo dispositivo próprio, nunca da bolsa.'] }
+      ] },
+
+    { id: 'dai', nome: 'Dermatite associada à incontinência', icon: '🧴', grupo: 'feridas',
+      resumo: 'Limpeza suave, proteção com barreira e controle da incontinência; diferenciar de lesão por pressão.',
+      msd: [['Incontinência urinária em adultos', '/pt/profissional/distúrbios-geniturinários/distúrbios-miccionais/incontinência-urinária-em-adultos'], ['Intertrigo', '/pt/profissional/distúrbios-dermatológicos/infecções-fúngicas-da-pele/intertrigo']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Eritema e erosões difusas, superficiais, de bordas mal definidas em área exposta a urina/fezes (períneo, glúteos, virilha).', 'Lesão por pressão costuma ser localizada sobre proeminência óssea, com bordas definidas.', 'Lesões satélites e prurido sugerem candidíase associada.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Limpar logo após cada episódio com produto de pH próximo ao da pele, sem esfregar.',
+          'Secar delicadamente e aplicar protetor de barreira (óxido de zinco, polímero acrílico ou dimeticona).', 'Manejar a causa: horários de troca, coletores, avaliação da diarreia.', 'Candidíase: antifúngico tópico conforme prescrição.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['oxido-zinco', 'Barreira'], ['nistatina', 'Candidíase'], ['clotrimazol', 'Candidíase']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Evitar múltiplas camadas de fralda/forros.', 'Registrar a evolução e fotografar conforme protocolo.'] }
+      ] },
+
+    { id: 'ferida-operatoria', nome: 'Ferida operatória', icon: '🩹', grupo: 'feridas',
+      resumo: 'Curativo estéril inicial, avaliação diária, reconhecimento precoce de infecção de sítio cirúrgico e deiscência.',
+      msd: [['Como limpar, irrigar, desbridar e fazer curativos em feridas', '/pt/profissional/lesões-intoxicação/como-cuidar-de-feridas-e-lacerações/como-limpar-irrigar-desbridar-e-fazer-curativos-em-feridas']],
+      secoes: [
+        { t: 'Cuidados', tipo: 'passos', itens: ['Manter o curativo estéril do centro cirúrgico pelas primeiras 24–48 h, salvo se saturado ou solto.',
+          'Trocar com técnica asséptica; limpar com SF 0,9% do centro para fora.', 'Avaliar: bordas, secreção, hiperemia, calor, edema, dor e febre.',
+          'Drenos: registrar débito e aspecto; fixar sem tração.'] },
+        { t: 'Sinais de alerta', tipo: 'lista', itens: ['Infecção: secreção purulenta, hiperemia progressiva, calor, dor crescente, febre.', 'Deiscência: cobrir com gaze umedecida em SF 0,9% e comunicar.', 'Evisceração: emergência — paciente em repouso, cobrir com compressa estéril úmida, não reintroduzir as vísceras, comunicar a equipe cirúrgica.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['soro-fisiologico', 'Limpeza'], ['clorexidina', 'Antissepsia de pele íntegra'], ['cefazolina', 'Profilaxia cirúrgica (dose pré-incisão)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Orientar a alta: banho, sinais de infecção, retirada de pontos.', 'Controle glicêmico e nutrição favorecem a cicatrização.'] }
+      ] },
+
+    { id: 'hiperglicemia-hosp', nome: 'Hiperglicemia no paciente internado', icon: '🩸', grupo: 'metabolico',
+      resumo: 'Metas de glicemia hospitalar, insulina basal-bolus em vez de escala isolada, monitorização e prevenção de hipoglicemia.',
+      msd: [['Diabetes mellitus tipo 2', '/pt/profissional/distúrbios-endócrinos-e-metabólicos/diabetes-melito-e-hipoglicemia/diabetes-mellitus-tipo-2'], ['Hipoglicemia', '/pt/profissional/distúrbios-endócrinos-e-metabólicos/diabetes-melito-e-hipoglicemia/hipoglicemia']],
+      secoes: [
+        { t: 'Metas e monitorização', tipo: 'lista', itens: ['Meta habitual 140–180 mg/dL para a maioria dos internados (ADA).', 'Glicemia capilar antes das refeições e ao deitar se come; a cada 4–6 h em jejum ou dieta contínua.', 'Hipoglicemia: < 70 mg/dL; grave: < 54 mg/dL ou necessidade de ajuda.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Preferir esquema basal + prandial + correção; a escala de correção isolada não é recomendada como tratamento único.',
+          'Jejum: manter insulina basal com dose ajustada conforme prescrição; suspender a prandial.', 'Hipoglicemia consciente: 15 g de carboidrato de absorção rápida e repetir glicemia em 15 min; inconsciente: glicose EV ou glucagon.',
+          'Sempre registrar a causa da hipoglicemia e comunicar.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['insulina-glargina', 'Basal'], ['insulina-nph', 'Basal'], ['insulina-rapida', 'Prandial/correção'], ['insulina-regular', 'Prandial/correção ou EV'], ['glicose-50', 'Hipoglicemia grave'], ['glucagon', 'Hipoglicemia sem acesso venoso']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Dupla checagem de insulina; relacionar o horário com a chegada da refeição.', 'Rodízio de locais; nunca aspirar insulina de caneta com seringa.', 'Use a Agenda do plantão para os horários de glicemia.'] }
+      ] },
+
+    { id: 'hipotermia', nome: 'Hipotermia acidental', icon: '🥶', grupo: 'outros',
+      resumo: 'Manuseio cuidadoso, retirar roupas molhadas, aquecimento conforme a gravidade e RCP adaptada na parada.',
+      msd: [['Hipotermia', '/pt/profissional/lesões-intoxicação/lesões-por-frio/hipotermia']],
+      secoes: [
+        { t: 'Classificar', tipo: 'lista', itens: ['Leve: 32–35 °C (tremores, confusão leve).', 'Moderada: 28–32 °C (tremores cessam, rebaixamento).', 'Grave: < 28 °C (inconsciência, risco de arritmias e PCR).', 'Usar termômetro de baixa leitura/central quando possível.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Manusear delicadamente e manter horizontal (risco de fibrilação ventricular).',
+          'Retirar roupas molhadas, secar, isolar do ambiente (cobertores, manta térmica).', 'Aquecimento ativo externo (mantas de ar quente) e fluidos EV aquecidos; O₂ aquecido e umidificado.',
+          'Grave/PCR: RCP de alta qualidade e encaminhar para reaquecimento avançado; a morte só é confirmada após reaquecimento.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['soro-fisiologico', 'Aquecido (38–42 °C)'], ['ringer-lactato', 'Alternativa aquecida'], ['glicose-50', 'Se hipoglicemia']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Monitorização cardíaca contínua e temperatura seriada.', 'Atenção a lesões por frio associadas e queimaduras por aquecedores.'] }
       ] }
   ];
 
@@ -721,7 +941,28 @@
     'ancp': { br: true, org: 'Academia Nacional de Cuidados Paliativos (ANCP)', t: 'Manual de Cuidados Paliativos (2ª ed., 2012)' },
     'sobest': { br: true, org: 'SOBEST / SOBENDE', t: 'Classificação das lesões por pressão — consenso NPUAP 2016 adaptado culturalmente para o Brasil' },
     'sobrasa': { br: true, org: 'Sociedade Brasileira de Salvamento Aquático (SOBRASA)', t: 'Diretrizes de atendimento ao afogamento — classificação de Szpilman' },
+    'ms-ist': { br: true, org: 'Ministério da Saúde', t: 'Protocolo Clínico e Diretrizes Terapêuticas para Atenção Integral às Pessoas com IST (PCDT-IST, 2022)' },
+    'anvisa-iras': { br: true, org: 'Anvisa', t: 'Medidas de prevenção de infecção relacionada à assistência à saúde (Série Segurança do Paciente, 2017)' },
+    'sbc-fa': { br: true, org: 'Sociedade Brasileira de Cardiologia (SBC)', t: 'II Diretrizes Brasileiras de Fibrilação Atrial (2016)' },
+    'sbpt-pac': { br: true, org: 'Sociedade Brasileira de Pneumologia e Tisiologia (SBPT)', t: 'Diretrizes brasileiras para pneumonia adquirida na comunidade em adultos imunocompetentes (2009) e recomendações atualizadas' },
+    'abp-agitacao': { br: true, org: 'Associação Brasileira de Psiquiatria (ABP)', t: 'Diretrizes brasileiras para o manejo da agitação psicomotora (Baldaçara et al., Braz J Psychiatry, 2019)' },
+    'cofen-427': { br: true, org: 'Conselho Federal de Enfermagem (COFEN)', t: 'Resolução COFEN nº 427/2012 — contenção mecânica de pacientes' },
+    'sbcef': { br: true, org: 'Sociedade Brasileira de Cefaleia (SBCe)', t: 'Recomendações para o tratamento da crise migranosa (Arq Neuropsiquiatr, 2000) e atualizações' },
+    'braspen': { br: true, org: 'Sociedade Brasileira de Nutrição Parenteral e Enteral (BRASPEN)', t: 'Diretrizes BRASPEN de terapia nutricional (edição vigente)' },
     // Internacionais
+    'esc-fa': { org: 'European Society of Cardiology (ESC)', t: 'Guidelines for the management of atrial fibrillation (2024)' },
+    'ats-pac': { org: 'American Thoracic Society / IDSA', t: 'Diagnosis and Treatment of Adults with Community-acquired Pneumonia (2019)' },
+    'idsa-itu': { org: 'Infectious Diseases Society of America (IDSA)', t: 'International Clinical Practice Guidelines for Acute Uncomplicated Cystitis and Pyelonephritis in Women (2011)' },
+    'ahs-cefaleia': { org: 'American Headache Society (AHS)', t: 'Parenteral pharmacotherapy for acute migraine in the emergency department (2016)' },
+    'bts-o2': { org: 'British Thoracic Society (BTS)', t: 'Guideline for oxygen use in healthcare and emergency settings (2017)' },
+    'aspen-ne': { org: 'American Society for Parenteral and Enteral Nutrition (ASPEN)', t: 'Safe Practices for Enteral Nutrition Therapy (2017)' },
+    'shea-pav': { org: 'SHEA / IDSA / APIC', t: 'Strategies to prevent ventilator-associated pneumonia and events in acute-care hospitals (2022)' },
+    'cdc-cvc': { org: 'Centers for Disease Control and Prevention (CDC)', t: 'Guidelines for the Prevention of Intravascular Catheter-Related Infections (2011, atualizado 2017)' },
+    'cdc-cauti': { org: 'Centers for Disease Control and Prevention (CDC)', t: 'Guideline for Prevention of Catheter-Associated Urinary Tract Infections (2009, atualizado 2019)' },
+    'ins': { org: 'Infusion Nurses Society (INS)', t: 'Infusion Therapy Standards of Practice (9ª ed., 2024)' },
+    'globiad': { org: 'Beeckman et al. / Universidade de Ghent', t: 'Ghent Global IAD Categorisation Tool (GLOBIAD, 2017)' },
+    'oms-isc': { org: 'Organização Mundial da Saúde (OMS)', t: 'Global guidelines for the prevention of surgical site infection (2ª ed., 2018)' },
+    'wms-hipotermia': { org: 'Wilderness Medical Society', t: 'Clinical Practice Guidelines for the Out-of-Hospital Evaluation and Treatment of Accidental Hypothermia (2019)' },
     'aha': { org: 'American Heart Association (AHA)', t: 'Guidelines for CPR and Emergency Cardiovascular Care — ACLS/BLS (edição vigente)' },
     'aha-pals': { org: 'American Heart Association (AHA)', t: 'Pediatric Advanced Life Support — PALS (edição vigente)' },
     'ilcor': { org: 'International Liaison Committee on Resuscitation (ILCOR)', t: 'Consensus on Science with Treatment Recommendations — CoSTR (atualização anual)' },
@@ -771,6 +1012,11 @@
 
   // Fontes de cada protocolo (chaves de REFS). O Manual MSD aparece à parte, como leitura complementar.
   var FONTES = {
+    'fa': ['sbc-fa', 'esc-fa', 'aha'], 'pneumonia': ['sbpt-pac', 'ats-pac'], 'itu': ['idsa-itu', 'ms-gar'], 'cefaleia': ['sbcef', 'ahs-cefaleia'],
+    'agitacao': ['abp-agitacao', 'cofen-427'], 'irpa': ['bts-o2', 'sbpt-dpoc'], 'pcr-ped': ['sbc-rcp', 'aha-pals', 'ilcor'], 'sifilis-gestacao': ['ms-ist', 'ms-gar'],
+    'extravasamento': ['ins', 'ms-pnsp'], 'hemotransfusao': ['ms-hemo', 'anvisa-hemovig', 'aabb'], 'nutricao-enteral': ['braspen', 'aspen-ne'], 'pav': ['anvisa-iras', 'shea-pav'],
+    'ics-cvc': ['anvisa-iras', 'cdc-cvc', 'ins'], 'itu-cateter': ['anvisa-iras', 'cdc-cauti'], 'dai': ['sobest', 'globiad'], 'ferida-operatoria': ['anvisa-iras', 'oms-isc'],
+    'hiperglicemia-hosp': ['sbd', 'ada-soc'], 'hipotermia': ['wms-hipotermia', 'erc', 'aha'],
     'sepse': ['ilas', 'ssc'], 'choque-hipo': ['phtls', 'atls', 'trauma-sangramento', 'ms-samu'], 'anafilaxia': ['wao', 'aha', 'ms-samu'],
     'cad': ['sbd', 'ada-crise'], 'hipoglicemia': ['sbd', 'ada-soc', 'ms-samu'], 'hiperk': ['ukka-k', 'aha'], 'hipok': ['ukka-k', 'sbc-rcp'], 'hipona': ['eu-na'],
     'emerg-has': ['sbc-has'], 'sca': ['sbc-sca', 'esc-sca', 'aha', 'ms-samu'], 'eap': ['sbc-ic', 'esc-ic'], 'avc': ['ms-avc', 'aha-avc', 'ms-samu'],
