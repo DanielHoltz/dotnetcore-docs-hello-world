@@ -66,7 +66,7 @@ for r in rows:
     if r[ix['COMERCIALIZAÇÃO 2025']]=='Sim': g['com']+=1
 # app drugs to link
 app=json.loads(subprocess.run(['node','-e',"const D=require('%sdata.js'),X=require('%sbulario_extra.js'),R=require('%srevisoes.js');console.log(JSON.stringify([...D.DRUGS.map(d=>[d.id,d.nome,R.BUSCA_ANVISA[d.id]||'']),...X.EXTRAS.map(x=>[x.id,x.nome,''])]))"%(JS,JS,JS)],capture_output=True,text=True).stdout)
-SIN={'imipenem':'CILASTATINA + IMIPENÉM','cefalotina':'CEFALOTINA SODICA','heparina':'HEPARINA SÓDICA SUÍNA','nitroprussiato':'NITROPRUSSETO','fentanil':'FENTANILA','fentanil-transdermico':'FENTANILA','escopolamina':'BUTILBROMETO DE ESCOPOLAMINA',
+SIN={'medroxiprogesterona':'MEDROXIPROGESTERONA','imipenem':'CILASTATINA + IMIPENÉM','cefalotina':'CEFALOTINA SODICA','heparina':'HEPARINA SÓDICA SUÍNA','nitroprussiato':'NITROPRUSSETO','fentanil':'FENTANILA','fentanil-transdermico':'FENTANILA','escopolamina':'BUTILBROMETO DE ESCOPOLAMINA',
 'vasopressina':'VASOPRESSINA SINTETICA','cetamina':'ESCETAMINA','rocuronio':'BROMETO DE ROCURÔNIO','succinilcolina':'CLORETO DE SUXAMETÔNIO','cetorolaco':'CETOROLACO TROMETAMINA','valproato':'VALPROATO',
 'isossorbida':'MONONITRATO DE ISOSSORBIDA','sinvastatina':'SINVASTATINA','apixabana':'APIXABANA','glibenclamida':'GLIBENCLAMIDA','insulina-glargina':'INSULINA GLARGINA','insulina-rapida':'INSULINA ASPARTE',
 'prednisona':'PREDNISONA','budesonida':'BUDESONIDA','salbutamol':'SALBUTAMOL','albumina':'ALBUMINA HUMANA','carvao-ativado':'CARVÃO VEGETAL ATIVADO','cianocobalamina':'CIANOCOBALAMINA','manitol':'MANITOL',

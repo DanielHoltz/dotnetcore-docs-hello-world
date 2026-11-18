@@ -762,7 +762,15 @@
     { id: 'cloreto-calcio', nome: 'Cloreto de cálcio 10%', classe: 'Eletrólito (cálcio)', cat: 'eletrolito', via: 'Injetável',
       apres: 'Ampola 10% 10 mL (1 g = 13,6 mEq; 273 mg de cálcio elementar)', ind: 'Hiperpotassemia grave, hipocalcemia sintomática, intoxicação por bloqueador de canal de cálcio, PCR com hipercalemia.',
       enf: 'EV lento, preferencialmente em veia central ou calibrosa; fornece ~3x mais cálcio que o gluconato a 10%.',
-      alerta: 'Muito irritante: necrose se extravasar. Não misturar com bicarbonato (precipita). Cautela com digoxina.', ap: [['Ampola 10% 10 mL (1 g)', 1000, 'mg', 10]] }
+      alerta: 'Muito irritante: necrose se extravasar. Não misturar com bicarbonato (precipita). Cautela com digoxina.', ap: [['Ampola 10% 10 mL (1 g)', 1000, 'mg', 10]] },
+    { id: 'medroxiprogesterona', nome: 'Medroxiprogesterona injetável (trimestral)', classe: 'Contraceptivo hormonal (progestagênio)', cat: 'hormonio', via: 'Injetável (IM)',
+      apres: 'Seringa/frasco 150 mg/mL (1 mL)', ind: 'Contracepção injetável trimestral.',
+      enf: 'Agitar bem; IM profunda (glúteo ou deltoide), sem massagear; aplicar nos primeiros 5 dias do ciclo na 1ª dose; agendar a próxima em até 13 semanas; com atraso, excluir gravidez antes de aplicar.',
+      alerta: 'Pode causar alteração do sangramento e redução da densidade óssea com uso prolongado; retorno da fertilidade pode demorar.', ap: [['Frasco 150 mg/mL', 150, 'mg', 1]] },
+    { id: 'levonorgestrel', nome: 'Levonorgestrel (contracepção de emergência)', classe: 'Contraceptivo de emergência (progestagênio)', cat: 'hormonio', via: 'Oral',
+      apres: 'Comprimido 1,5 mg (ou 2 de 0,75 mg)', ind: 'Contracepção de emergência após relação desprotegida ou falha do método; violência sexual (protocolo do MS).',
+      enf: 'Quanto antes, melhor: idealmente até 72 h (pode ser usado até 5 dias, com menor eficácia). Se vomitar logo após (bula: até 2 h; OMS: até 3 h), procurar orientação para repetir a dose. Orientar método regular.',
+      alerta: 'Não é abortivo nem método de rotina. Menor eficácia em pessoas com obesidade e com indutores enzimáticos.' }
   ];
 
   // Posologia usual de referência (adulto) — sempre conferir a prescrição e a bula
@@ -962,7 +970,9 @@
     'glicerina-supositorio': '1 supositório por via retal, 1x/dia se necessário.',
     'cloreto-sodio-20': 'Conforme prescrição, sempre diluído (ex.: preparo de NaCl 3%: 110 mL de NaCl 20% + 890 mL de SF 0,9%). Correção máx. de 8–10 mEq/L de sódio em 24 h.',
     'fosfato-potassio': 'Hipofosfatemia: 0,08–0,32 mmol/kg de fósforo EV em 4–6 h conforme a gravidade, respeitando a velocidade máxima de potássio.',
-    'cloreto-calcio': '200–1.000 mg EV (2–10 mL a 10%); fora da PCR, no máximo 100 mg/min (1 mL/min). Na PCR com hipercalemia: 500–1.000 mg EV lento.'
+    'cloreto-calcio': '200–1.000 mg EV (2–10 mL a 10%); fora da PCR, no máximo 100 mg/min (1 mL/min). Na PCR com hipercalemia: 500–1.000 mg EV lento.',
+    'medroxiprogesterona': '150 mg IM profunda a cada 3 meses (13 semanas); acima de 13 semanas, excluir gravidez antes de aplicar.',
+    'levonorgestrel': '1,5 mg VO em dose única, o mais cedo possível (até 72 h; eficácia menor até 120 h).'
   };
 
 
@@ -1165,7 +1175,9 @@
     'glicerina-supositorio': { st: 'ok', nota: "", fontes: [["Bula FDA (DailyMed): Glycerin — Chain Drug Consortium LLC, versão 2025-10-24", "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=022dd494-cb3c-4fa7-be99-4c38fabdc612"]] },
     'cloreto-sodio-20': { st: 'sem-fonte', nota: "Sem bula na FDA (produto/apresentação brasileira); conferir na bula da Anvisa.", fontes: [] },
     'fosfato-potassio': { st: 'parcial', nota: "A apresentação americana é mais concentrada (3 mmol/mL); a brasileira tem 2 mEq/mL de K — conferir o rótulo.", fontes: [["Bula FDA (DailyMed): Potassium Phosphates — Hospira, Inc., versão 2025-09-30", "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=2fcbc814-c7a4-469a-8b1d-6819b961bfb9"]] },
-    'cloreto-calcio': { st: 'ajustado', nota: "Incluída a velocidade máxima de infusão da bula (100 mg/min).", fontes: [["Bula FDA (DailyMed): Calcium Chloride — Henry Schein, Inc., versão 2026-10-27", "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=0a3b8e0e-efb0-465b-84cb-d120b3096ebd"]] }
+    'cloreto-calcio': { st: 'ajustado', nota: "Incluída a velocidade máxima de infusão da bula (100 mg/min).", fontes: [["Bula FDA (DailyMed): Calcium Chloride — Henry Schein, Inc., versão 2026-10-27", "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=0a3b8e0e-efb0-465b-84cb-d120b3096ebd"]] },
+    'medroxiprogesterona': { st: 'ok', nota: "", fontes: [["Bula FDA (DailyMed): MEDROXYPROGESTERONE ACETATE — Sun Pharmaceutical Industries, Inc., versão 2022-12-14", "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=01e28bef-9758-40cf-a4ff-86ae9f4f5105"]] },
+    'levonorgestrel': { st: 'parcial', nota: "Bula americana (venda livre) orienta tomar até 72 h; uso até 120 h com eficácia menor segue a OMS/Ministério da Saúde.", fontes: [["Bula FDA (DailyMed): PostDay One-Step — Home Health Brands, LLC, versão 2025-04-23", "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=01c8c95c-6fbe-4068-915d-74418a6bb570"]] }
   };
 
   var api = { EXTRAS: EXTRAS, DOSE: DOSE, CONFERENCIA: CONFERENCIA, CONF_DATA: CONF_DATA };

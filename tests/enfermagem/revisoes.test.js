@@ -135,12 +135,13 @@ test('módulos por área: referências válidas', () => {
   const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
   const ids = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
   const prot = new Set(PR.PROTOCOLOS.map(p => p.id)), esc = new Set(D.SCALES.map(s => s.id));
-  assert.ok(MOD.MODULOS.length >= 7);
+  assert.ok(MOD.MODULOS.length >= 8);
   for (const m of MOD.MODULOS) {
     m.drogas.forEach(i => assert.ok(ids.has(i), m.id + ' droga ' + i));
     m.protocolos.forEach(i => assert.ok(prot.has(i), m.id + ' protocolo ' + i));
     m.escalas.forEach(i => assert.ok(esc.has(i), m.id + ' escala ' + i));
     m.atalhos.forEach(a => assert.ok(a[0].startsWith('#/') && a[2]));
+    assert.ok(m.protocolos.length >= 5 && m.drogas.length >= 12 && m.escalas.length >= 3 && m.calcs.length >= 3, m.id + ' módulo incompleto');
   }
 });
 
@@ -194,4 +195,16 @@ test('protocolos: todos com referências institucionais (brasileiras e/ou intern
   for (const k of Object.values(PR.FONTES).flat()) assert.ok(PR.REFS[k], 'referência inexistente: ' + k);
   const comBR = PR.PROTOCOLOS.filter(p => PR.fontes(p.id).some(r => r.br)).length;
   assert.ok(comBR >= 40, 'protocolos com referência brasileira: ' + comBR);
+});
+
+test('escalas novas: pontuação e interpretação', () => {
+  const S = id => D.SCALES.find(s => s.id === id);
+  assert.strictEqual(S('cincinnati').interp(1).level, 'bad');
+  assert.strictEqual(S('curb65').interp(3).level, 'bad');
+  assert.strictEqual(S('curb65').interp(1).level, 'ok');
+  assert.match(S('wells-tep').interp(7).txt, /alta/);
+  assert.strictEqual(S('bishop').interp(9).level, 'ok');
+  assert.strictEqual(S('katz').interp(6).level, 'ok');
+  assert.strictEqual(S('push').interp(0).txt, 'Lesão cicatrizada');
+  assert.ok(D.SCALES.every(s => s.items.length && typeof s.interp === 'function'));
 });

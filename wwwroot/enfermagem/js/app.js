@@ -375,6 +375,58 @@
           notes: ['AG = Na − (Cl + HCO₃). Elevado sugere cetoacidose, acidose lática, insuficiência renal ou intoxicações. Referência varia entre laboratórios.'] };
       } },
 
+    { id: 'debito-urinario', cat: 'clinico', icon: '🚽', title: 'Débito urinário', desc: 'Diurese em mL/kg/h',
+      fields: [{ id: 'vol', label: 'Diurese no período', unit: 'mL', def: 300, chips: [100, 200, 300, 500, 1000] }, { id: 'h', label: 'Período', unit: 'h', def: 6, chips: [1, 6, 12, 24] },
+        { id: 'peso', label: 'Peso', unit: 'kg', def: 70 }, { id: 'tipo', label: 'Paciente', type: 'seg', options: [['a', 'Adulto'], ['c', 'Criança']], def: 'a' }],
+      compute: function (v) {
+        if (!(v.vol >= 0) || !(v.h > 0) || !(v.peso > 0)) return null;
+        var r = v.vol / v.h / v.peso, lim = v.tipo === 'c' ? 1 : 0.5;
+        return { results: [{ label: 'Débito urinário', value: fmt(r, 2), unit: 'mL/kg/h', main: true, sub: r < lim ? 'Abaixo de ' + fmt(lim, 1) + ' mL/kg/h (oligúria)' : 'Adequado (≥ ' + fmt(lim, 1) + ' mL/kg/h)' },
+          { label: 'Média por hora', value: fmt(v.vol / v.h, 0), unit: 'mL/h' }],
+          warns: r < lim ? ['Débito urinário baixo: avaliar perfusão, hidratação e sonda; comunicar a equipe.'] : [] };
+      } },
+
+    { id: 'indice-choque', cat: 'clinico', icon: '📉', title: 'Índice de choque', desc: 'FC ÷ PAS — triagem de hipovolemia e hemorragia',
+      fields: [{ id: 'fc', label: 'Frequência cardíaca', unit: 'bpm', def: 110 }, { id: 'pas', label: 'PA sistólica', unit: 'mmHg', def: 100 },
+        { id: 'tipo', label: 'Contexto', type: 'seg', options: [['g', 'Geral'], ['o', 'Obstétrico']], def: 'g' }],
+      compute: function (v) {
+        if (!(v.fc > 0) || !(v.pas > 0)) return null;
+        var ic = v.fc / v.pas, lim = v.tipo === 'o' ? 0.9 : 1;
+        return { results: [{ label: 'Índice de choque', value: fmt(ic, 2), main: true, sub: ic >= lim ? 'Elevado (≥ ' + fmt(lim, 1) + ')' : 'Abaixo de ' + fmt(lim, 1) }],
+          warns: ic >= lim ? [v.tipo === 'o' ? 'Índice de choque obstétrico ≥ 0,9: perda sanguínea importante provável — acionar protocolo de hemorragia pós-parto.' : 'Índice ≥ 1: sugere choque — avaliar sangramento e perfusão.'] : [],
+          notes: ['Referência: valores normais em torno de 0,5–0,7. O índice obstétrico usa o ponto de corte 0,9 (OPAS/OMS).'] };
+      } },
+
+    { id: 'relacao-pf', cat: 'clinico', icon: '🫁', title: 'Relação PaO₂/FiO₂', desc: 'Oxigenação e classificação da SDRA',
+      fields: [{ id: 'pao2', label: 'PaO₂ (gasometria arterial)', unit: 'mmHg', def: 80 }, { id: 'fio2', label: 'FiO₂', unit: '%', def: 40, chips: [21, 30, 40, 50, 60, 80, 100] }],
+      compute: function (v) {
+        if (!(v.pao2 > 0) || !(v.fio2 >= 21 && v.fio2 <= 100)) return { error: 'Informe a PaO₂ e a FiO₂ entre 21% e 100%.' };
+        var pf = v.pao2 / (v.fio2 / 100);
+        var cl = pf > 300 ? 'Acima de 300' : pf > 200 ? 'SDRA leve (200–300)' : pf > 100 ? 'SDRA moderada (100–200)' : 'SDRA grave (≤ 100)';
+        return { results: [{ label: 'PaO₂/FiO₂', value: fmt(pf, 0), main: true, sub: cl }],
+          notes: ['A classificação de SDRA (Berlim) vale com PEEP ≥ 5 cmH₂O e quadro compatível; a relação isolada não faz o diagnóstico.'] };
+      } },
+
+    { id: 'osmolalidade', cat: 'solucoes', icon: '🧂', title: 'Osmolalidade sérica calculada', desc: '2 × Na + glicose/18 + ureia/6',
+      fields: [{ id: 'na', label: 'Sódio', unit: 'mEq/L', def: 140 }, { id: 'gli', label: 'Glicemia', unit: 'mg/dL', def: 100 }, { id: 'ur', label: 'Ureia', unit: 'mg/dL', def: 30 }],
+      compute: function (v) {
+        if (!(v.na > 0) || !(v.gli > 0) || !(v.ur >= 0)) return null;
+        var o = 2 * v.na + v.gli / 18 + v.ur / 6, ef = 2 * v.na + v.gli / 18;
+        return { results: [{ label: 'Osmolalidade calculada', value: fmt(o, 0), unit: 'mOsm/kg', main: true, sub: o < 275 ? 'Baixa (< 275)' : o > 295 ? 'Elevada (> 295)' : 'Referência usual 275–295' },
+          { label: 'Osmolalidade efetiva (tonicidade)', value: fmt(ef, 0), unit: 'mOsm/kg', sub: ef > 300 ? '> 300: compatível com estado hiperosmolar se hiperglicemia grave' : '' }],
+          notes: ['Com ureia em mg/dL divide-se por 6 (equivale a BUN ÷ 2,8). Referências variam entre laboratórios.'] };
+      } },
+
+    { id: 'peso-predito', cat: 'clinico', icon: '📐', title: 'Peso predito e volume corrente', desc: 'Ventilação protetora: 6–8 mL/kg de peso predito',
+      fields: [{ id: 'alt', label: 'Altura', unit: 'cm', def: 170 }, { id: 'sexo', label: 'Sexo', type: 'seg', options: [['m', 'Masculino'], ['f', 'Feminino']], def: 'm' }],
+      compute: function (v) {
+        if (!(v.alt >= 120 && v.alt <= 230)) return { error: 'Informe a altura em centímetros (120–230).' };
+        var pp = (v.sexo === 'f' ? 45.5 : 50) + 0.91 * (v.alt - 152.4);
+        return { results: [{ label: 'Peso predito', value: fmt(pp, 1), unit: 'kg', main: true },
+          { label: 'Volume corrente 6 mL/kg', value: fmt(pp * 6, 0), unit: 'mL' }, { label: '7 mL/kg', value: fmt(pp * 7, 0), unit: 'mL' }, { label: '8 mL/kg', value: fmt(pp * 8, 0), unit: 'mL' }],
+          notes: ['Fórmula ARDSNet: homem 50 + 0,91 × (altura − 152,4); mulher 45,5 + 0,91 × (altura − 152,4). Use a altura, não o peso real.'] };
+      } },
+
     { id: 'balanco', cat: 'clinico', icon: '📊', title: 'Balanço hídrico', desc: 'Entradas − saídas',
       fields: [
         { id: 'ev', label: 'Entradas: endovenosas', unit: 'mL', def: 1500 },

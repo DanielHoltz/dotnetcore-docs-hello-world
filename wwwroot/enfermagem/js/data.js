@@ -943,6 +943,115 @@
         if (s <= 3) return { score: s, txt: 'Dor leve', level: 'ok' };
         if (s <= 6) return { score: s, txt: 'Dor moderada', level: 'warn' };
         return { score: s, txt: 'Dor intensa', level: 'bad' };
+      } },
+
+    { id: 'cincinnati', nome: 'Escala de Cincinnati (AVC)', desc: 'Triagem pré-hospitalar de AVC — qualquer item alterado sugere AVC',
+      fonte: 'Kothari et al., Ann Emerg Med 1999; Protocolos SAMU 192 (Ministério da Saúde)',
+      items: [
+        { label: 'Assimetria facial (pedir para sorrir/mostrar os dentes)', opts: [[0, 'Normal — os dois lados movem igualmente'], [1, 'Alterado — um lado não se move como o outro']] },
+        { label: 'Queda do braço (braços estendidos, olhos fechados, 10 s)', opts: [[0, 'Normal — os dois braços se mantêm'], [1, 'Alterado — um braço cai ou não se move']] },
+        { label: 'Fala (repetir uma frase simples)', opts: [[0, 'Normal — palavras corretas e sem arrastar'], [1, 'Alterada — arrastada, palavras erradas ou não consegue falar']] }
+      ],
+      interp: function (s) {
+        return s >= 1 ? { score: s, txt: 'Suspeita de AVC: anotar o horário do início dos sintomas (último momento visto bem), glicemia capilar e acionar o protocolo de AVC', level: 'bad' }
+                      : { score: s, txt: 'Sem alterações na triagem (não exclui AVC se houver outros sinais)', level: 'ok' };
+      } },
+
+    { id: 'curb65', nome: 'CURB-65', desc: 'Gravidade da pneumonia adquirida na comunidade',
+      fonte: 'Lim et al., Thorax 2003; Diretrizes brasileiras para pneumonia adquirida na comunidade (SBPT)',
+      items: [
+        { label: 'Confusão mental (nova)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Ureia > 7 mmol/L (≈ 42 mg/dL; a diretriz da SBPT usa > 50 mg/dL)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Frequência respiratória ≥ 30 irpm', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'PAS < 90 ou PAD ≤ 60 mmHg', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Idade ≥ 65 anos', opts: [[0, 'Não'], [1, 'Sim']] }
+      ],
+      interp: function (s) {
+        return s >= 3 ? { score: s, txt: 'Pneumonia grave — internação, considerar UTI (especialmente 4–5)', level: 'bad' }
+             : s === 2 ? { score: s, txt: 'Risco intermediário — considerar internação ou observação', level: 'warn' }
+             : { score: s, txt: 'Baixo risco — candidato a tratamento ambulatorial (avaliação clínica)', level: 'ok' };
+      } },
+
+    { id: 'wells-tep', nome: 'Escore de Wells (TEP)', desc: 'Probabilidade clínica de tromboembolia pulmonar',
+      fonte: 'Wells et al., Thromb Haemost 2000; ESC 2019',
+      items: [
+        { label: 'Sinais clínicos de TVP (edema, dor à palpação da veia)', opts: [[0, 'Não'], [3, 'Sim']] },
+        { label: 'TEP é o diagnóstico mais provável', opts: [[0, 'Não'], [3, 'Sim']] },
+        { label: 'Frequência cardíaca > 100 bpm', opts: [[0, 'Não'], [1.5, 'Sim']] },
+        { label: 'Imobilização ≥ 3 dias ou cirurgia nas últimas 4 semanas', opts: [[0, 'Não'], [1.5, 'Sim']] },
+        { label: 'TVP ou TEP prévios', opts: [[0, 'Não'], [1.5, 'Sim']] },
+        { label: 'Hemoptise', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Câncer ativo (tratamento nos últimos 6 meses ou paliativo)', opts: [[0, 'Não'], [1, 'Sim']] }
+      ],
+      interp: function (s) {
+        return s > 6 ? { score: s, txt: 'Probabilidade alta (> 6) — TEP provável', level: 'bad' }
+             : s >= 2 ? { score: s, txt: 'Probabilidade intermediária (2–6)' + (s > 4 ? ' — TEP provável pelo critério de 2 níveis (> 4)' : ' — TEP improvável pelo critério de 2 níveis (≤ 4)'), level: 'warn' }
+             : { score: s, txt: 'Probabilidade baixa (< 2)', level: 'ok' };
+      } },
+
+    { id: 'push', nome: 'Escala PUSH (cicatrização)', desc: 'Acompanhamento da evolução de lesões por pressão e feridas crônicas',
+      fonte: 'NPUAP — Pressure Ulcer Scale for Healing (PUSH 3.0); adaptação brasileira: Santos et al., Rev Latino-Am Enfermagem 2005',
+      items: [
+        { label: 'Área: comprimento × largura (cm²)', opts: [[0, '0'], [1, '< 0,3'], [2, '0,3–0,6'], [3, '0,7–1,0'], [4, '1,1–2,0'], [5, '2,1–3,0'], [6, '3,1–4,0'], [7, '4,1–8,0'], [8, '8,1–12,0'], [9, '12,1–24,0'], [10, '> 24,0']] },
+        { label: 'Quantidade de exsudato', opts: [[0, 'Ausente'], [1, 'Pequena'], [2, 'Moderada'], [3, 'Grande']] },
+        { label: 'Tipo de tecido (o pior presente)', opts: [[0, 'Ferida fechada'], [1, 'Tecido epitelial'], [2, 'Tecido de granulação'], [3, 'Esfacelo'], [4, 'Tecido necrótico']] }
+      ],
+      interp: function (s) {
+        return s === 0 ? { score: s, txt: 'Lesão cicatrizada', level: 'ok' }
+                       : { score: s, txt: 'Pontuação de 0 a 17: compare a cada avaliação (geralmente semanal) — a queda indica melhora; o aumento, piora', level: s >= 12 ? 'bad' : s >= 7 ? 'warn' : 'ok' };
+      } },
+
+    { id: 'bishop', nome: 'Índice de Bishop', desc: 'Avaliação do colo uterino para indução do parto',
+      fonte: 'Bishop, Obstet Gynecol 1964; Febrasgo',
+      items: [
+        { label: 'Dilatação (cm)', opts: [[0, 'Fechado'], [1, '1–2'], [2, '3–4'], [3, '≥ 5']] },
+        { label: 'Esvaecimento (apagamento)', opts: [[0, '0–30%'], [1, '40–50%'], [2, '60–70%'], [3, '≥ 80%']] },
+        { label: 'Altura da apresentação (plano de De Lee)', opts: [[0, '−3'], [1, '−2'], [2, '−1 / 0'], [3, '+1 / +2']] },
+        { label: 'Consistência do colo', opts: [[0, 'Firme'], [1, 'Média'], [2, 'Amolecida']] },
+        { label: 'Posição do colo', opts: [[0, 'Posterior'], [1, 'Central'], [2, 'Anterior']] }
+      ],
+      interp: function (s) {
+        return s >= 8 ? { score: s, txt: 'Colo favorável (≥ 8) — boa chance de sucesso da indução', level: 'ok' }
+             : s >= 6 ? { score: s, txt: 'Colo intermediário (6–7)', level: 'warn' }
+             : { score: s, txt: 'Colo desfavorável (≤ 5) — preparo cervical conforme protocolo', level: 'bad' };
+      } },
+
+    { id: 'katz', nome: 'Índice de Katz (AVD)', desc: 'Independência nas atividades básicas de vida diária',
+      fonte: 'Katz et al., JAMA 1963; adaptação brasileira: Lino et al., Cad Saúde Pública 2008',
+      items: [
+        { label: 'Banho', opts: [[1, 'Independente (ou ajuda só para uma parte do corpo)'], [0, 'Dependente']] },
+        { label: 'Vestir-se', opts: [[1, 'Independente (exceto amarrar sapatos)'], [0, 'Dependente']] },
+        { label: 'Uso do banheiro', opts: [[1, 'Independente'], [0, 'Dependente']] },
+        { label: 'Transferência (cama/cadeira)', opts: [[1, 'Independente'], [0, 'Dependente']] },
+        { label: 'Continência', opts: [[1, 'Controle total de urina e fezes'], [0, 'Incontinência parcial ou total']] },
+        { label: 'Alimentação', opts: [[1, 'Independente'], [0, 'Dependente (ajuda, sonda ou via parenteral)']] }
+      ],
+      interp: function (s) {
+        return s === 6 ? { score: s, txt: 'Independente para todas as atividades básicas', level: 'ok' }
+             : s >= 3 ? { score: s, txt: 'Dependência parcial (' + (6 - s) + ' atividade' + (6 - s > 1 ? 's' : '') + ')', level: 'warn' }
+             : { score: s, txt: 'Dependência importante — planejar cuidados e apoio ao cuidador', level: 'bad' };
+      } },
+
+    { id: 'ecog', nome: 'Escala de desempenho ECOG', desc: 'Capacidade funcional (oncologia e cuidados paliativos)',
+      fonte: 'Oken et al., Am J Clin Oncol 1982 (Eastern Cooperative Oncology Group)',
+      items: [
+        { label: 'Situação atual', opts: [[0, '0 — Totalmente ativo, sem restrições'], [1, '1 — Restrito em atividade física intensa; deambula e faz trabalho leve'],
+          [2, '2 — Deambula e cuida de si, mas não trabalha; fora do leito > 50% do dia'], [3, '3 — Autocuidado limitado; leito ou cadeira > 50% do dia'], [4, '4 — Totalmente dependente; restrito ao leito ou cadeira']] }
+      ],
+      interp: function (s) {
+        return { score: s, txt: s <= 1 ? 'Bom desempenho funcional' : s === 2 ? 'Desempenho intermediário' : 'Desempenho baixo — priorizar conforto, prevenção de lesões e apoio ao cuidador', level: s <= 1 ? 'ok' : s === 2 ? 'warn' : 'bad' };
+      } },
+
+    { id: 'bristol', nome: 'Escala de Bristol (fezes)', desc: 'Forma das fezes — constipação e diarreia',
+      fonte: 'Lewis & Heaton, Scand J Gastroenterol 1997',
+      items: [
+        { label: 'Tipo de fezes', opts: [[1, 'Tipo 1 — caroços duros separados'], [2, 'Tipo 2 — formato de salsicha, encaroçada'], [3, 'Tipo 3 — salsicha com rachaduras na superfície'],
+          [4, 'Tipo 4 — salsicha lisa e macia'], [5, 'Tipo 5 — pedaços macios com bordas definidas'], [6, 'Tipo 6 — pedaços moles, bordas irregulares, pastosa'], [7, 'Tipo 7 — líquida, sem pedaços sólidos']] }
+      ],
+      interp: function (s) {
+        return s <= 2 ? { score: s, txt: 'Sugere constipação (trânsito lento)', level: 'warn' }
+             : s <= 5 ? { score: s, txt: 'Fezes dentro do esperado', level: 'ok' }
+             : { score: s, txt: 'Sugere diarreia — avaliar hidratação', level: 'warn' };
       } }
   ];
 
