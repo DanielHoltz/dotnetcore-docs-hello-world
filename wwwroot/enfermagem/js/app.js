@@ -2617,7 +2617,11 @@
   var CALC_PROT = { sepse: ['#/infusao/noradrenalina', '🫀 Noradrenalina em mL/h'], cad: ['#/infusao/insulina', '🫀 Insulina em bomba'], hipona: ['#/calc/adrogue', '🧂 Correção de sódio'],
     queimados: ['#/calc/parkland', '🔥 Calculadora de Parkland'], 'choque-hipo': ['#/calc/vazao-bomba', '⚙️ Vazão em bomba'], convulsao: ['#/emergencia-ped', '👶 Doses pediátricas de emergência'],
     tep: ['#/infusao/heparina', '🫀 Heparina em bomba'], 'emerg-has': ['#/infusao/nitroprussiato', '🫀 Nitroprussiato em mL/h'], eap: ['#/infusao/nitroglicerina', '🫀 Nitroglicerina em mL/h'],
-    hipok: ['#/calc/eletrolitos', '⚡ Eletrólitos mEq ↔ mL'], intox: ['#/compatibilidade', '🔗 Interações'] };
+    hipok: ['#/calc/eletrolitos', '⚡ Eletrólitos mEq ↔ mL'], intox: ['#/compatibilidade', '🔗 Interações'],
+    'pcr-adulto': ['#/pcr', '🚨 Abrir o Modo PCR'], bradicardia: ['#/infusao/dopamina', '🫀 Dopamina em mL/h'], taquicardia: ['#/droga/adenosina', '💊 Adenosina: preparo'],
+    'trauma-xabcde': ['#/droga/tranexamico', '💊 Ácido tranexâmico: preparo'], tce: ['#/escala/glasgow', '📋 Escala de Glasgow'], ehh: ['#/calc/sodio-corrigido', '🧂 Sódio corrigido pela glicemia'],
+    dengue: ['#/calc/holliday', '🍼 Hidratação de manutenção (criança)'], 'reanimacao-neonatal': ['#/emergencia-ped', '👶 Emergência pediátrica'], quedas: ['#/escala/morse', '📋 Escala de Morse'],
+    'seguranca-paciente': ['#/escala/braden', '📋 Escala de Braden'], 'tev-profilaxia': ['#/droga/enoxaparina', '💊 Enoxaparina: preparo'] };
   function nomeMed(id) {
     var d = D.DRUGS.filter(function (x) { return x.id === id; })[0];
     if (d) return d.nome;
@@ -2734,8 +2738,15 @@
         }).join('') + '</div>';
         return '<div class="sec"><h3>' + esc(s.t) + '</h3><ul class="howto">' + s.itens.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>';
       }).join('') +
-      '<div class="sec refs"><h3>📘 Manual MSD</h3><ul class="fontes">' + p.msd.map(function (m) { return '<li><a target="_blank" rel="noopener" href="' + esc(PR.urlMsd(m[1])) + '">' + esc(m[0]) + '</a></li>'; }).join('') + '</ul>' +
-      '<p class="note">Resumo próprio para consulta rápida; o tópico do MSD traz a explicação completa. Doses e condutas variam com o protocolo institucional e a prescrição.</p></div>';
+      (function () {
+        var fs = PR.fontes(p.id), br = fs.filter(function (f) { return f.br; }), it = fs.filter(function (f) { return !f.br; });
+        function li(f) { return '<li><b>' + esc(f.org) + '</b> — ' + esc(f.t) + '</li>'; }
+        return '<div class="sec refs"><h3>📚 Referências</h3>' +
+          (br.length ? '<p class="ref-sub">🇧🇷 Brasil</p><ul class="fontes">' + br.map(li).join('') + '</ul>' : '') +
+          (it.length ? '<p class="ref-sub">🌎 Internacionais</p><ul class="fontes">' + it.map(li).join('') + '</ul>' : '') +
+          '<p class="ref-sub">📘 Leitura complementar — Manual MSD</p><ul class="fontes">' + p.msd.map(function (m) { return '<li><a target="_blank" rel="noopener" href="' + esc(PR.urlMsd(m[1])) + '">' + esc(m[0]) + '</a></li>'; }).join('') + '</ul>' +
+          '<p class="note">Resumo próprio para consulta rápida, baseado nas referências acima (consulte sempre a versão vigente de cada uma). Doses e condutas variam com o protocolo institucional e a prescrição.</p></div>';
+      })();
   }
 
   // ---- Escalas ----

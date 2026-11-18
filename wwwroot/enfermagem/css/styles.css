@@ -536,3 +536,5 @@ details.mais summary { cursor: pointer; color: var(--primary); font-size: .85rem
 #mercado { scroll-margin-top: 80px; }
 .alias-box { margin: -4px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--primary-soft); border-left: 4px solid var(--primary); font-size: 1.02rem; line-height: 1.45; }
 .alias-box small { font-size: .85rem; color: var(--text); }
+.refs .ref-sub { margin: 10px 0 4px; font-weight: 700; font-size: .88rem; color: var(--muted); }
+.refs .fontes li { margin-bottom: 6px; line-height: 1.4; }

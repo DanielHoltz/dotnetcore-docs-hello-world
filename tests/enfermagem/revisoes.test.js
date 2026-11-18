@@ -91,7 +91,7 @@ test('protocolos: estrutura, medicamentos existentes e links do Manual MSD', () 
   const X = require('../../wwwroot/enfermagem/js/bulario_extra.js');
   const ids = new Set([...D.DRUGS.map(d => d.id), ...X.EXTRAS.map(x => x.id)]);
   const grupos = new Set(PR.GRUPOS.map(g => g.id)), vistos = new Set();
-  assert.ok(PR.PROTOCOLOS.length >= 38);
+  assert.ok(PR.PROTOCOLOS.length >= 53);
   for (const p of PR.PROTOCOLOS) {
     assert.ok(!vistos.has(p.id), 'id repetido ' + p.id); vistos.add(p.id);
     assert.ok(grupos.has(p.grupo), p.id + ' grupo');
@@ -182,4 +182,16 @@ test('catálogo CMED/Anvisa: ≥ 1.400 princípios ativos, sem duplicar fichas d
   assert.ok(CT.CAT.some(a => a[1] === 'Cefalexina') || CT.mercado('cefalexina'), 'cefalexina existe');
   assert.ok(CT.mercado('cefalotina') && !CT.mercado('cefalotina').nomes.some(n => /cefalexina/i.test(n)), 'cefalotina não se mistura com cefalexina');
   assert.match(CT.FONTE.data, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('protocolos: todos com referências institucionais (brasileiras e/ou internacionais)', () => {
+  const PR = require('../../wwwroot/enfermagem/js/protocolos.js');
+  for (const p of PR.PROTOCOLOS) {
+    const f = PR.fontes(p.id);
+    assert.ok(f.length >= 1, p.id + ' sem referências');
+    f.forEach(r => assert.ok(r.org && r.t, p.id + ' referência incompleta'));
+  }
+  for (const k of Object.values(PR.FONTES).flat()) assert.ok(PR.REFS[k], 'referência inexistente: ' + k);
+  const comBR = PR.PROTOCOLOS.filter(p => PR.fontes(p.id).some(r => r.br)).length;
+  assert.ok(comBR >= 40, 'protocolos com referência brasileira: ' + comBR);
 });
