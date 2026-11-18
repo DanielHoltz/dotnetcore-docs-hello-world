@@ -375,14 +375,6 @@
           notes: ['AG = Na − (Cl + HCO₃). Elevado sugere cetoacidose, acidose lática, insuficiência renal ou intoxicações. Referência varia entre laboratórios.'] };
       } },
 
-    { id: 'superficie-corporal', cat: 'clinico', icon: '📐', title: 'Superfície corporal', desc: 'Mosteller (m²) para quimioterapia e doses por m²',
-      fields: [{ id: 'peso', label: 'Peso', unit: 'kg', def: 70 }, { id: 'alt', label: 'Altura', unit: 'cm', def: 170 }],
-      compute: function (v) {
-        var r = C.superficieCorporal(v.peso, v.alt);
-        if (!r) return null;
-        return { results: [{ label: 'Superfície corporal', value: fmt(r, 2), unit: 'm²', main: true }], notes: ['Mosteller: √(peso × altura / 3600). Em oncologia, siga o protocolo da instituição quanto a arredondamento e teto de dose.'] };
-      } },
-
     { id: 'calcio-corrigido', cat: 'clinico', icon: '🦴', title: 'Cálcio corrigido pela albumina', desc: 'Hipoalbuminemia altera o cálcio total',
       fields: [{ id: 'ca', label: 'Cálcio total', unit: 'mg/dL', def: 7.8 }, { id: 'alb', label: 'Albumina', unit: 'g/dL', def: 2.5 }],
       compute: function (v) {
