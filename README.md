@@ -4,6 +4,11 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 
 ## Funcionalidades
 
+- **Processo de Enfermagem (COFEN 736/2024):** 20 focos de cuidado em linguagem comum; o app gera evidências, resultado esperado e prescrição de enfermagem com aprazamento, prontos para copiar.
+- **POPs, exames e ECG:** 14 procedimentos (material, passo a passo, cuidados), 45 valores laboratoriais de referência e ECG básico (valores normais e 14 ritmos com conduta).
+- **Calculadoras especializadas:** VIG neonatal, carboplatina (Calvert), dose por m² com teto de SC e calorias da nutrição parenteral.
+- **Minha instituição:** pacote JSON com protocolos locais, contatos e padrões por medicamento (aparecem nas fichas). Ver `docs/pacote-institucional.md`.
+- **Governança do conteúdo:** versão do conteúdo, histórico, conselho editorial, "Revisão profissional: pendente/revisado por" em cada item, botão "Reportar erro" e página de privacidade (`#/conteudo`). Roadmap e documentos de apoio (regulatório, LGPD, lojas, usabilidade) em `docs/`.
 - **Antibióticos e resistência:** escolha o tipo de infecção (cistite, pielonefrite, pneumonia comunitária ou associada à ventilação, pele, intra-abdominal, corrente sanguínea, pé diabético, meningite), a bactéria e as resistências do antibiograma (MRSA, VRE, ESBL, AmpC, KPC, NDM/metalo, OXA-48, Pseudomonas DTR, CRAB, Stenotrophomonas, C. difficile). O app mostra as opções geralmente ativas, o que evitar, o que não serve naquele local (ex.: daptomicina em pneumonia), a precaução/isolamento e como aplicar cada antibiótico. Sem cultura: tratamento empírico usual do local. Base: IDSA 2024, Anvisa, BrCAST; a decisão é do médico com a CCIH.
 - **Qualidade e acessibilidade (revisão técnica):** leitura estrita de números, bloqueio de combinações incompatíveis (via × tempo), gestão de foco nos diálogos, abas por teclado, offline robusto e testes de regressão no navegador — ver `docs/revisao-tecnica-respostas.md`.
 - **Modo PCR guiado (AHA ACLS/PALS):** checklist de reconhecimento antes de iniciar; painel "Próxima ação" que segue o algoritmo conforme o ritmo marcado (FV/TV sem pulso, AESP, assistolia, RCE): choque, adrenalina (no não chocável já; no chocável após o 2º choque; janela de 3–5 min), antiarrítmico após o 3º choque, checagem de ritmo a cada 2 min, com som e vibração; contadores de ciclos, adrenalinas, choques e antiarrítmicos; energia e doses por peso, preparo das ampolas, lidocaína, EtCO₂; qualidade da RCP; 5H e 5T com a conduta de cada causa; drogas em situações especiais; papéis da equipe; checklist de cuidados pós-RCE ("perdeu pulso" retoma o algoritmo); resumo completo para o prontuário.
@@ -55,7 +60,7 @@ App para profissionais de enfermagem (PWA: funciona offline e instala na tela in
 
 ## Rodar localmente
 
-Testes: `npm test` (unidade) e, com `npm start` rodando, `npm run test:e2e` (navegador).
+Testes: `npm test` (unidade) e, com `npm start` rodando, `npm run test:e2e` (navegador). Desempenho: `npm run test:desempenho`.
 
 
 - Só o app (sem .NET): `npm start` e abra http://localhost:8080/enfermagem/
@@ -69,6 +74,8 @@ Testes: `npm test` (unidade) e, com `npm start` rodando, `npm run test:e2e` (nav
 - `js/doses.js` — doses de referência, grupos, alergias, antídotos e interações (revisar com farmácia clínica)
 - `js/paciente.js` — motor do modo atendimento (perfil, dose, preparo, alertas, interações), testado
 - `js/revisoes.js` — fontes, termos de busca na Anvisa e registro de revisões profissionais (`REVISOES`)
+- `js/conteudo.js` — POPs, Processo de Enfermagem, valores laboratoriais e ECG (texto próprio), testado
+- `js/editorial.js` — versão do conteúdo, conselho editorial, histórico e contato para relatos de erro
 - `js/antimicrobianos.js` — guia de antimicrobianos por sítio de infecção e perfil de resistência, testado
 - `js/perfis.js` — perfis das classes terapêuticas (mecanismo, efeitos adversos, enfermagem, alertas), por código CMED/EphMRA, testado
 - `js/protocolos.js` — protocolos clínicos resumidos (texto próprio) com links para o Manual MSD

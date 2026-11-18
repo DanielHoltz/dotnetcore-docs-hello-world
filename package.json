@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node --test tests/enfermagem/*.test.js",
     "start": "cd wwwroot && python3 -m http.server 8080",
-    "test:e2e": "node tests/e2e/revisao.js && node tests/e2e/offline.js"
+    "test:e2e": "node tests/e2e/revisao.js && node tests/e2e/conteudo.js && node tests/e2e/offline.js",
+    "test:desempenho": "node tests/e2e/desempenho.js"
   }
 }

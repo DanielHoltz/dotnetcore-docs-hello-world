@@ -381,6 +381,45 @@
           notes: ['AG = Na − (Cl + HCO₃). Elevado sugere cetoacidose, acidose lática, insuficiência renal ou intoxicações. Referência varia entre laboratórios.'] };
       } },
 
+    { id: 'vig', cat: 'pediatria', icon: '🍼', title: 'VIG — velocidade de infusão de glicose', desc: 'Neonatologia: mg/kg/min da solução glicosada',
+      fields: [{ id: 'mlh', label: 'Vazão da solução', unit: 'mL/h', def: 10 }, { id: 'conc', label: 'Concentração de glicose da solução', unit: '%', def: 10, chips: [5, 10, 12.5] }, { id: 'peso', label: 'Peso', unit: 'kg', def: 3 }],
+      compute: function (v) {
+        var r = C.vig(v.mlh, v.conc, v.peso); if (r == null) return null;
+        return { results: [{ label: 'VIG', value: fmt(r, 1), unit: 'mg/kg/min', main: true }],
+          warns: v.conc > 12.5 ? ['Concentração acima de 12,5%: em geral exige acesso central (conferir protocolo da unidade).'] : [],
+          notes: ['VIG = vazão (mL/h) × concentração (%) ÷ (6 × peso). Faixas-alvo e ajustes conforme o protocolo neonatal e a glicemia.'] };
+      } },
+
+    { id: 'carboplatina', cat: 'medicacao', icon: '🎗️', title: 'Carboplatina — fórmula de Calvert', desc: 'Dose em mg pela AUC alvo e a função renal',
+      fields: [{ id: 'auc', label: 'AUC alvo (prescrita)', unit: 'mg/mL·min', def: 5, chips: [4, 5, 6] }, { id: 'tfg', label: 'TFG / clearance estimado', unit: 'mL/min', def: 90 },
+        { id: 'teto', label: 'Limitar TFG a 125 mL/min', type: 'seg', options: [['sim', 'Sim (recomendado)'], ['nao', 'Não']], def: 'sim' }],
+      compute: function (v) {
+        var r = C.calvert(v.auc, v.tfg, v.teto === 'sim'); if (!r) return null;
+        return { results: [{ label: 'Dose de carboplatina', value: fmt(r.dose, 0), unit: 'mg', main: true }, { label: 'TFG usada no cálculo', value: fmt(r.tfgUsada, 0), unit: 'mL/min' }],
+          warns: ['Quimioterápico — alta vigilância: dupla checagem independente com a prescrição e o protocolo oncológico.'],
+          notes: ['Calvert: dose (mg) = AUC × (TFG + 25). A FDA recomenda limitar a TFG a 125 mL/min (dose máxima = AUC × 150). Arredondamento conforme o serviço.'] };
+      } },
+
+    { id: 'dose-m2', cat: 'medicacao', icon: '📐', title: 'Dose por superfície corporal (mg/m²)', desc: 'Mosteller, com teto de SC opcional',
+      fields: [{ id: 'dm2', label: 'Dose prescrita', unit: 'mg/m²', def: 100 }, { id: 'peso', label: 'Peso', unit: 'kg', def: 70 }, { id: 'alt', label: 'Altura', unit: 'cm', def: 170 },
+        { id: 'teto', label: 'Teto de superfície corporal (opcional, conforme protocolo)', unit: 'm²', optional: true, chips: [2, 2.2] }],
+      compute: function (v) {
+        var r = C.dosePorM2(v.dm2, v.peso, v.alt, v.teto); if (!r) return null;
+        return { results: [{ label: 'Dose', value: fmt(r.dose, 1), unit: 'mg', main: true }, { label: 'Superfície corporal', value: fmt(r.sc, 2), unit: 'm²', sub: r.scUsada < r.sc ? 'Limitada a ' + fmt(r.scUsada, 2) + ' m² (teto)' : '' }],
+          warns: ['Quimioterápicos e drogas de alta vigilância: dupla checagem com a prescrição e o protocolo.'],
+          notes: ['SC (Mosteller) = √(peso × altura / 3600). Uso de teto de SC e arredondamento seguem o protocolo da instituição.'] };
+      } },
+
+    { id: 'kcal-np', cat: 'clinico', icon: '🧃', title: 'Calorias da nutrição parenteral', desc: 'kcal de glicose, aminoácidos e lipídios',
+      fields: [{ id: 'g', label: 'Glicose na bolsa', unit: 'g', def: 200 }, { id: 'a', label: 'Aminoácidos na bolsa', unit: 'g', def: 70 }, { id: 'l', label: 'Lipídios na bolsa', unit: 'g', def: 50 }, { id: 'peso', label: 'Peso (opcional)', unit: 'kg', optional: true }],
+      compute: function (v) {
+        var r = C.kcalNP(v.g, v.a, v.l, v.peso); if (!r) return null;
+        var out = [{ label: 'Total', value: fmt(r.total, 0), unit: 'kcal', main: true }, { label: 'Não proteicas', value: fmt(r.naoProteica, 0), unit: 'kcal' },
+          { label: 'Glicose / aminoácidos / lipídios', value: fmt(r.glic, 0) + ' / ' + fmt(r.aa, 0) + ' / ' + fmt(r.lip, 0), unit: 'kcal' }];
+        if (r.porKg) out.push({ label: 'Por kg', value: fmt(r.porKg, 1) + ' kcal/kg · ' + fmt(r.protKg, 2) + ' g de proteína/kg' });
+        return { results: out, notes: ['Glicose 3,4 kcal/g; aminoácidos 4 kcal/g; lipídios 9 kcal/g (emulsões a 20% ≈ 2 kcal/mL incluindo o glicerol). Metas conforme a equipe de terapia nutricional (BRASPEN).'] };
+      } },
+
     { id: 'calcio-corrigido', cat: 'clinico', icon: '🦴', title: 'Cálcio corrigido pela albumina', desc: 'Hipoalbuminemia altera o cálcio total',
       fields: [{ id: 'ca', label: 'Cálcio total', unit: 'mg/dL', def: 7.8 }, { id: 'alb', label: 'Albumina', unit: 'g/dL', def: 2.5 }],
       compute: function (v) {
@@ -715,6 +754,7 @@
     $title.textContent = title;
     $back.hidden = !back;
     document.title = title === 'EnfCalc' ? 'EnfCalc — Calculadora de Enfermagem' : title + ' · EnfCalc';
+    var anun = document.getElementById('sr-rota'); if (anun && anun.textContent !== title) anun.textContent = title;
     var pcrSt = store.get('pcr', null), pb = document.getElementById('pcr-btn');
     if (pb) pb.classList.toggle('on', !!(pcrSt && pcrSt.inicio && !pcrSt.fim));
     var hash = location.hash || '#/';
@@ -844,6 +884,10 @@
     e.push({ key: 'view:scanner', href: '#/scanner', icon: '📷', title: 'Ler código de barras da caixa', desc: 'Identifica o medicamento pelo EAN', search: 'codigo de barras ean caixa camera scanner leitor' });
     e.push({ key: 'view:plantao', href: '#/plantao', icon: '🗓️', title: 'Agenda de medicações do plantão', desc: 'Horários por leito, checagem e lembretes', search: 'agenda aprazamento horarios checagem plantao lembrete' });
     e.push({ key: 'view:sbar', href: '#/sbar', icon: '📝', title: 'Passagem de plantão (SBAR)', desc: 'Com NEWS2 automático', search: 'passagem plantao sbar news2 handover' });
+    CO.POPS.forEach(function (p) { e.push({ key: 'pop:' + p.id, href: '#/pop/' + p.id, icon: p.icon, title: p.nome, desc: 'POP · ' + p.cat, search: p.nome + ' ' + p.cat + ' pop procedimento tecnica ' + p.passos.join(' ') }); });
+    e.push({ key: 'view:pe', href: '#/processo-enfermagem', icon: '🧾', title: 'Processo de Enfermagem', desc: 'Plano de cuidados e prescrição de enfermagem', search: 'processo de enfermagem sae sistematizacao diagnostico prescricao evolucao plano de cuidados cofen 736 ' + CO.FOCOS.map(function (f) { return f.nome; }).join(' ') });
+    e.push({ key: 'view:lab', href: '#/laboratorio', icon: '🧪', title: 'Valores laboratoriais', desc: 'Faixas de referência de exames', search: 'exames laboratorio valores referencia normais ' + CO.LAB.map(function (l) { return l[1]; }).join(' ') });
+    e.push({ key: 'view:ecg', href: '#/ecg', icon: '📈', title: 'ECG básico', desc: 'Valores normais e ritmos', search: 'ecg eletrocardiograma ritmo arritmia ' + CO.RITMOS_ECG.map(function (r) { return r.nome; }).join(' ') });
     e.push({ key: 'view:antimicrobianos', href: '#/antimicrobianos', icon: '🦠', title: 'Antibióticos e resistência', desc: 'Tipo de infecção, bactéria e antibiograma → indicações', search: 'antibiotico antimicrobiano resistencia bacteria antibiograma mrsa vre esbl kpc ndm carbapenem pseudomonas acinetobacter clostridium infeccao cultura isolamento precaucao contato' });
     e.push({ key: 'view:infusao', href: '#/infusao', icon: '🫀', title: 'Infusão contínua / DVA', desc: 'mcg/kg/min ↔ mL/h', search: 'droga vasoativa noradrenalina dobutamina sedacao bomba' });
     CALCS.forEach(function (c) { e.push({ key: 'calc:' + c.id, href: '#/calc/' + c.id, icon: c.icon, title: c.title, desc: c.desc, search: c.title + ' ' + c.desc }); });
@@ -897,7 +941,7 @@
     return al ? card(hrefAlias(e.id, al), al.k === 'v' ? '💊' : '🏷️', al.n, descAlias(al, e.classe || e.desc.replace(/^🏷️ [^·]*· /, ''))) : card(e.href, e.icon, e.title, e.desc);
   }
   var PALETA_SUG = [['#/pcr', '🚨', 'Modo PCR', 'Cronômetro e doses'], ['#/maleta/lib/atender', '👤', 'Atender paciente', 'Dose e preparo pelo peso'], ['#/infusao', '🫀', 'Infusão contínua / DVA', 'mcg/kg/min ↔ mL/h'],
-    ['#/calc/gotejamento', '💧', 'Gotejamento', 'Gotas/min e mL/h'], ['#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'MRSA, ESBL, KPC…'], ['#/escalas', '📋', 'Escalas', 'Glasgow, NEWS2, Braden…'], ['#/scanner', '📷', 'Ler caixa', 'Código de barras']];
+    ['#/calc/gotejamento', '💧', 'Gotejamento', 'Gotas/min e mL/h'], ['#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'MRSA, ESBL, KPC…'], ['#/processo-enfermagem', '🧾', 'Processo de Enfermagem', 'Plano de cuidados'], ['#/pops', '📘', 'POPs', 'Procedimentos'], ['#/escalas', '📋', 'Escalas', 'Glasgow, NEWS2, Braden…'], ['#/scanner', '📷', 'Ler caixa', 'Código de barras']];
   var paletaSoltar = null;
   function abrirPaleta() {
     if (document.getElementById('paleta')) return;
@@ -965,7 +1009,7 @@
     $app.innerHTML =
       '<section class="home-hero"><svg class="ecg" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 34 H170 l10 -4 l8 4 H220 l8 -26 l10 48 l9 -30 l6 8 H330 l12 -6 l10 6 H600"/></svg>' +
         '<div class="hh-top"><span id="hh-status" class="hh-status on" role="status" aria-live="polite">Online</span><span class="hh-clock" id="hh-clock">--:--</span></div>' +
-        '<p class="hh-data">' + esc(hoje) + '</p><h2 class="hh-t">' + saudacao() + '! O que você precisa agora?</h2>' +
+        (loadInst() ? '<p class="hh-inst">🏥 ' + esc(loadInst().nome) + '</p>' : '') + '<p class="hh-data">' + esc(hoje) + '</p><h2 class="hh-t">' + saudacao() + '! O que você precisa agora?</h2>' +
         '<button type="button" class="hh-search" id="hh-search"><span>🔍</span><span class="hh-ph">Medicamento, nome comercial, cálculo, protocolo…</span><kbd>/</kbd></button>' +
         '<div class="hh-stats"><span><b data-count="' + (D.DRUGS.length + BX.EXTRAS.length + CT.total) + '">' + nDrog + '</b> medicamentos</span><span><b data-count="' + PR.PROTOCOLOS.length + '">' + PR.PROTOCOLOS.length + '</b> protocolos</span><span><b data-count="' + D.SCALES.length + '">' + D.SCALES.length + '</b> escalas</span><span><b data-count="' + (CALCS.length + 2) + '">' + (CALCS.length + 2) + '</b> cálculos</span></div></section>' +
       '<div id="search-res"></div>' +
@@ -980,7 +1024,7 @@
         tileG('#/escalas', '📋', 'Escalas', D.SCALES.length + ' escalas clínicas', '#c2410c') +
       '</div>' +
       '<div class="pills">' +
-        '<a class="pill" href="#/antimicrobianos">🦠 Antibióticos e resistência</a><a class="pill" href="#/classes">🧭 Classes</a><a class="pill" href="#/emergencia">🚑 Emergência</a><a class="pill" href="#/compatibilidade">🔗 Interações</a>' +
+        '<a class="pill" href="#/antimicrobianos">🦠 Antibióticos e resistência</a><a class="pill" href="#/processo-enfermagem">🧾 Processo de Enfermagem</a><a class="pill" href="#/pops">📘 POPs</a><a class="pill" href="#/laboratorio">🧪 Exames</a><a class="pill" href="#/ecg">📈 ECG</a><a class="pill" href="#/classes">🧭 Classes</a><a class="pill" href="#/emergencia">🚑 Emergência</a><a class="pill" href="#/compatibilidade">🔗 Interações</a>' +
         '<a class="pill" href="#/hipodermoclise">💧 Hipodermóclise</a><a class="pill" href="#/sbar">📝 Passagem SBAR</a><a class="pill" href="#/ferramentas">⚙️ Mais</a>' +
       '</div>' +
       secT('Por área de atuação') +
@@ -1057,6 +1101,204 @@
     render();
   }
 
+  // =================== Conteúdo de enfermagem, governança e instituição ===================
+  var CO = window.Conteudo, ED = window.Editorial.EDITORIAL;
+
+  // ---- relato de erro (sem dados de paciente) ----
+  function reportarHtml(ctx) { return '<button type="button" class="btn sm ghost rep-btn" data-reportar="' + esc(ctx) + '">🚩 Reportar erro neste conteúdo</button>'; }
+  function revisaoLinha(id) {
+    var rv = id && R.REVISOES[id];
+    return '<p class="rev-linha">' + (rv ? '✅ Revisado por <b>' + esc(rv.por || rv.nome || '') + '</b>' + (rv.registro ? ' (' + esc(rv.registro) + ')' : '') + (rv.data ? ' em ' + esc(fmtData(rv.data)) : '')
+      : '🕓 Revisão profissional: <b>pendente</b>') + ' · conteúdo v' + esc(ED.versao) + ' · <a href="#/conteudo">como revisamos</a></p>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-reportar]');
+    if (!b) return;
+    var ctx = b.getAttribute('data-reportar');
+    ask({ titulo: 'Reportar erro', msg: 'Descreva o problema (sem dados de paciente). O relato inclui a tela e a versão do conteúdo.', input: true, ph: 'Ex.: diluição diferente da bula, dose errada, texto confuso', ok: 'Gerar relato' }).then(function (t) {
+      if (t == null) return;
+      var txt = 'Relato de erro — EnfCalc\nConteúdo: ' + ctx + '\nTela: ' + location.hash + '\nVersão do conteúdo: ' + ED.versao + ' (' + ED.data + ')\nData: ' + new Date().toLocaleString('pt-BR') +
+        '\n\nDescrição: ' + (t.trim() || '(sem descrição)') + '\n\nNavegador: ' + navigator.userAgent;
+      if (ED.contato && /@/.test(ED.contato)) location.href = 'mailto:' + ED.contato + '?subject=' + encodeURIComponent('Erro no EnfCalc — ' + ctx) + '&body=' + encodeURIComponent(txt);
+      else if (ED.contato) { window.open(ED.contato, '_blank', 'noopener'); copiarTexto(txt); }
+      else compartilharTexto(txt, 'Relato de erro — EnfCalc');
+    });
+  });
+
+  // ---- registro local de erros técnicos (só no aparelho; sem dados de paciente) ----
+  function logErro(msg) {
+    try { var l = JSON.parse(localStorage.getItem('enfcalc.erros') || '[]'); l.unshift({ t: new Date().toISOString(), r: location.hash.split('/').slice(0, 2).join('/'), m: String(msg).slice(0, 200) }); localStorage.setItem('enfcalc.erros', JSON.stringify(l.slice(0, 30))); } catch (e) { /* ok */ }
+  }
+  window.addEventListener('error', function (e) { logErro(e.message + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '')); });
+  window.addEventListener('unhandledrejection', function (e) { logErro('Promise: ' + (e.reason && e.reason.message || e.reason)); });
+
+  // ---- POPs ----
+  function viewPOPs() {
+    setHeader('POPs de enfermagem', true);
+    var cats = []; CO.POPS.forEach(function (p) { if (cats.indexOf(p.cat) < 0) cats.push(p.cat); });
+    $app.innerHTML = '<p class="lead">Procedimentos operacionais padrão resumidos: material, passo a passo e cuidados. Use junto com o POP da sua instituição.</p>' +
+      '<div class="search"><input id="popq" type="search" placeholder="Buscar procedimento…" autocomplete="off" aria-label="Buscar procedimento"></div><div id="popl"></div>';
+    var q = document.getElementById('popq');
+    function render() {
+      var t = norm(q.value.trim());
+      document.getElementById('popl').innerHTML = cats.map(function (c) {
+        var ps = CO.POPS.filter(function (p) { return p.cat === c && (!t || norm(p.nome + ' ' + p.passos.join(' ')).indexOf(t) >= 0); });
+        return ps.length ? '<h3 class="sub-h">' + esc(c) + '</h3><div class="list">' + ps.map(function (p) { return card('#/pop/' + p.id, p.icon, p.nome, p.passos.length + ' passos · ' + p.material.length + ' itens de material', 'pop:' + p.id); }).join('') + '</div>' : '';
+      }).join('') || '<p class="empty-msg">Nenhum procedimento encontrado.</p>';
+    }
+    addVoz(q); q.oninput = render; render();
+  }
+  function viewPOP(id) {
+    var p = CO.POPS.filter(function (x) { return x.id === id; })[0];
+    if (!p) return viewNotFound();
+    setHeader(p.nome, true);
+    $app.innerHTML = '<section class="hero"><div class="hero-top"><span class="hero-ic">' + p.icon + '</span><div class="hero-t"><h2 class="hero-n">' + esc(p.nome) + '</h2><span class="hero-classe">' + esc(p.cat) + '</span></div>' + favButton('pop:' + p.id) + '</div>' + revisaoLinha('pop:' + p.id) + '</section>' +
+      '<div class="sec"><h3>🧰 Material</h3><ul class="checks">' + p.material.map(function (m, i) { return '<li><label><input type="checkbox"> ' + esc(m) + '</label></li>'; }).join('') + '</ul></div>' +
+      '<div class="sec"><h3>👣 Passo a passo</h3><ol class="steps">' + p.passos.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol></div>' +
+      '<div class="sec alerta-sec"><h3>⚠️ Cuidados</h3><ul class="pcr-list">' + p.cuidados.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul></div>' +
+      '<p class="note">Fonte: ' + esc(p.fonte) + ' Texto resumido próprio do EnfCalc.</p><div class="ref-btns">' + reportarHtml('POP: ' + p.nome) + '</div>';
+  }
+
+  // ---- Processo de Enfermagem (Resolução COFEN 736/2024) ----
+  function viewPE() {
+    setHeader('Processo de Enfermagem', true);
+    var st = store.get('peEstado', { focos: [], ref: '' });
+    function render() {
+      var areas = []; CO.FOCOS.forEach(function (f) { if (areas.indexOf(f.area) < 0) areas.push(f.area); });
+      var sel = CO.FOCOS.filter(function (f) { return st.focos.indexOf(f.id) >= 0; });
+      $app.innerHTML = '<p class="lead">Monte o plano de cuidados: marque os focos identificados na avaliação e o app gera metas e prescrição de enfermagem com aprazamento, prontas para copiar para o prontuário.</p>' +
+        '<details class="sec"><summary><b>As 5 etapas (Resolução COFEN 736/2024)</b></summary><ol class="steps">' + CO.ETAPAS_PE.map(function (e) { return '<li><b>' + esc(e[0]) + ':</b> ' + esc(e[1]) + '</li>'; }).join('') + '</ol></details>' +
+        '<div class="alert info">Os focos usam linguagem comum. Para o <b>diagnóstico de enfermagem formal</b>, use a taxonomia adotada pela sua instituição (ex.: NANDA-I, CIPE).</div>' +
+        '<h3 class="sub-h">1. Focos de cuidado identificados</h3>' + areas.map(function (a) {
+          return '<p class="pe-area">' + esc(a) + '</p><div class="pe-focos">' + CO.FOCOS.filter(function (f) { return f.area === a; }).map(function (f) {
+            return '<label class="am-q' + (st.focos.indexOf(f.id) >= 0 ? ' on' : '') + '"><input type="checkbox" data-foco="' + f.id + '"' + (st.focos.indexOf(f.id) >= 0 ? ' checked' : '') + '><span><b>' + esc(f.nome) + '</b><small>' + esc(f.indicadores.join(' · ')) + '</small></span></label>';
+          }).join('') + '</div>';
+        }).join('') +
+        '<h3 class="sub-h">2. Plano gerado</h3>' + (sel.length ?
+          '<div class="esc-acoes"><input id="pe-ref" type="text" placeholder="Leito / identificação (opcional)" value="' + esc(st.ref || '') + '" aria-label="Leito"><button class="btn sm" id="pe-copy" type="button">📋 Copiar plano</button><button class="btn sm ghost" id="pe-limpar" type="button">Limpar</button></div>' +
+          sel.map(function (f) {
+            return '<section class="am-card pe-card"><small class="am-tag">FOCO DE CUIDADO</small><h2 class="am-t">' + esc(f.nome) + '</h2>' +
+              '<p class="pe-l"><b>Evidências a registrar:</b> ' + esc(f.indicadores.join('; ')) + '.</p><p class="pe-l"><b>Resultado esperado:</b> ' + esc(f.metas.join('; ')) + '.</p>' +
+              '<p class="pe-l"><b>Prescrição de enfermagem:</b></p><ul class="pcr-list">' + f.intervencoes.map(function (i) { return '<li>' + esc(i[0]) + ' — <i>' + esc(i[1]) + '</i></li>'; }).join('') + '</ul></section>';
+          }).join('') + '<p class="note">Plano de apoio: ajuste ao paciente, valide com o enfermeiro responsável e registre conforme o sistema da instituição. Nada é enviado para fora do aparelho.</p>'
+          : '<p class="empty-msg">Marque pelo menos um foco de cuidado.</p>') +
+        '<div class="ref-btns">' + reportarHtml('Processo de Enfermagem') + '</div>';
+      $app.querySelectorAll('[data-foco]').forEach(function (c) { c.onchange = function () { var id = c.getAttribute('data-foco'); st.focos = st.focos.filter(function (x) { return x !== id; }); if (c.checked) st.focos.push(id); store.set('peEstado', st); var y = scrollY; render(); scrollTo(0, y); }; });
+      var cp = document.getElementById('pe-copy');
+      if (cp) {
+        document.getElementById('pe-ref').oninput = function () { st.ref = this.value; store.set('peEstado', st); };
+        cp.onclick = function () {
+          var txt = 'PLANO DE CUIDADOS DE ENFERMAGEM — ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) + (st.ref ? ' — ' + st.ref : '') + '\n' +
+            sel.map(function (f, i) { return '\n' + (i + 1) + '. ' + f.nome.toUpperCase() + '\nEvidências: ' + f.indicadores.join('; ') + '.\nResultado esperado: ' + f.metas.join('; ') + '.\nPrescrição de enfermagem:\n' + f.intervencoes.map(function (x) { return '  - ' + x[0] + ' (' + x[1] + ')'; }).join('\n'); }).join('\n');
+          copiarTexto(txt);
+        };
+        document.getElementById('pe-limpar').onclick = function () { st = { focos: [], ref: '' }; store.set('peEstado', st); render(); };
+      }
+    }
+    render();
+  }
+
+  // ---- Valores laboratoriais ----
+  function viewLab() {
+    setHeader('Valores laboratoriais', true);
+    $app.innerHTML = '<p class="lead">Faixas de referência usuais para adultos. Os valores variam conforme o método, o laboratório, a idade e o sexo: <b>use sempre a referência impressa no laudo</b>.</p>' +
+      '<div class="search"><input id="labq" type="search" placeholder="Buscar exame (ex.: potássio, INR, lactato)…" autocomplete="off" aria-label="Buscar exame"></div><div id="labl"></div>' +
+      '<div class="ref-btns"><a class="btn sm ghost" href="#/calc/anion-gap">⚖️ Ânion gap</a><a class="btn sm ghost" href="#/calc/calcio-corrigido">🦴 Cálcio corrigido</a><a class="btn sm ghost" href="#/calc/sodio-corrigido">🍭 Sódio corrigido</a>' + reportarHtml('Valores laboratoriais') + '</div>';
+    var q = document.getElementById('labq');
+    function render() {
+      var t = norm(q.value.trim()), grupos = [];
+      CO.LAB.forEach(function (l) { if (grupos.indexOf(l[0]) < 0) grupos.push(l[0]); });
+      document.getElementById('labl').innerHTML = grupos.map(function (g) {
+        var ls = CO.LAB.filter(function (l) { return l[0] === g && (!t || norm(l[1] + ' ' + l[0]).indexOf(t) >= 0); });
+        return ls.length ? '<h3 class="sub-h">' + esc(g) + '</h3><div class="lab-t">' + ls.map(function (l) { return '<div class="lab-r"><span>' + esc(l[1]) + '</span><b>' + esc(l[2]) + '</b></div>'; }).join('') + '</div>' : '';
+      }).join('') || '<p class="empty-msg">Nenhum exame encontrado.</p>';
+    }
+    addVoz(q); q.oninput = render; render();
+  }
+
+  // ---- ECG básico ----
+  function viewECG() {
+    setHeader('ECG básico', true);
+    $app.innerHTML = '<p class="lead">Leitura sistemática e reconhecimento dos principais ritmos. Apoio ao reconhecimento: a interpretação final é médica.</p>' +
+      '<div class="sec"><h3>📏 Valores normais e papel</h3>' + CO.ECG_NORMAIS.map(function (n) { return '<div class="lab-r"><span>' + esc(n[0]) + '</span><b>' + esc(n[1]) + '</b></div>'; }).join('') + '</div>' +
+      '<div class="sec"><h3>🧭 Leitura em 5 passos</h3><ol class="steps"><li>Frequência (regular? 300 ÷ quadrados grandes).</li><li>Ritmo: regular ou irregular?</li><li>Onda P antes de cada QRS?</li><li>PR e QRS (estreito &lt; 0,12 s ou largo?).</li><li>Segmento ST e onda T (supra ou infra?).</li></ol></div>' +
+      '<h3 class="sub-h">Ritmos</h3><div class="am-ops">' + CO.RITMOS_ECG.map(function (r) {
+        return '<div class="am-op ativo"><div class="am-op-n"><b>' + esc(r.nome) + '</b></div><small>' + esc(r.como) + '</small><p class="am-ap">➡️ ' + esc(r.fazer) + (r.prot ? ' <a href="#/protocolo/' + r.prot + '">Ver protocolo ›</a>' : '') + '</p></div>';
+      }).join('') + '</div><div class="ref-btns"><a class="btn sm ghost" href="#/pop/ecg">📈 Como fazer o ECG de 12 derivações</a>' + reportarHtml('ECG básico') + '</div>' +
+      '<p class="note">Fonte: SBC — Diretriz sobre análise e emissão de laudos eletrocardiográficos (2016); AHA ACLS. Texto resumido próprio.</p>';
+  }
+
+  // ---- Pacote da instituição (B2B): protocolos locais, contatos e observações por medicamento ----
+  function loadInst() { var i = store.get('instituicao', null); return i && i.nome ? i : null; }
+  var INST_EXEMPLO = { formato: 'enfcalc-instituicao-1', nome: 'Hospital Exemplo', versao: '2026-01', responsavel: 'Comissão de Farmácia e Terapêutica',
+    contatos: [['CCIH', 'Ramal 1234'], ['Farmácia clínica', 'Ramal 2345'], ['Time de resposta rápida', 'Ramal 3456']],
+    protocolos: [{ titulo: 'Exemplo — Protocolo institucional de sepse', texto: 'Texto do protocolo local.\nCada linha vira um parágrafo.' }],
+    medicamentos: { vancomicina: 'Exemplo: na instituição, diluir em 250 mL de SF 0,9% e infundir em 2 h; nível sérico no 3º dia.' } };
+  function viewInstituicao() {
+    setHeader('Minha instituição', true);
+    var I = loadInst();
+    $app.innerHTML = '<p class="lead">Carregue o pacote da sua instituição: protocolos locais, contatos (CCIH, farmácia, time de resposta rápida) e padrões próprios por medicamento, que aparecem nas fichas. Fica só neste aparelho.</p>' +
+      (I ? '<section class="am-card"><small class="am-tag">PACOTE CARREGADO</small><h2 class="am-t">🏥 ' + esc(I.nome) + '</h2><p class="am-sit">Versão ' + esc(I.versao || '—') + (I.responsavel ? ' · ' + esc(I.responsavel) : '') + '</p>' +
+        ((I.contatos || []).length ? '<h3 class="sub-h">📞 Contatos</h3>' + I.contatos.map(function (c) { return '<div class="lab-r"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>'; }).join('') : '') +
+        ((I.protocolos || []).length ? '<h3 class="sub-h">📑 Protocolos da instituição</h3><div class="list">' + I.protocolos.map(function (p, i) { return card('#/protocolo-local/' + i, '🏥', p.titulo, 'Protocolo institucional'); }).join('') + '</div>' : '') +
+        (Object.keys(I.medicamentos || {}).length ? '<p class="note">' + Object.keys(I.medicamentos).length + ' medicamento(s) com padrão da instituição (aparece na ficha).</p>' : '') +
+        '<button class="btn ghost" id="inst-del" type="button">Remover pacote</button></section>' : '<div class="alert info">Nenhum pacote carregado.</div>') +
+      '<div class="sec"><h3>📥 Carregar pacote (.json)</h3><p>Arquivo preparado pela comissão de farmácia, CCIH ou educação permanente.</p><label class="btn file-btn">Escolher arquivo<input type="file" id="inst-file" accept=".json,application/json"></label>' +
+      '<p><button type="button" class="linklike" id="inst-modelo">Baixar modelo de pacote</button></p></div>';
+    document.getElementById('inst-file').onchange = function (e) {
+      var f = e.target.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () {
+        try {
+          var d = JSON.parse(rd.result);
+          if (d.formato !== 'enfcalc-instituicao-1' || !d.nome) throw new Error('Arquivo não é um pacote institucional do EnfCalc.');
+          var limpo = { formato: d.formato, nome: String(d.nome).slice(0, 120), versao: String(d.versao || '').slice(0, 40), responsavel: String(d.responsavel || '').slice(0, 120),
+            contatos: (d.contatos || []).slice(0, 30).map(function (c) { return [String(c[0]).slice(0, 60), String(c[1]).slice(0, 80)]; }),
+            protocolos: (d.protocolos || []).slice(0, 100).map(function (p) { return { titulo: String(p.titulo).slice(0, 140), texto: String(p.texto || '').slice(0, 20000) }; }), medicamentos: {} };
+          Object.keys(d.medicamentos || {}).slice(0, 500).forEach(function (k) { limpo.medicamentos[String(k).slice(0, 80)] = String(d.medicamentos[k]).slice(0, 2000); });
+          if (!store.set('instituicao', limpo)) throw new Error('Não foi possível gravar no aparelho.');
+          toast('Pacote de ' + limpo.nome + ' carregado.'); viewInstituicao();
+        } catch (err) { toast(err instanceof SyntaxError ? 'Arquivo inválido.' : err.message, true); }
+      };
+      rd.readAsText(f);
+    };
+    document.getElementById('inst-modelo').onclick = function () { salvarArquivo(JSON.stringify(INST_EXEMPLO, null, 2), 'modelo-pacote-instituicao.json', 'Modelo de pacote institucional'); };
+    var del = document.getElementById('inst-del');
+    if (del) del.onclick = function () { ask({ titulo: 'Remover pacote', msg: 'Remover o pacote da instituição deste aparelho?', ok: 'Remover', perigo: true }).then(function (s) { if (s) { store.del('instituicao'); viewInstituicao(); } }); };
+  }
+  function viewProtocoloLocal(i) {
+    var I = loadInst(), p = I && I.protocolos[+i];
+    if (!p) return viewNotFound();
+    setHeader(p.titulo, true);
+    $app.innerHTML = '<div class="alert info">🏥 Protocolo da instituição <b>' + esc(I.nome) + '</b> (versão ' + esc(I.versao || '—') + '). Conteúdo de responsabilidade da instituição.</div>' +
+      '<div class="sec">' + p.texto.split(/\n+/).map(function (l) { return '<p>' + esc(l) + '</p>'; }).join('') + '</div>';
+  }
+  function instMedHtml(id) {
+    var I = loadInst(), t = I && I.medicamentos && I.medicamentos[id];
+    return t ? '<div class="alert info inst-med">🏥 <b>Padrão de ' + esc(I.nome) + ':</b> ' + esc(t) + '</div>' : '';
+  }
+
+  // ---- Conteúdo, revisão, privacidade e regulatório ----
+  function viewConteudo() {
+    setHeader('Conteúdo e revisão', true);
+    var conf = { ok: 0, ajustado: 0, parcial: 0, 'sem-fonte': 0 };
+    Object.keys(BX.CONFERENCIA).forEach(function (k) { conf[BX.CONFERENCIA[k].st]++; });
+    var nRev = Object.keys(R.REVISOES).length, erros = []; try { erros = JSON.parse(localStorage.getItem('enfcalc.erros') || '[]'); } catch (e) { /* ok */ }
+    $app.innerHTML = '<section class="am-card"><small class="am-tag">VERSÃO DO CONTEÚDO</small><h2 class="am-t">v' + esc(ED.versao) + '</h2><p class="am-sit">Atualizado em ' + esc(fmtData(ED.data)) + '</p></section>' +
+      '<h3 class="sub-h">👥 Conselho editorial</h3>' + (ED.conselho.length ? '<div class="list">' + ED.conselho.map(function (c) { return '<div class="card"><span class="card-ic">🩺</span><span class="card-t"><b>' + esc(c.nome) + '</b><small>' + esc(c.funcao + ' · ' + c.registro + ' · ' + c.area) + '</small></span></div>'; }).join('') + '</div>'
+        : '<div class="alert warn">⚠️ <b>Em formação.</b> Nenhum profissional assinou ainda a revisão do conteúdo. Até lá, as fichas mostram "revisão profissional: pendente". Funções previstas:<ul class="pcr-list">' + ED.funcoesPrevistas.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul></div>') +
+      '<h3 class="sub-h">🔍 Situação da revisão</h3><div class="pcr-cont"><span><b>' + nRev + '</b>revisões profissionais</span><span><b>' + conf.ok + '</b>fichas conferidas</span><span><b>' + (conf.ajustado + conf.parcial) + '</b>ajustadas/parciais</span><span><b>' + conf['sem-fonte'] + '</b>sem fonte</span></div>' +
+      '<p class="note">"Conferidas" = posologia conferida automaticamente com bula FDA/DailyMed ou Manual MSD (ver <a href="#/conferencia">relatório</a>). Não substitui a revisão de profissional habilitado nem a bula brasileira.</p>' +
+      '<h3 class="sub-h">📝 Como o conteúdo é revisado</h3><ol class="steps">' + ED.processo.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>' +
+      '<h3 class="sub-h">🗂️ Histórico de versões</h3>' + ED.historico.map(function (h) { return '<div class="lab-r"><span>v' + esc(h[1]) + ' · ' + esc(fmtData(h[0])) + '</span><b>' + esc(h[2]) + '</b></div>'; }).join('') +
+      '<h3 class="sub-h">🔒 Privacidade (LGPD)</h3><div class="sec"><p>O EnfCalc <b>não tem servidor nem coleta dados</b>: paciente, registros, agenda, avaliações e maletas ficam só neste aparelho e só saem se você copiar, compartilhar ou exportar. Não há cadastro, rastreamento nem anúncios. Use identificação mínima (ex.: número do leito) e apague os dados ao fim do plantão em <a href="#/sobre">Sobre</a>.</p></div>' +
+      '<h3 class="sub-h">⚖️ Natureza do aplicativo</h3><div class="sec"><p>Ferramenta de <b>apoio e consulta</b> para profissionais de saúde. Não substitui prescrição, bula, protocolo institucional nem julgamento clínico. O enquadramento regulatório (Anvisa — software como dispositivo médico) está em avaliação.</p></div>' +
+      '<h3 class="sub-h">🧯 Erros técnicos registrados neste aparelho</h3>' + (erros.length ? '<div class="sec">' + erros.slice(0, 10).map(function (e) { return '<p class="note">' + esc(new Date(e.t).toLocaleString('pt-BR') + ' · ' + e.r + ' · ' + e.m) + '</p>'; }).join('') + '<button class="btn sm ghost" id="err-copy" type="button">📋 Copiar para enviar ao suporte</button></div>' : '<p class="note">Nenhum erro técnico registrado. 👍</p>') +
+      '<div class="ref-btns">' + reportarHtml('Geral') + '</div>';
+    var ec = document.getElementById('err-copy');
+    if (ec) ec.onclick = function () { copiarTexto('Erros técnicos EnfCalc v' + ED.versao + '\n' + erros.map(function (e) { return e.t + ' ' + e.r + ' ' + e.m; }).join('\n')); };
+  }
+
   // ---- Plantão: hub das ferramentas do turno ----
   function viewTurno() {
     setHeader('Plantão', false);
@@ -1064,6 +1306,8 @@
       secT('Ao lado do leito') + '<div class="list">' +
         card('#/scanner', '📷', 'Ler caixa do medicamento', 'Código de barras → ficha, nome comercial e tipo', 'view:scanner') +
         card('#/infusao', '🫀', 'Bomba de infusão / DVA', 'mcg/kg/min ↔ mL/h', 'view:infusao') +
+        card('#/processo-enfermagem', '🧾', 'Processo de Enfermagem', 'Focos de cuidado → plano e prescrição de enfermagem', 'view:pe') +
+        card('#/pops', '📘', 'POPs de enfermagem', 'Material, passo a passo e cuidados') +
         card('#/antimicrobianos', '🦠', 'Antibióticos e resistência', 'Tipo de infecção + antibiograma → indicações e precauções', 'view:antimicrobianos') +
         card('#/compatibilidade', '🔗', 'Interações e compatibilidade em Y', 'Checar 2 ou mais medicamentos', 'view:compat') + '</div>' +
       secT('Organização do turno') + '<div class="list">' +
@@ -1102,6 +1346,8 @@
       card('#/compatibilidade', '🔗', 'Interações e compatibilidade', 'Checar 2+ medicamentos ou uma maleta', 'view:compat') +
       card('#/hipodermoclise', '💧', 'Hipodermóclise', 'Hidratação e medicamentos por via SC', 'view:hipo') +
       card('#/revisao', '📚', 'Referências e revisão das fichas', 'Fontes, bulas Anvisa, ficha de conferência') +
+      card('#/instituicao', '🏥', 'Minha instituição', 'Protocolos locais, contatos e padrões da instituição') +
+      card('#/conteudo', '🔍', 'Conteúdo, revisão e privacidade', 'Versão, conselho editorial, histórico, LGPD') +
       card('#/sobre', 'ℹ️', 'Sobre, backup e dados', 'Exportar/restaurar maletas, aviso legal') + '</div>';
   }
 
@@ -1287,7 +1533,7 @@
         (usaAlias ? '<div class="alias-box hero-sub"><span class="tipo tipo-' + (m ? m[1] : 'O') + '">' + (m && m[1] === 'R' ? '⭐ ' : '') + esc(m ? (TIPO_NOME[m[1]] || 'Nome comercial') : 'Outro nome') + '</span> Princípio ativo: <b>' + esc(o.nome) + '</b></div>' : '') +
         (temClasse ? '<a class="hero-classe" href="#/classe/' + encodeURIComponent(k) + '">' + esc(o.cc ? nomeClasse(k) : o.classe) + ' ›</a>' : '') +
       '</div>' + favButton(o.fav) + '</div>' +
-      '<div class="badges">' + bs.join('') + '</div>' + marcasLinha(mk) + '</section>';
+      '<div class="badges">' + bs.join('') + '</div>' + marcasLinha(mk) + revisaoLinha(o.fav.replace('droga:', '')) + '</section>' + instMedHtml(o.fav.replace('droga:', ''));
   }
   function perfilHtml(cc) {
     var p = cc && PF.perfil(cc);
@@ -1363,7 +1609,7 @@
       ['mercado', '🏷️ Mercado', mercadoHtml(c)],
       ['fontes', '📚 Fontes', '<div class="ref-btns"><a class="btn sm" target="_blank" rel="noopener" href="' + esc(anvisaBusca((c.marcas[0] && c.marcas[0][0]) || termo)) + '">📄 Bulário eletrônico da Anvisa</a>' + msdLinkHtml(termo) + '</div>' +
         '<p class="note">Catálogo gerado a partir da ' + esc(CT.FONTE.nome) + ' e do registro da Anvisa (dados públicos). Classe terapêutica, tarja e apresentações conforme as listas oficiais.</p>']];
-    $app.innerHTML = heroDroga({ nome: c.nome, alias: alias, cc: c.cc, classe: c.classe, mk: c, fav: 'droga:' + c.id, icon: cat ? cat.icon : '📚', tipoFicha: 'Catálogo oficial' }) + abasHtml(abas);
+    $app.innerHTML = heroDroga({ nome: c.nome, alias: alias, cc: c.cc, classe: c.classe, mk: c, fav: 'droga:' + c.id, icon: cat ? cat.icon : '📚', tipoFicha: 'Catálogo oficial' }) + abasHtml(abas) + '<div class="ref-btns">' + reportarHtml('Ficha: ' + c.nome) + '</div>';
     if (apsCat.length) bindDrugCalc({ conc: apsCat[0], aps: apsCat, semAviso: apsCat[0].porMl });
     ligarAbas(abas, null, 'resumo');
   }
@@ -1399,7 +1645,7 @@
     var abas = [['resumo', '📋 Resumo', resumo], ['calcular', '💉 Calcular', calc], ['classe', '🧭 Classe', classeAbaHtml(cc, cc ? '' : x.classe, x.id)]];
     if (mk) abas.push(['mercado', '🏷️ Mercado', mercadoHtml(mk)]);
     abas.push(['fontes', '📚 Fontes', confHtml(x.id) + '<div class="ref-btns">' + msdLinkHtml(x.nome) + '</div>' + refsHtml({ id: x.id, nome: x.nome, classe: x.classe })]);
-    $app.innerHTML = heroDroga({ nome: x.nome, alias: alias, cc: cc, classe: x.classe, mk: mk, fav: 'droga:' + x.id, hv: x.hv, via: x.via, icon: cat ? cat.icon : '📄', tipoFicha: 'Ficha resumida' }) + abasHtml(abas);
+    $app.innerHTML = heroDroga({ nome: x.nome, alias: alias, cc: cc, classe: x.classe, mk: mk, fav: 'droga:' + x.id, hv: x.hv, via: x.via, icon: cat ? cat.icon : '📄', tipoFicha: 'Ficha resumida' }) + abasHtml(abas) + '<div class="ref-btns">' + reportarHtml('Ficha: ' + x.nome) + '</div>';
     if (aps.length) bindDrugCalc({ conc: { qtd: aps[0].qtd, u: aps[0].u, vol: aps[0].vol }, aps: aps, semAviso: aps[0].porMl });
     ligarAbas(abas, null, 'resumo');
   }
@@ -1450,7 +1696,7 @@
     if (mkD) abas.push(['mercado', '🏷️ Mercado', mercadoHtml(mkD)]);
     abas.push(['fontes', '📚 Fontes', refsHtml(d)]);
     $app.innerHTML = heroDroga({ nome: d.nome, alias: alias, cc: ccD, classe: ccD ? '' : d.classe.replace(/\s*[—-]\s*ALTA VIGILÂNCIA.*$/i, ''), mk: mkD, fav: 'droga:' + d.id, hv: isHV(d), icon: cat ? cat.icon : '💊', tipoFicha: 'Ficha completa' }) +
-      (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') + abasHtml(abas);
+      (isHV(d) ? '<div class="alert bad">🔴 Medicamento de alta vigilância: dupla checagem obrigatória.</div>' : '') + abasHtml(abas) + '<div class="ref-btns">' + reportarHtml('Ficha: ' + d.nome) + '</div>';
     bindDrugCalc(d);
     ligarAbas(abas, 'drugTab', 'preparo');
     var btn = document.getElementById('kit-add');
@@ -3207,12 +3453,15 @@
       '<div class="search"><input id="pq" type="search" placeholder="Buscar protocolo…" aria-label="Buscar protocolo"></div><div id="pl"></div>' +
       '<p class="disclaimer">Texto próprio, elaborado a partir do Manual MSD (edição profissional) e de diretrizes consolidadas. Siga o protocolo da sua instituição.</p>';
     var pq = document.getElementById('pq');
+    var INS = loadInst();
     function render() {
       var t = norm(pq.value.trim());
       document.getElementById('pl').innerHTML = PR.GRUPOS.map(function (g) {
         var ps = PR.PROTOCOLOS.filter(function (p) { return p.grupo === g.id && (!t || t.split(/\s+/).every(function (w) { return textoProtocolo(p).indexOf(w) >= 0; })); });
         return ps.length ? '<h2>' + g.icon + ' ' + esc(g.nome) + '</h2><div class="list">' + ps.map(function (p) { return card('#/protocolo/' + p.id, p.icon, p.nome, p.resumo, 'prot:' + p.id); }).join('') + '</div>' : '';
       }).join('') || '<p class="empty-msg">Nenhum protocolo encontrado.</p>';
+      if (INS && INS.protocolos.length) { var lp = INS.protocolos.map(function (x, i) { return [x, i]; }).filter(function (x) { return !t || norm(x[0].titulo + ' ' + x[0].texto).indexOf(t) >= 0; });
+        if (lp.length) document.getElementById('pl').insertAdjacentHTML('afterbegin', '<h2>🏥 ' + esc(INS.nome) + '</h2><div class="list">' + lp.map(function (x) { return card('#/protocolo-local/' + x[1], '🏥', x[0].titulo, 'Protocolo da instituição'); }).join('') + '</div>'); }
     }
     pq.oninput = render; render();
   }
@@ -3222,7 +3471,7 @@
     if (!p) return viewNotFound();
     setHeader(p.nome, true);
     var calc = CALC_PROT[p.id];
-    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(p.resumo) + '</p>' + favButton('prot:' + p.id) + '</div>' +
+    $app.innerHTML = '<div class="head-row"><p class="lead">' + esc(p.resumo) + '</p>' + favButton('prot:' + p.id) + '</div>' + revisaoLinha('prot:' + p.id) +
       (calc ? '<a class="btn" href="' + calc[0] + '">' + esc(calc[1]) + '</a>' : '') +
       p.secoes.map(function (s) {
         if (s.tipo === 'passos') return '<h2>' + esc(s.t) + '</h2><ol class="steps">' + s.itens.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ol>';
@@ -3241,6 +3490,7 @@
           '<p class="ref-sub">📘 Leitura complementar — Manual MSD</p><ul class="fontes">' + p.msd.map(function (m) { return '<li><a target="_blank" rel="noopener" href="' + esc(PR.urlMsd(m[1])) + '">' + esc(m[0]) + '</a></li>'; }).join('') + '</ul>' +
           '<p class="note">Resumo próprio para consulta rápida, baseado nas referências acima (consulte sempre a versão vigente de cada uma). Doses e condutas variam com o protocolo institucional e a prescrição.</p></div>';
       })();
+    $app.insertAdjacentHTML('beforeend', '<div class="ref-btns">' + reportarHtml('Protocolo: ' + p.nome) + '</div>');
   }
 
   // =====================================================================
@@ -3675,7 +3925,7 @@
       '<div class="score-bar" id="sbar"></div>' +
       '<div class="esc-acoes" id="sacoes" hidden><input id="sref" type="text" placeholder="Leito / paciente (opcional)" aria-label="Identificação"><button class="btn sm" id="scopy" type="button">📋 Copiar</button><button class="btn sm ghost" id="ssave" type="button">💾 Salvar</button></div>' +
       '<button class="btn ghost" id="sreset" type="button">Reiniciar</button>' +
-      (protEscala(s.id) ? '<div class="ref-btns">' + protEscala(s.id) + '</div>' : '');
+      '<div class="ref-btns">' + protEscala(s.id) + reportarHtml('Escala: ' + s.nome) + '</div>' + revisaoLinha('escala:' + s.id);
     var ultimo = null;
     var form = document.getElementById('sform'), bar = document.getElementById('sbar');
     function run() {
@@ -3715,7 +3965,7 @@
     $app.innerHTML = '<div class="sec"><h3>EnfCalc</h3><p>Calculadora de bolso para profissionais de enfermagem: gotejamento, regra de três, reconstituição, diluições, drogas vasoativas, transformação de soro, eletrólitos, pediatria, escalas e avaliações clínicas. Funciona offline e pode ser instalada na tela inicial do celular.</p></div>' +
       '<div class="alert warn">⚠️ <b>Aviso importante:</b> este aplicativo é uma ferramenta de apoio e não substitui o julgamento clínico, a prescrição médica, a bula do fabricante nem os protocolos institucionais. Diluições e doses variam entre fabricantes e serviços. Realize dupla checagem de medicamentos de alta vigilância.</div>' +
       '<div class="sec"><h3>Instalar no celular</h3><p>Android (Chrome): menu ⋮ → “Instalar app” ou “Adicionar à tela inicial”.<br>iPhone (Safari): botão Compartilhar → “Adicionar à Tela de Início”.</p></div>' +
-      '<div class="sec"><h3>Fontes e revisão</h3><p>As fichas são uma compilação de referências usuais e indicam se já foram revisadas por farmacêutico. Cada ficha tem link para a bula oficial no Bulário da Anvisa. <a href="#/revisao">Ver painel de revisão e referências</a>.</p></div>' +
+      '<div class="sec"><h3>Fontes e revisão</h3><p><a href="#/conteudo">Conteúdo, conselho editorial, histórico de versões e privacidade</a> · <a href="#/instituicao">Pacote da minha instituição</a>.</p><p>As fichas são uma compilação de referências usuais e indicam se já foram revisadas por farmacêutico. Cada ficha tem link para a bula oficial no Bulário da Anvisa. <a href="#/revisao">Ver painel de revisão e referências</a>.</p></div>' +
       '<div class="sec"><h3>Backup e troca de aparelho</h3><p>Maletas, favoritos e registros ficam salvos apenas neste aparelho. Exporte um backup para guardar ou levar para outro celular.</p>' +
         '<button class="btn" id="bk-exp" type="button">📦 Exportar backup completo</button>' +
         '<label class="btn ghost file-btn">📥 Restaurar backup (.json)<input type="file" id="bk-imp" accept=".json,application/json"></label></div>' +
@@ -3767,7 +4017,7 @@
     var parts = h.split('/');
     window.scrollTo(0, 0);
     pararPCRTimers();
-    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', classes: 'view:classes', plantao: 'view:plantao', sbar: 'view:sbar', antimicrobianos: 'view:antimicrobianos' }[parts[0]];
+    var rk = { protocolo: 'prot:' + parts[1], sri: 'view:sri', hipodermoclise: 'view:hipo', calc: 'calc:' + parts[1], droga: 'droga:' + parts[1], escala: 'escala:' + parts[1], pcr: 'view:pcr', 'emergencia-ped': 'view:emergped', compatibilidade: 'view:compat', infusao: 'view:infusao', modulo: 'mod:' + parts[1], scanner: 'view:scanner', classes: 'view:classes', plantao: 'view:plantao', sbar: 'view:sbar', antimicrobianos: 'view:antimicrobianos', pop: 'pop:' + parts[1], 'processo-enfermagem': 'view:pe', laboratorio: 'view:lab', ecg: 'view:ecg' }[parts[0]];
     if (rk && (parts[1] || rk.indexOf('view:') === 0)) addRecente(rk);
     switch (parts[0]) {
       case '': viewHome(); break;
@@ -3796,6 +4046,14 @@
       case 'plantao': viewPlantao(); break;
       case 'turno': viewTurno(); break;
       case 'antimicrobianos': viewAntimicrobianos(); break;
+      case 'pops': viewPOPs(); break;
+      case 'pop': viewPOP(parts[1]); break;
+      case 'processo-enfermagem': viewPE(); break;
+      case 'laboratorio': viewLab(); break;
+      case 'ecg': viewECG(); break;
+      case 'instituicao': viewInstituicao(); break;
+      case 'protocolo-local': viewProtocoloLocal(parts[1]); break;
+      case 'conteudo': viewConteudo(); break;
       case 'sbar': viewSBAR(); break;
       case 'atender': viewAtender('lib'); break;
       case 'emergencia-ped': viewEmergPed(); break;
