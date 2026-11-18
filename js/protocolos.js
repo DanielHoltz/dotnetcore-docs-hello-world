@@ -1,7 +1,7 @@
 /*
  * EnfCalc — protocolos clínicos resumidos para a enfermagem.
- * Texto próprio, elaborado a partir do Manual MSD (edição para profissionais, em português) e de diretrizes
- * consolidadas. Não reproduz o MSD: cada protocolo traz o link para o tópico original.
+ * Texto próprio, elaborado a partir de diretrizes brasileiras e internacionais (lista em REFS/FONTES) e do
+ * Manual MSD (edição para profissionais, em português), usado como leitura complementar. Não reproduz o MSD: cada protocolo traz o link para o tópico original.
  * Sempre seguir o protocolo institucional e a prescrição médica.
  *
  * Estrutura: { id, nome, icon, grupo, resumo, msd: [ [título, caminho] ], secoes: [ { t, tipo: 'lista'|'passos'|'meds', itens } ] }
@@ -22,7 +22,8 @@
     { id: 'ped', nome: 'Pediatria', icon: '🧸' },
     { id: 'obst', nome: 'Obstetrícia', icon: '🤰' },
     { id: 'palia', nome: 'Cuidados paliativos', icon: '🕊️' },
-    { id: 'feridas', nome: 'Feridas e pele', icon: '🩹' }
+    { id: 'feridas', nome: 'Feridas e pele', icon: '🩹' },
+    { id: 'infecto', nome: 'Infecções e arboviroses', icon: '🦟' }
   ];
 
   var PROTOCOLOS = [
@@ -486,13 +487,314 @@
           'Sobrecarga circulatória (TACO): sentar o paciente, O₂, diurético. Lesão pulmonar (TRALI): suporte ventilatório.', 'Bacteriana (febre alta, hipotensão): hemoculturas e antibiótico.'] },
         { t: 'Medicamentos', tipo: 'meds', itens: [['dipirona', 'Febre'], ['difenidramina', 'Reação alérgica'], ['hidrocortisona', 'Reação alérgica moderada (100–200 mg EV, conforme prescrição)'], ['adrenalina', 'Anafilaxia (IM)'], ['furosemida', 'Sobrecarga circulatória'], ['soro-fisiologico', 'Manter acesso / hidratação']] },
         { t: 'Prevenção', tipo: 'lista', itens: ['Dupla checagem da identificação na beira do leito.', 'Sinais vitais antes, nos primeiros 15 min (ficar ao lado do paciente) e ao final.', 'Iniciar devagar nos primeiros 15 min; terminar em até 4 h após a saída do banco.'] }
+      ] },
+
+    // ======================= Ampliação: emergência, trauma, infecção e segurança =======================
+    { id: 'pcr-adulto', nome: 'Parada cardiorrespiratória (adulto)', icon: '🚨', grupo: 'choque',
+      resumo: 'Compressões de alta qualidade, desfibrilação precoce nos ritmos chocáveis, adrenalina e busca das causas reversíveis.',
+      msd: [['Reanimação cardiopulmonar em adultos', '/pt/profissional/medicina-de-cuidados-críticos/parada-cardíaca-e-reanimação-cardiopulmonar-rcp/reanimação-cardiopulmonar-rcp-em-adultos'], ['Parada cardíaca', '/pt/profissional/medicina-de-cuidados-críticos/parada-cardíaca-e-reanimação-cardiopulmonar-rcp/parada-cardíaca']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Não responsivo, sem respiração normal (ou só gasping) e sem pulso central palpável em até 10 s.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Chamar ajuda, acionar o código e pedir o desfibrilador/DEA; anotar o horário.',
+          'Compressões: 100–120/min, profundidade 5–6 cm, retorno total do tórax, interrupções < 10 s; trocar o compressor a cada 2 min.',
+          'Sem via aérea avançada: 30 compressões : 2 ventilações. Com via aérea avançada: compressões contínuas + 1 ventilação a cada 6 s.',
+          'Checar o ritmo a cada 2 min. FV/TV sem pulso: choque e reiniciar a RCP imediatamente. AESP/assistolia: RCP e adrenalina o quanto antes.',
+          'Adrenalina 1 mg EV/IO a cada 3–5 min. Ritmo chocável refratário: amiodarona 300 mg, depois 150 mg (ou lidocaína).',
+          'Buscar causas reversíveis (5H e 5T): hipovolemia, hipóxia, H+ (acidose), hipo/hipercalemia, hipotermia; tensão no tórax (pneumotórax), tamponamento, toxinas, trombose coronariana e pulmonar.',
+          'Capnografia: ETCO₂ < 10 mmHg sugere RCP inadequada; aumento súbito sugere retorno da circulação.',
+          'Após o retorno da circulação: SpO₂ 92–98%, PAS ≥ 90 / PAM ≥ 65 mmHg, ECG de 12 derivações, controle de temperatura e glicemia.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['adrenalina', '1 mg a cada 3–5 min'], ['amiodarona', 'FV/TV refratária: 300 mg, depois 150 mg'], ['lidocaina', 'Alternativa à amiodarona'],
+          ['sulfato-magnesio', 'Torsades de pointes'], ['gluconato-calcio', 'Hipercalemia / intoxicação por bloqueador de canal de cálcio'], ['bicarbonato', 'Situações específicas (hipercalemia, intoxicação por tricíclico)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Use o Modo PCR do app para cronometrar ciclos, choques e adrenalina.', 'Definir funções na equipe (compressão, via aérea, medicação, registro).', 'Acesso venoso calibroso ou intraósseo; lavar cada droga com 20 mL de SF e elevar o membro.'] }
+      ] },
+
+    { id: 'bradicardia', nome: 'Bradicardia com pulso', icon: '🐢', grupo: 'cardio',
+      resumo: 'FC baixa com sinais de instabilidade exige atropina e, se ineficaz, marca-passo transcutâneo ou droga cronotrópica.',
+      msd: [['Visão geral das arritmias', '/pt/profissional/doenças-cardiovasculares/visão-geral-de-arritmias-e-doenças-de-condução/visão-geral-das-arritmias'], ['Bloqueio atrioventricular', '/pt/profissional/doenças-cardiovasculares/arritmias-cardíacas-específicas/bloqueio-atrioventricular']],
+      secoes: [
+        { t: 'Sinais de instabilidade', tipo: 'lista', itens: ['Hipotensão, alteração aguda da consciência, sinais de choque, dor torácica isquêmica, insuficiência cardíaca aguda.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Manter via aérea; O₂ se hipoxemia; monitor, oximetria, acesso venoso e ECG de 12 derivações.',
+          'Instável: atropina 1 mg EV, repetir a cada 3–5 min (máx. 3 mg).', 'Sem resposta: marca-passo transcutâneo e/ou infusão de dopamina ou adrenalina, enquanto se prepara marca-passo transvenoso.',
+          'Investigar causas: hipercalemia, isquemia, hipotermia, medicamentos (betabloqueador, bloqueador de canal de cálcio, digoxina).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['atropina', '1 mg EV a cada 3–5 min (máx. 3 mg)'], ['dopamina', 'Infusão 5–20 mcg/kg/min'], ['adrenalina', 'Infusão 2–10 mcg/min'], ['glucagon', 'Intoxicação por betabloqueador (conforme prescrição)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Marca-passo transcutâneo: pás bem aderidas, analgesia/sedação, confirmar captura elétrica E pulso.', 'Registrar ritmo e resposta a cada intervenção.'] }
+      ] },
+
+    { id: 'taquicardia', nome: 'Taquicardia com pulso', icon: '⚡', grupo: 'cardio',
+      resumo: 'Instável: cardioversão elétrica sincronizada. Estável: definir QRS estreito ou largo, regular ou irregular, e tratar conforme o ritmo.',
+      msd: [['Taquicardias supraventriculares paroxísticas', '/pt/profissional/doenças-cardiovasculares/arritmias-cardíacas-específicas/taquicardias-supraventriculares-por-reentrada-paroxísticas-tsvp'], ['Fibrilação atrial', '/pt/profissional/doenças-cardiovasculares/arritmias-cardíacas-específicas/fibrilação-atrial'], ['Taquicardia ventricular', '/pt/profissional/doenças-cardiovasculares/arritmias-cardíacas-específicas/taquicardia-ventricular-tv']],
+      secoes: [
+        { t: 'Conduta', tipo: 'passos', itens: ['Monitor, O₂ se hipoxemia, acesso venoso, ECG de 12 derivações.',
+          'Instável (hipotensão, alteração de consciência, choque, dor isquêmica, IC aguda): cardioversão SINCRONIZADA com sedação, conforme o ritmo e o aparelho.',
+          'QRS estreito regular estável: manobra vagal; adenosina 6 mg em bolus rápido + 20 mL de SF; se necessário, 12 mg.',
+          'Fibrilação/flutter atrial estável: controle da FC (betabloqueador ou diltiazem) e avaliação de anticoagulação, conforme prescrição.',
+          'QRS largo regular estável: consulta especializada; amiodarona 150 mg em 10 min conforme protocolo.',
+          'QRS largo irregular ou TV polimórfica instável: tratar como FV (desfibrilação não sincronizada).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['adenosina', '6 mg → 12 mg, bolus rápido'], ['amiodarona', '150 mg em 10 min'], ['diltiazem', 'Controle de FC'], ['metoprolol', 'Controle de FC'], ['midazolam', 'Sedação para cardioversão'], ['fentanil', 'Analgesia para cardioversão']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Adenosina: acesso calibroso e próximo ao coração; avisar sobre sensação de mal-estar transitório; registrar o traçado.', 'Na cardioversão, conferir se o modo SINCRONIZADO está ativo antes de cada choque.'] }
+      ] },
+
+    { id: 'trauma-xabcde', nome: 'Atendimento inicial ao trauma (XABCDE)', icon: '🚑', grupo: 'outros',
+      resumo: 'Sequência XABCDE: controlar a hemorragia exsanguinante primeiro, depois via aérea, respiração, circulação, neurológico e exposição.',
+      msd: [['Abordagem do paciente de trauma', '/pt/profissional/lesões-intoxicação/abordagem-do-paciente-de-trauma/abordagem-do-paciente-de-trauma'], ['Choque', '/pt/profissional/medicina-de-cuidados-críticos/choque-e-reanimação-volêmica/choque']],
+      secoes: [
+        { t: 'Sequência', tipo: 'passos', itens: ['X — hemorragia exsanguinante: compressão direta, curativo compressivo, torniquete (anotar o horário).',
+          'A — via aérea com restrição de movimento da coluna cervical quando indicado.', 'B — ventilação: frequência, SpO₂, expansão; suspeitar de pneumotórax hipertensivo (desvio de traqueia, ausência de murmúrio, hipotensão).',
+          'C — circulação: pulsos, perfusão, 2 acessos calibrosos; cristaloide aquecido em volume limitado e hemoderivados precoces no choque hemorrágico.',
+          'D — neurológico: Glasgow, pupilas, glicemia capilar.', 'E — exposição completa e prevenção de hipotermia (mantas, fluidos aquecidos).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['tranexamico', '1 g EV em 10 min, até 3 h do trauma'], ['ringer-lactato', 'Cristaloide aquecido'], ['fentanil', 'Analgesia'], ['cetamina', 'Analgesia/sedação no instável']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Reavaliar o XABCDE a cada intervenção ou piora.', 'Registrar horários (torniquete, ácido tranexâmico, hemoderivados).', 'Prevenir hipotermia: ela piora a coagulopatia.'] }
+      ] },
+
+    { id: 'tce', nome: 'Traumatismo cranioencefálico (TCE)', icon: '🧠', grupo: 'neuro',
+      resumo: 'Evitar hipóxia e hipotensão (lesão secundária), classificar pelo Glasgow e reconhecer sinais de herniação.',
+      msd: [['Traumatismo cranioencefálico', '/pt/profissional/lesões-intoxicação/traumatismo-cranioencefálico-tce/traumatismo-cranioencefálico-tce']],
+      secoes: [
+        { t: 'Classificar', tipo: 'lista', itens: ['Leve: Glasgow 13–15. Moderado: 9–12. Grave: ≤ 8 (indicação de via aérea definitiva).',
+          'Sinais de herniação: anisocoria, rebaixamento progressivo, postura de decorticação/descerebração, tríade de Cushing (hipertensão, bradicardia, respiração irregular).'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Restrição de movimento da coluna cervical; cabeceira a 30° com alinhamento cervical.', 'Evitar hipóxia (SpO₂ ≥ 94%) e hipotensão (PAS ≥ 100–110 mmHg conforme a idade).',
+          'Manter normocapnia, normotermia e glicemia controlada.', 'Sinais de herniação: avisar imediatamente; terapia hiperosmolar (manitol ou salina hipertônica) conforme prescrição.',
+          'Paciente anticoagulado: avaliação e reversão conforme protocolo; tomografia de crânio.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['manitol', 'Hipertensão intracraniana (prescrição)'], ['cloreto-sodio-20', 'Preparo de salina hipertônica'], ['levetiracetam', 'Profilaxia de crises no TCE grave (conforme protocolo)'], ['fentanil', 'Analgesia/sedação'], ['propofol', 'Sedação no paciente intubado']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Glasgow e pupilas seriados (ex.: a cada 1 h nas primeiras horas).', 'Evitar soluções hipotônicas (soro glicosado puro).', 'Use a escala de Glasgow do app.'] }
+      ] },
+
+    { id: 'dengue', nome: 'Dengue — classificação e hidratação', icon: '🦟', grupo: 'infecto',
+      resumo: 'Classificar em grupos A, B, C ou D pelos sinais de alarme e de choque; hidratação é o tratamento principal.',
+      msd: [['Dengue', '/pt/profissional/doenças-infecciosas/arbovírus-arenavírus-e-filovírus/dengue']],
+      secoes: [
+        { t: 'Sinais de alarme', tipo: 'lista', itens: ['Dor abdominal intensa e contínua; vômitos persistentes; acúmulo de líquidos (ascite, derrame pleural ou pericárdico).',
+          'Hipotensão postural ou lipotimia; hepatomegalia > 2 cm; sangramento de mucosa; letargia ou irritabilidade; aumento progressivo do hematócrito.'] },
+        { t: 'Classificação (Ministério da Saúde)', tipo: 'lista', itens: ['Grupo A: sem sinais de alarme, sem sangramento e sem condição especial — tratamento ambulatorial.',
+          'Grupo B: sangramento de pele (espontâneo ou prova do laço positiva) OU condição especial/comorbidade/risco social — observação e hemograma.',
+          'Grupo C: algum sinal de alarme — internação e hidratação venosa.', 'Grupo D: choque, sangramento grave ou disfunção grave de órgão — emergência/UTI.'] },
+        { t: 'Hidratação', tipo: 'passos', itens: ['Grupos A e B (adulto): 60 mL/kg/dia, cerca de 1/3 com SRO e o restante em água, sucos e chás, com retorno se sinais de alarme.',
+          'Grupo C: SF 0,9% 10 mL/kg na 1ª hora; reavaliar e repetir (até 3 vezes) conforme a resposta clínica e o hematócrito.',
+          'Grupo D: SF 0,9% ou Ringer 20 mL/kg em até 20 min; reavaliar e repetir até 3 vezes; acionar UTI.', 'Seguir o fluxograma vigente do Ministério da Saúde para adulto e criança.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['dipirona', 'Febre e dor'], ['paracetamol-oral', 'Febre e dor'], ['sro', 'Hidratação oral'], ['soro-fisiologico', 'Hidratação venosa (grupos C e D)'],
+          [null, 'NÃO usar ácido acetilsalicílico nem anti-inflamatórios (risco de sangramento).']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Prova do laço: manguito na PA média por 5 min (criança 3 min); positiva com ≥ 20 petéquias em 2,5 cm² (criança ≥ 10).', 'Balanço hídrico, diurese e sinais vitais seriados.', 'Notificação compulsória.'] }
+      ] },
+
+    { id: 'peconhentos', nome: 'Acidentes por animais peçonhentos', icon: '🐍', grupo: 'tox',
+      resumo: 'Cobras, escorpiões e aranhas: medidas gerais, classificação da gravidade e soroterapia específica pelo protocolo do Ministério da Saúde.',
+      msd: [['Mordidas de cobra', '/pt/profissional/lesões-intoxicação/mordidas-e-picadas/mordidas-de-cobra'], ['Picadas de escorpião', '/pt/profissional/lesões-intoxicação/mordidas-e-picadas/picadas-de-escorpião']],
+      secoes: [
+        { t: 'Primeiras medidas', tipo: 'passos', itens: ['Lavar o local com água e sabão; manter a vítima em repouso e o membro em posição funcional.',
+          'NÃO fazer torniquete, cortes, sucção nem aplicar substâncias no local.', 'Identificar o animal se possível (foto, sem risco), o horário e a região da picada.',
+          'Avaliar sinais locais (dor, edema, bolhas, necrose) e sistêmicos (sangramentos, urina escura, ptose palpebral, visão turva, dispneia, vômitos, sudorese).',
+          'Colher tempo de coagulação e exames conforme o tipo; acionar o CIATox e o serviço de referência para soroterapia.'] },
+        { t: 'Soroterapia', tipo: 'lista', itens: ['Indicada conforme o tipo de acidente e a classificação de gravidade, em número de ampolas definido pelo protocolo do Ministério da Saúde.',
+          'Administração EV, diluída, em ambiente com material de reanimação; observar reação precoce (urticária, broncoespasmo, hipotensão).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [[null, 'Soros antivenenos (antibotrópico, anticrotálico, antielapídico, antiescorpiônico etc.) — distribuídos pelo Ministério da Saúde.'],
+          ['adrenalina', 'Reação anafilática ao soro'], ['dipirona', 'Dor'], ['lidocaina', 'Bloqueio anestésico na picada de escorpião (sem vasoconstritor)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Medir e anotar a circunferência do membro e a diurese.', 'Verificar a vacinação antitetânica.', 'Notificação compulsória.'] }
+      ] },
+
+    { id: 'afogamento', nome: 'Afogamento', icon: '🌊', grupo: 'resp',
+      resumo: 'A hipóxia é o problema central: priorizar a ventilação e o oxigênio; classificar a gravidade (Szpilman).',
+      msd: [['Afogamento', '/pt/profissional/lesões-intoxicação/afogamento/afogamento']],
+      secoes: [
+        { t: 'Gravidade (Szpilman)', tipo: 'lista', itens: ['Grau 1: tosse sem espuma. Grau 2: pouca espuma na boca/nariz. Grau 3: muita espuma, pulso radial presente.',
+          'Grau 4: muita espuma com hipotensão. Grau 5: parada respiratória isolada. Grau 6: parada cardiorrespiratória.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Retirar da água com segurança; restrição da coluna só se houver suspeita de trauma (mergulho, queda).',
+          'Parada respiratória ou PCR: iniciar pelas ventilações (5 ventilações de resgate) e seguir com RCP.', 'Oxigênio em alto fluxo; decúbito lateral se respira e há vômitos.',
+          'Graus 4–6: via aérea avançada e ventilação com PEEP conforme a equipe.', 'Hipotermia: retirar roupas molhadas, aquecer, monitorizar ritmo.', 'Não tentar "retirar água" dos pulmões (manobra de Heimlich é contraindicada).'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [[null, 'Oxigênio em alto fluxo'], ['adrenalina', 'PCR'], ['soro-fisiologico', 'Aquecido, se hipotensão']] }
+      ] },
+
+    { id: 'reanimacao-neonatal', nome: 'Reanimação neonatal', icon: '🍼', grupo: 'ped',
+      resumo: 'O "Minuto de Ouro": iniciar ventilação com pressão positiva em até 60 s no RN que não respira adequadamente.',
+      msd: [['Reanimação neonatal', '/pt/profissional/pediatria/problemas-perinatais/reanimação-neonatal']],
+      secoes: [
+        { t: 'Ao nascer', tipo: 'passos', itens: ['Avaliar: gestação a termo? Respira ou chora? Bom tônus? Se sim: clampeamento tardio do cordão e contato pele a pele.',
+          'Se não: passos iniciais (prover calor, posicionar a cabeça, aspirar boca e narinas só se necessário, secar) e avaliar FC e respiração.',
+          'Apneia, respiração irregular ou FC < 100 bpm: ventilação com pressão positiva com máscara em até 60 s de vida (≥ 34 semanas: iniciar com ar ambiente).',
+          'Monitorar SpO₂ (mão direita) e FC (monitor cardíaco).', 'FC < 60 bpm após 30 s de ventilação efetiva: intubar e iniciar massagem cardíaca (3:1) com O₂ 100%.',
+          'FC < 60 bpm apesar de ventilação e massagem: adrenalina EV pela veia umbilical, conforme diretriz da SBP; considerar expansor de volume se houver suspeita de hipovolemia.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['adrenalina', 'EV (veia umbilical): diluir e dosar por peso conforme diretriz da SBP'], ['soro-fisiologico', 'Expansor de volume 10 mL/kg (suspeita de hipovolemia)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Checar material antes de todo parto (fonte de calor, balão autoinflável e máscaras, aspirador, laringoscópio, cânulas, material de cateterismo umbilical).', 'Prevenir hipotermia: campos aquecidos; saco plástico no prematuro < 34 semanas.', 'Registrar horários (nascimento, início da VPP, massagem, medicações).'] }
+      ] },
+
+    { id: 'dpoc', nome: 'Exacerbação da DPOC', icon: '🫁', grupo: 'resp',
+      resumo: 'Broncodilatador, corticoide sistêmico, oxigênio controlado e ventilação não invasiva quando há acidose respiratória.',
+      msd: [['Tratamento da exacerbação aguda da DPOC', '/pt/profissional/distúrbios-pulmonares/doença-pulmonar-obstrutiva-crônica-e-doenças-relacionadas/tratamento-da-exacerbação-aguda-da-dpoc']],
+      secoes: [
+        { t: 'Conduta', tipo: 'passos', itens: ['O₂ controlado com alvo de SpO₂ 88–92% (evitar hiperóxia); gasometria arterial.',
+          'Broncodilatador de curta ação (salbutamol ± ipratrópio) por aerossol com espaçador ou nebulização.', 'Corticoide sistêmico (ex.: prednisona 40 mg/dia por 5 dias), conforme prescrição.',
+          'Antibiótico se escarro purulento com aumento de volume/dispneia ou necessidade de ventilação.', 'Ventilação não invasiva se acidose respiratória (pH ≤ 7,35 e PaCO₂ > 45 mmHg) ou desconforto importante.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['salbutamol', 'Broncodilatador'], ['ipratropio', 'Associado ao salbutamol'], ['prednisona', 'Corticoide oral'], ['metilprednisolona', 'Corticoide EV'], ['amoxi-clav', 'Antibiótico (se indicado)']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Posição sentada; monitorar sonolência (retenção de CO₂).', 'Revisar técnica inalatória e vacinação na alta.'] }
+      ] },
+
+    { id: 'ehh', nome: 'Estado hiperglicêmico hiperosmolar', icon: '🍬', grupo: 'metabolico',
+      resumo: 'Hiperglicemia grave com desidratação intensa e hiperosmolaridade, sem cetoacidose importante. Volume primeiro, insulina depois.',
+      msd: [['Complicações agudas do diabetes', '/pt/profissional/distúrbios-endócrinos-e-metabólicos/diabetes-melito-e-hipoglicemia/complicações-agudas-do-diabetes-mellitus']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Glicemia muito elevada (geralmente > 600 mg/dL), osmolalidade efetiva > 300 mOsm/kg, desidratação importante e alteração da consciência, sem acidose cetótica significativa.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Reposição volêmica com SF 0,9% (adulto sem cardiopatia: cerca de 1–1,5 L na 1ª hora), depois conforme o sódio corrigido e a diurese.',
+          'Potássio: repor antes/junto da insulina; não iniciar insulina com K < 3,5 mEq/L.', 'Insulina regular EV em bomba após iniciar a hidratação, conforme protocolo.',
+          'Associar soro glicosado quando a glicemia se aproximar de 250–300 mg/dL.', 'Corrigir a osmolalidade e o sódio lentamente (risco de edema cerebral); profilaxia de TEV.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['soro-fisiologico', 'Reposição volêmica'], ['insulina-regular', 'Infusão EV'], ['cloreto-potassio', 'Reposição de potássio'], ['soro-glicosado', 'Quando a glicemia cair'], ['enoxaparina', 'Profilaxia de TEV']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Glicemia capilar a cada 1 h; eletrólitos a cada 2–4 h.', 'Balanço hídrico rigoroso e nível de consciência.', 'Use a calculadora de sódio corrigido do app.'] }
+      ] },
+
+    { id: 'seguranca-paciente', nome: 'Segurança do paciente — as 6 metas', icon: '🛡️', grupo: 'outros',
+      resumo: 'Protocolos básicos do Programa Nacional de Segurança do Paciente: identificação, comunicação, medicamentos, cirurgia segura, higiene das mãos, quedas e lesão por pressão.',
+      msd: [['Erros de medicação', '/pt/profissional/farmacologia-clínica/conceitos-em-farmacoterapia/erros-de-medicação']],
+      secoes: [
+        { t: 'Metas', tipo: 'passos', itens: ['Identificar corretamente o paciente: pulseira com pelo menos 2 identificadores (nome completo e data de nascimento, por exemplo) — conferir antes de todo procedimento.',
+          'Comunicação efetiva: passagem de plantão estruturada (ex.: SBAR); ordens verbais repetidas e confirmadas.',
+          'Medicamentos de alta vigilância: dupla checagem, rotulagem e conferência dos certos da medicação.',
+          'Cirurgia segura: lista de verificação (antes da indução, antes da incisão e antes de sair da sala).',
+          'Higiene das mãos nos 5 momentos (antes do contato, antes de procedimento asséptico, após risco de fluidos, após contato, após tocar o entorno).',
+          'Reduzir quedas e lesões por pressão: avaliação de risco (Morse e Braden) e medidas preventivas.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [[null, 'Exemplos de alta vigilância: eletrólitos concentrados, insulinas, anticoagulantes, opioides, bloqueadores neuromusculares, quimioterápicos.'],
+          ['cloreto-potassio', 'Nunca EV direto; armazenamento segregado'], ['insulina-regular', 'Dupla checagem'], ['heparina', 'Dupla checagem'], ['morfina', 'Dupla checagem']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Notificar incidentes e eventos adversos (cultura justa, sem punição).', 'Envolver paciente e família na conferência da identificação e da medicação.'] }
+      ] },
+
+    { id: 'quedas', nome: 'Prevenção de quedas', icon: '🦯', grupo: 'outros',
+      resumo: 'Avaliar o risco na admissão e periodicamente (Morse), aplicar medidas preventivas e revisar medicamentos que aumentam o risco.',
+      msd: [['Quedas em idosos', '/pt/profissional/geriatria/quedas-em-idosos/quedas-em-idosos']],
+      secoes: [
+        { t: 'Medidas', tipo: 'passos', itens: ['Escala de Morse na admissão, a cada mudança clínica e após queda (use a escala do app).',
+          'Cama baixa e travada, campainha ao alcance, iluminação adequada, piso seco, calçado antiderrapante.', 'Acompanhar ao banheiro quem tem risco; horários programados de eliminação.',
+          'Revisar medicamentos: sedativos, hipnóticos, opioides, anti-hipertensivos, diuréticos, hipoglicemiantes.', 'Sinalizar o risco (pulseira/placa) e orientar paciente e família.'] },
+        { t: 'Após uma queda', tipo: 'lista', itens: ['Avaliar dano (sinais vitais, dor, deformidades, nível de consciência; atenção a TCE em anticoagulados).', 'Comunicar a equipe médica e notificar o evento.'] },
+        { t: 'Medicamentos que aumentam o risco', tipo: 'meds', itens: [['clonazepam', 'Benzodiazepínico'], ['zolpidem', 'Hipnótico'], ['morfina', 'Opioide'], ['furosemida', 'Diurético'], ['insulina-regular', 'Hipoglicemia']] }
+      ] },
+
+    { id: 'tev-profilaxia', nome: 'Profilaxia de tromboembolismo venoso', icon: '🦵', grupo: 'cardio',
+      resumo: 'Avaliar risco de trombose e de sangramento em todo paciente internado; profilaxia mecânica e/ou farmacológica conforme o risco.',
+      msd: [['Prevenção da trombose venosa profunda', '/pt/profissional/doenças-cardiovasculares/doenças-venosas-periféricas/prevenção-da-trombose-venosa-profunda-tvp']],
+      secoes: [
+        { t: 'Conduta', tipo: 'passos', itens: ['Avaliar o risco na admissão (ex.: escore de Padua no clínico, Caprini no cirúrgico) e o risco de sangramento.',
+          'Estimular deambulação precoce e mobilização no leito.', 'Profilaxia farmacológica conforme prescrição (ex.: enoxaparina 40 mg SC 1x/dia ou heparina 5.000 UI SC 2–3x/dia; ajuste na insuficiência renal).',
+          'Contraindicação a anticoagulante: compressão pneumática intermitente ou meias, conforme protocolo.', 'Reavaliar diariamente e na alta.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['enoxaparina', 'SC 1x/dia'], ['heparina', 'SC 2–3x/dia'], ['fondaparinux', 'Alternativa']] },
+        { t: 'Enfermagem', tipo: 'lista', itens: ['Aplicar SC no abdome, alternando lados, sem aspirar e sem massagear.', 'Observar sangramentos e plaquetas (plaquetopenia por heparina).'] }
+      ] },
+
+    { id: 'neutropenia-febril', nome: 'Neutropenia febril', icon: '🌡️', grupo: 'infecto',
+      resumo: 'Emergência oncológica: febre em paciente com neutrófilos baixos exige culturas e antibiótico de amplo espectro em até 1 hora.',
+      msd: [['Neutropenia', '/pt/profissional/hematologia/leucopenias/neutropenia']],
+      secoes: [
+        { t: 'Reconhecer', tipo: 'lista', itens: ['Temperatura ≥ 38,3 °C (ou ≥ 38 °C por 1 h) e neutrófilos < 500/mm³ (ou < 1.000 com queda prevista).', 'Pode haver poucos sinais de infecção: valorizar febre isolada.'] },
+        { t: 'Conduta', tipo: 'passos', itens: ['Triagem prioritária; sinais vitais e avaliação de sepse.', 'Hemoculturas (periférica e de cada lúmen do cateter) e outras culturas, sem atrasar o antibiótico.',
+          'Antibiótico de amplo espectro com ação antipseudomonas em até 60 min, conforme protocolo (ex.: cefepima).', 'Associar vancomicina se suspeita de infecção de cateter, pele, pneumonia ou instabilidade.',
+          'Precauções conforme o protocolo da CCIH; evitar procedimentos retais.'] },
+        { t: 'Medicamentos', tipo: 'meds', itens: [['cefepima', '1ª linha usual'], ['pipe-tazo', 'Alternativa'], ['meropenem', 'Risco de multirresistência / instabilidade'], ['vancomicina', 'Situações específicas'], ['dipirona', 'Antitérmico (evitar AINE)'], ['filgrastim', 'Casos selecionados (prescrição)']] }
       ] }
   ];
+
+  // ---------- Referências (instituições brasileiras e internacionais) ----------
+  // br: true = referência brasileira. Edições/anos indicados quando conhecidos; consultar sempre a versão vigente.
+  var REFS = {
+    // Brasil
+    'ms-pnsp': { br: true, org: 'Ministério da Saúde / Anvisa / Fiocruz', t: 'Protocolos básicos de segurança do paciente — Programa Nacional de Segurança do Paciente (2013)' },
+    'ms-hemo': { br: true, org: 'Ministério da Saúde', t: 'Guia para uso de hemocomponentes (2ª ed., 2015)' },
+    'anvisa-hemovig': { br: true, org: 'Anvisa', t: 'Marco conceitual e operacional de hemovigilância: guia para a hemovigilância no Brasil (2015)' },
+    'ms-gar': { br: true, org: 'Ministério da Saúde', t: 'Manual de Gestação de Alto Risco (2022)' },
+    'ms-avc': { br: true, org: 'Ministério da Saúde', t: 'Manual de rotinas para atenção ao AVC (2013)' },
+    'ms-queimados': { br: true, org: 'Ministério da Saúde', t: 'Cartilha para tratamento de emergência das queimaduras (2012)' },
+    'ms-diarreia': { br: true, org: 'Ministério da Saúde', t: 'Manejo do paciente com diarreia — planos A, B e C (material vigente)' },
+    'ms-dengue': { br: true, org: 'Ministério da Saúde', t: 'Dengue: diagnóstico e manejo clínico — adulto e criança (6ª ed., 2024)' },
+    'ms-peconhentos': { br: true, org: 'Ministério da Saúde', t: 'Manual de diagnóstico e tratamento de acidentes por animais peçonhentos (2ª ed.) e Guia de Vigilância em Saúde (vigente)' },
+    'ms-samu': { br: true, org: 'Ministério da Saúde — SAMU 192', t: 'Protocolos de Suporte Básico e de Suporte Avançado de Vida (versão vigente)' },
+    'ciatox': { br: true, org: 'Anvisa / Rede Nacional de Centros de Informação e Assistência Toxicológica (CIATox)', t: 'Disque-Intoxicação 0800 722 6001 — orientação 24 h' },
+    'ilas': { br: true, org: 'Instituto Latino-Americano de Sepse (ILAS)', t: 'Roteiro de implementação de protocolo assistencial gerenciado de sepse (versão vigente)' },
+    'sbc-rcp': { br: true, org: 'Sociedade Brasileira de Cardiologia (SBC)', t: 'Atualização da Diretriz de Ressuscitação Cardiopulmonar e Cuidados Cardiovasculares de Emergência (2019)' },
+    'sbc-has': { br: true, org: 'SBC / Sociedade Brasileira de Hipertensão / Sociedade Brasileira de Nefrologia', t: 'Diretrizes Brasileiras de Hipertensão Arterial (versão vigente)' },
+    'sbc-ic': { br: true, org: 'Sociedade Brasileira de Cardiologia (SBC)', t: 'Diretriz Brasileira de Insuficiência Cardíaca Crônica e Aguda (2018) e atualizações' },
+    'sbc-sca': { br: true, org: 'Sociedade Brasileira de Cardiologia (SBC)', t: 'Diretrizes sobre angina instável e infarto agudo do miocárdio sem e com supradesnível do ST (versões vigentes)' },
+    'sbpt-tep': { br: true, org: 'Sociedade Brasileira de Pneumologia e Tisiologia (SBPT)', t: 'Recomendações para o manejo da tromboembolia pulmonar (2010)' },
+    'sbpt-asma': { br: true, org: 'Sociedade Brasileira de Pneumologia e Tisiologia (SBPT)', t: 'Recomendações para o manejo da asma (2020)' },
+    'sbpt-dpoc': { br: true, org: 'Sociedade Brasileira de Pneumologia e Tisiologia (SBPT)', t: 'Recomendações para o tratamento da DPOC (versão vigente)' },
+    'sbd': { br: true, org: 'Sociedade Brasileira de Diabetes (SBD)', t: 'Diretriz da Sociedade Brasileira de Diabetes (edição vigente)' },
+    'sbp': { br: true, org: 'Sociedade Brasileira de Pediatria (SBP)', t: 'Documentos científicos e Tratado de Pediatria (edição vigente)' },
+    'sbp-vsr': { br: true, org: 'Sociedade Brasileira de Pediatria (SBP)', t: 'Diretrizes para o manejo da infecção causada pelo vírus sincicial respiratório (2017)' },
+    'sbp-prn': { br: true, org: 'Sociedade Brasileira de Pediatria (SBP) — Programa de Reanimação Neonatal', t: 'Reanimação do recém-nascido ≥ 34 semanas e < 34 semanas: diretrizes 2022' },
+    'febrasgo-pe': { br: true, org: 'Federação Brasileira das Associações de Ginecologia e Obstetrícia (Febrasgo)', t: 'Pré-eclâmpsia nos seus diversos aspectos — Série Orientações e Recomendações (2017)' },
+    'febrasgo': { br: true, org: 'Federação Brasileira das Associações de Ginecologia e Obstetrícia (Febrasgo)', t: 'Protocolos Febrasgo de Obstetrícia (edição vigente)' },
+    'opas-hpp': { br: true, org: 'OPAS/OMS — Brasil', t: 'Recomendações assistenciais para prevenção, diagnóstico e tratamento da hemorragia obstétrica (2018)' },
+    'ancp': { br: true, org: 'Academia Nacional de Cuidados Paliativos (ANCP)', t: 'Manual de Cuidados Paliativos (2ª ed., 2012)' },
+    'sobest': { br: true, org: 'SOBEST / SOBENDE', t: 'Classificação das lesões por pressão — consenso NPUAP 2016 adaptado culturalmente para o Brasil' },
+    'sobrasa': { br: true, org: 'Sociedade Brasileira de Salvamento Aquático (SOBRASA)', t: 'Diretrizes de atendimento ao afogamento — classificação de Szpilman' },
+    // Internacionais
+    'aha': { org: 'American Heart Association (AHA)', t: 'Guidelines for CPR and Emergency Cardiovascular Care — ACLS/BLS (edição vigente)' },
+    'aha-pals': { org: 'American Heart Association (AHA)', t: 'Pediatric Advanced Life Support — PALS (edição vigente)' },
+    'ilcor': { org: 'International Liaison Committee on Resuscitation (ILCOR)', t: 'Consensus on Science with Treatment Recommendations — CoSTR (atualização anual)' },
+    'erc': { org: 'European Resuscitation Council (ERC)', t: 'European Resuscitation Council Guidelines (edição vigente)' },
+    'phtls': { org: 'NAEMT', t: 'PHTLS — Atendimento Pré-hospitalar ao Traumatizado (edição vigente)' },
+    'atls': { org: 'American College of Surgeons', t: 'ATLS — Advanced Trauma Life Support (edição vigente)' },
+    'btf': { org: 'Brain Trauma Foundation', t: 'Guidelines for the Management of Severe Traumatic Brain Injury (4ª ed., 2016)' },
+    'trauma-sangramento': { org: 'Força-tarefa europeia (Rossaint et al.)', t: 'European guideline on management of major bleeding and coagulopathy following trauma (2023)' },
+    'ssc': { org: 'Surviving Sepsis Campaign (SCCM/ESICM)', t: 'International Guidelines for Management of Sepsis and Septic Shock (2021)' },
+    'wao': { org: 'World Allergy Organization (WAO)', t: 'Anaphylaxis Guidance (2020)' },
+    'ada-crise': { org: 'American Diabetes Association (ADA) e sociedades parceiras', t: 'Hyperglycemic Crises in Adults With Diabetes: A Consensus Report (2024)' },
+    'ada-soc': { org: 'American Diabetes Association (ADA)', t: 'Standards of Care in Diabetes (edição anual)' },
+    'ukka-k': { org: 'UK Kidney Association', t: 'Clinical Practice Guideline: Treatment of Acute Hyperkalaemia in Adults (versão vigente)' },
+    'eu-na': { org: 'ESE / ESICM / ERA-EDTA', t: 'Clinical practice guideline on diagnosis and treatment of hyponatraemia (2014)' },
+    'esc-sca': { org: 'European Society of Cardiology (ESC)', t: 'Guidelines for the management of acute coronary syndromes (2023)' },
+    'esc-ic': { org: 'European Society of Cardiology (ESC)', t: 'Guidelines for the diagnosis and treatment of acute and chronic heart failure (2021) e atualização 2023' },
+    'esc-tep': { org: 'European Society of Cardiology (ESC)', t: 'Guidelines for the diagnosis and management of acute pulmonary embolism (2019)' },
+    'aha-avc': { org: 'American Heart Association / American Stroke Association', t: 'Guidelines for the Early Management of Patients With Acute Ischemic Stroke (2019)' },
+    'aes': { org: 'American Epilepsy Society', t: 'Evidence-based guideline: treatment of convulsive status epilepticus (2016)' },
+    'gina': { org: 'Global Initiative for Asthma (GINA)', t: 'Global Strategy for Asthma Management and Prevention (relatório anual)' },
+    'gold': { org: 'Global Initiative for Chronic Obstructive Lung Disease (GOLD)', t: 'Global Strategy for Prevention, Diagnosis and Management of COPD (relatório anual)' },
+    'asam': { org: 'American Society of Addiction Medicine (ASAM)', t: 'Clinical Practice Guideline on Alcohol Withdrawal Management (2020)' },
+    'acg-hda': { org: 'American College of Gastroenterology (ACG)', t: 'Guideline: Upper Gastrointestinal and Ulcer Bleeding (2021)' },
+    'baveno': { org: 'Baveno VII', t: 'Renewing consensus in portal hypertension (2022)' },
+    'oms-dor': { org: 'Organização Mundial da Saúde (OMS)', t: 'Guidelines for the pharmacological and radiotherapeutic management of cancer pain in adults and adolescents (2018)' },
+    'padis': { org: 'Society of Critical Care Medicine (SCCM)', t: 'Clinical Practice Guidelines for Pain, Agitation/Sedation, Delirium, Immobility and Sleep — PADIS (2018)' },
+    'aap-bronq': { org: 'American Academy of Pediatrics (AAP)', t: 'Clinical Practice Guideline: The Diagnosis, Management, and Prevention of Bronchiolitis (2014)' },
+    'aap-febril': { org: 'American Academy of Pediatrics (AAP)', t: 'Febrile Seizures: guideline for the neurodiagnostic evaluation (2011) e manejo a longo prazo (2008)' },
+    'aap-lactente': { org: 'American Academy of Pediatrics (AAP)', t: 'Evaluation and Management of Well-Appearing Febrile Infants 8 to 60 Days Old (2021)' },
+    'oms-diarreia': { org: 'Organização Mundial da Saúde (OMS)', t: 'The treatment of diarrhoea: a manual for physicians and other senior health workers (2005)' },
+    'oms-hpp': { org: 'Organização Mundial da Saúde (OMS)', t: 'Recommendations for the prevention and treatment of postpartum haemorrhage (2012) e atualizações' },
+    'acog-pe': { org: 'American College of Obstetricians and Gynecologists (ACOG)', t: 'Practice Bulletin 222: Gestational Hypertension and Preeclampsia (2020)' },
+    'oms-prematuro': { org: 'Organização Mundial da Saúde (OMS)', t: 'Recommendations on interventions to improve preterm birth outcomes (2015) e atualização 2022' },
+    'oms-paliativo': { org: 'Organização Mundial da Saúde (OMS)', t: 'Integrating palliative care and symptom relief into primary health care (2018)' },
+    'npiap': { org: 'NPIAP / EPUAP / PPPIA', t: 'Prevention and Treatment of Pressure Ulcers/Injuries: Clinical Practice Guideline (2019)' },
+    'iwgdf': { org: 'International Working Group on the Diabetic Foot (IWGDF)', t: 'Guidelines on the prevention and management of diabetes-related foot disease (2023)' },
+    'svs-ulcera': { org: 'Society for Vascular Surgery / American Venous Forum', t: 'Management of venous leg ulcers: clinical practice guidelines (2014)' },
+    'idsa-pele': { org: 'Infectious Diseases Society of America (IDSA)', t: 'Practice Guidelines for the Diagnosis and Management of Skin and Soft Tissue Infections (2014)' },
+    'idsa-nf': { org: 'IDSA / ASCO', t: 'Antimicrobial agents in neutropenic patients with cancer (IDSA, 2010) e manejo ambulatorial da neutropenia febril (ASCO/IDSA, 2018)' },
+    'ash-tev': { org: 'American Society of Hematology (ASH)', t: 'Guidelines for management of venous thromboembolism: prophylaxis for hospitalized and nonhospitalized medical patients (2018)' },
+    'oms-seguranca': { org: 'Organização Mundial da Saúde (OMS)', t: 'Global Patient Safety Action Plan 2021–2030 e Cirurgia Segura Salva Vidas (lista de verificação)' },
+    'opas-dengue': { org: 'OPAS/OMS', t: 'Dengue: guidelines for patient care in the Region of the Americas (2016)' },
+    'oms-afogamento': { org: 'Organização Mundial da Saúde (OMS)', t: 'Global report on drowning (2014) e recomendações de prevenção' },
+    'accp': { org: 'American College of Chest Physicians (CHEST)', t: 'Antithrombotic Therapy and Prevention of Thrombosis, 9ª ed. (2012) — prevenção de TEV' },
+    'aabb': { org: 'AABB', t: 'Technical Manual (edição vigente) — reações transfusionais' }
+  };
+
+  // Fontes de cada protocolo (chaves de REFS). O Manual MSD aparece à parte, como leitura complementar.
+  var FONTES = {
+    'sepse': ['ilas', 'ssc'], 'choque-hipo': ['phtls', 'atls', 'trauma-sangramento', 'ms-samu'], 'anafilaxia': ['wao', 'aha', 'ms-samu'],
+    'cad': ['sbd', 'ada-crise'], 'hipoglicemia': ['sbd', 'ada-soc', 'ms-samu'], 'hiperk': ['ukka-k', 'aha'], 'hipok': ['ukka-k', 'sbc-rcp'], 'hipona': ['eu-na'],
+    'emerg-has': ['sbc-has'], 'sca': ['sbc-sca', 'esc-sca', 'aha', 'ms-samu'], 'eap': ['sbc-ic', 'esc-ic'], 'avc': ['ms-avc', 'aha-avc', 'ms-samu'],
+    'convulsao': ['aes', 'sbp', 'ms-samu'], 'asma': ['sbpt-asma', 'gina'], 'tep': ['sbpt-tep', 'esc-tep'], 'intox': ['ciatox', 'aha'],
+    'alcool': ['asam'], 'hda': ['acg-hda', 'baveno'], 'queimados': ['ms-queimados', 'atls', 'phtls'], 'dor': ['oms-dor', 'ancp'], 'delirium': ['padis'],
+    'desidratacao-ped': ['ms-diarreia', 'oms-diarreia', 'sbp'], 'bronquiolite': ['sbp-vsr', 'aap-bronq'], 'crupe': ['sbp', 'aha-pals'],
+    'convulsao-febril': ['sbp', 'aap-febril', 'aes'], 'febre-ped': ['sbp', 'aap-lactente'],
+    'pre-eclampsia': ['ms-gar', 'febrasgo-pe', 'acog-pe'], 'hpp': ['opas-hpp', 'ms-gar', 'oms-hpp'], 'tpp': ['ms-gar', 'febrasgo', 'oms-prematuro'], 'hiperemese': ['ms-gar', 'febrasgo'],
+    'paliativo-sintomas': ['ancp', 'oms-paliativo', 'oms-dor'], 'paliativo-gi': ['ancp', 'oms-paliativo'], 'fim-de-vida': ['ancp', 'oms-paliativo'],
+    'lesao-pressao': ['ms-pnsp', 'sobest', 'npiap'], 'ulcera-venosa': ['svs-ulcera'], 'pe-diabetico': ['sbd', 'iwgdf'], 'celulite': ['idsa-pele'],
+    'reacao-transfusional': ['ms-hemo', 'anvisa-hemovig', 'aabb'],
+    'pcr-adulto': ['sbc-rcp', 'aha', 'ilcor', 'erc', 'ms-samu'], 'bradicardia': ['sbc-rcp', 'aha', 'ms-samu'], 'taquicardia': ['sbc-rcp', 'aha', 'ms-samu'],
+    'trauma-xabcde': ['phtls', 'atls', 'trauma-sangramento', 'ms-samu'], 'tce': ['btf', 'atls', 'phtls', 'ms-samu'], 'dengue': ['ms-dengue', 'opas-dengue'],
+    'peconhentos': ['ms-peconhentos', 'ciatox'], 'afogamento': ['sobrasa', 'erc', 'oms-afogamento', 'ms-samu'], 'reanimacao-neonatal': ['sbp-prn', 'ilcor'],
+    'dpoc': ['sbpt-dpoc', 'gold'], 'ehh': ['sbd', 'ada-crise'], 'seguranca-paciente': ['ms-pnsp', 'oms-seguranca'], 'quedas': ['ms-pnsp', 'oms-seguranca'],
+    'tev-profilaxia': ['ash-tev', 'accp'], 'neutropenia-febril': ['idsa-nf']
+  };
+
+  function fontes(id) { return (FONTES[id] || []).map(function (k) { var r = REFS[k]; return r ? { id: k, br: !!r.br, org: r.org, t: r.t } : null; }).filter(Boolean).sort(function (a, b) { return (b.br ? 1 : 0) - (a.br ? 1 : 0); }); }
 
   function urlMsd(caminho) { return MSD + encodeURI(caminho); }
   function buscaMsd(termo) { return MSD + '/pt/profissional/searchresults?query=' + encodeURIComponent(termo); }
 
-  var api = { GRUPOS: GRUPOS, PROTOCOLOS: PROTOCOLOS, urlMsd: urlMsd, buscaMsd: buscaMsd };
+  var api = { GRUPOS: GRUPOS, PROTOCOLOS: PROTOCOLOS, REFS: REFS, FONTES: FONTES, fontes: fontes, urlMsd: urlMsd, buscaMsd: buscaMsd };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Protocolos = api;
 })(this);
