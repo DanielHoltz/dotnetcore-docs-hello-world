@@ -1052,6 +1052,293 @@
         return s <= 2 ? { score: s, txt: 'Sugere constipação (trânsito lento)', level: 'warn' }
              : s <= 5 ? { score: s, txt: 'Fezes dentro do esperado', level: 'ok' }
              : { score: s, txt: 'Sugere diarreia — avaliar hidratação', level: 'warn' };
+      } },
+
+    // ---------- Escalas ampliadas ----------
+    { id: 'nihss', cat: 'neuro', nome: 'NIHSS', desc: 'Gravidade do AVC (National Institutes of Health Stroke Scale)',
+      fonte: 'NINDS/NIH — domínio público; AHA/ASA (2019)',
+      items: [
+        { label: '1a. Nível de consciência', opts: [[0, 'Alerta'], [1, 'Sonolento, desperta com estímulo leve'], [2, 'Obnubilado, só responde a estímulo repetido/doloroso'], [3, 'Coma / só respostas reflexas']] },
+        { label: '1b. Perguntas (mês e idade)', opts: [[0, 'Ambas corretas'], [1, 'Uma correta'], [2, 'Nenhuma correta']] },
+        { label: '1c. Comandos (abrir/fechar olhos, apertar a mão)', opts: [[0, 'Realiza ambos'], [1, 'Realiza um'], [2, 'Nenhum']] },
+        { label: '2. Melhor olhar conjugado', opts: [[0, 'Normal'], [1, 'Paralisia parcial do olhar'], [2, 'Desvio forçado']] },
+        { label: '3. Campos visuais', opts: [[0, 'Sem perda'], [1, 'Hemianopsia parcial'], [2, 'Hemianopsia completa'], [3, 'Hemianopsia bilateral / cegueira']] },
+        { label: '4. Paralisia facial', opts: [[0, 'Normal'], [1, 'Leve (apagamento do sulco, assimetria ao sorrir)'], [2, 'Parcial (face inferior)'], [3, 'Completa (superior e inferior)']] },
+        { label: '5a. Motor — braço esquerdo', opts: [[0, 'Sem queda por 10 s'], [1, 'Queda antes de 10 s, sem tocar o leito'], [2, 'Algum esforço contra a gravidade'], [3, 'Sem esforço contra a gravidade'], [4, 'Nenhum movimento']] },
+        { label: '5b. Motor — braço direito', opts: [[0, 'Sem queda por 10 s'], [1, 'Queda antes de 10 s, sem tocar o leito'], [2, 'Algum esforço contra a gravidade'], [3, 'Sem esforço contra a gravidade'], [4, 'Nenhum movimento']] },
+        { label: '6a. Motor — perna esquerda', opts: [[0, 'Sem queda por 5 s'], [1, 'Queda antes de 5 s, sem tocar o leito'], [2, 'Algum esforço contra a gravidade'], [3, 'Sem esforço contra a gravidade'], [4, 'Nenhum movimento']] },
+        { label: '6b. Motor — perna direita', opts: [[0, 'Sem queda por 5 s'], [1, 'Queda antes de 5 s, sem tocar o leito'], [2, 'Algum esforço contra a gravidade'], [3, 'Sem esforço contra a gravidade'], [4, 'Nenhum movimento']] },
+        { label: '7. Ataxia de membros', opts: [[0, 'Ausente'], [1, 'Presente em um membro'], [2, 'Presente em dois membros']] },
+        { label: '8. Sensibilidade', opts: [[0, 'Normal'], [1, 'Perda leve a moderada'], [2, 'Perda grave ou total']] },
+        { label: '9. Linguagem', opts: [[0, 'Normal'], [1, 'Afasia leve a moderada'], [2, 'Afasia grave'], [3, 'Mutismo / afasia global']] },
+        { label: '10. Disartria', opts: [[0, 'Normal'], [1, 'Leve a moderada'], [2, 'Grave / ininteligível']] },
+        { label: '11. Extinção / desatenção (negligência)', opts: [[0, 'Ausente'], [1, 'Em uma modalidade'], [2, 'Profunda ou em mais de uma modalidade']] }
+      ],
+      interp: function (s) {
+        return s === 0 ? { score: s, txt: 'Sem déficit mensurável', level: 'ok' }
+          : s <= 4 ? { score: s, txt: 'AVC leve', level: 'warn' }
+          : s <= 15 ? { score: s, txt: 'AVC moderado', level: 'warn' }
+          : s <= 20 ? { score: s, txt: 'AVC moderado a grave', level: 'bad' }
+          : { score: s, txt: 'AVC grave', level: 'bad' };
+      } },
+
+    { id: 'rankin', cat: 'neuro', nome: 'Escala de Rankin modificada', desc: 'Grau de incapacidade após AVC',
+      fonte: 'van Swieten et al., Stroke 1988',
+      items: [{ label: 'Situação funcional atual', opts: [[0, 'Sem sintomas'], [1, 'Sintomas sem incapacidade significativa; realiza as atividades habituais'], [2, 'Incapacidade leve; cuida de si sem ajuda, mas não faz todas as atividades prévias'], [3, 'Incapacidade moderada; precisa de alguma ajuda, mas anda sem auxílio'], [4, 'Incapacidade moderadamente grave; não anda nem cuida de si sem ajuda'], [5, 'Incapacidade grave; acamado, incontinente, cuidados constantes'], [6, 'Óbito']] }],
+      interp: function (s) {
+        return s <= 1 ? { score: s, txt: 'Sem incapacidade significativa', level: 'ok' } : s <= 3 ? { score: s, txt: 'Incapacidade leve a moderada', level: 'warn' } : { score: s, txt: s === 6 ? 'Óbito' : 'Incapacidade grave — alta dependência', level: 'bad' };
+      } },
+
+    { id: 'glasgow-ped', cat: 'neuro', nome: 'Glasgow pediátrica (lactentes)', desc: 'Nível de consciência em crianças pré-verbais',
+      fonte: 'Adaptação pediátrica da Escala de Coma de Glasgow (ATLS/PALS)',
+      items: [
+        { label: 'Abertura ocular', opts: [[4, 'Espontânea'], [3, 'Ao som / à voz'], [2, 'À dor'], [1, 'Nenhuma']] },
+        { label: 'Resposta verbal', opts: [[5, 'Balbucia, sorri, acompanha objetos'], [4, 'Choro irritado, consolável'], [3, 'Choro à dor'], [2, 'Gemido à dor'], [1, 'Nenhuma']] },
+        { label: 'Resposta motora', opts: [[6, 'Movimentos espontâneos normais'], [5, 'Retira ao toque'], [4, 'Retira à dor'], [3, 'Flexão anormal (decorticação)'], [2, 'Extensão (descerebração)'], [1, 'Nenhuma']] }
+      ],
+      interp: function (s) {
+        return s >= 13 ? { score: s, txt: 'Alteração leve ou ausente', level: 'ok' } : s >= 9 ? { score: s, txt: 'Alteração moderada', level: 'warn' } : { score: s, txt: 'Grave (≤ 8): proteger via aérea', level: 'bad' };
+      } },
+
+    { id: 'cam-icu', cat: 'neuro', nome: 'CAM-ICU', desc: 'Rastreio de delirium na UTI (inclusive em ventilação mecânica)',
+      fonte: 'Ely et al., JAMA 2001; validação brasileira: Gusmao-Flores et al., 2011',
+      items: [
+        { label: '1. Alteração aguda ou flutuação do estado mental (nas últimas 24 h)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: '2. Desatenção (teste das letras: ≥ 3 erros)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: '3. Nível de consciência alterado (RASS diferente de zero)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: '4. Pensamento desorganizado (≥ 2 erros nas perguntas/comandos)', opts: [[0, 'Não'], [1, 'Sim']] }
+      ],
+      interp: function (s, v) {
+        var pos = v[0] === 1 && v[1] === 1 && (v[2] === 1 || v[3] === 1);
+        return pos ? { score: s, txt: 'CAM-ICU POSITIVO — delirium presente: comunicar equipe, buscar causas', level: 'bad', label: 'Critério: 1 + 2 + (3 ou 4)' }
+          : { score: s, txt: 'CAM-ICU negativo — sem delirium nesta avaliação', level: 'ok', label: 'Só aplicar com RASS ≥ −3; reavaliar a cada turno' };
+      } },
+
+    { id: 'bps', cat: 'dor', nome: 'BPS — Behavioral Pain Scale', desc: 'Dor em paciente sedado e em ventilação mecânica',
+      fonte: 'Payen et al., Crit Care Med 2001',
+      items: [
+        { label: 'Expressão facial', opts: [[1, 'Relaxada'], [2, 'Parcialmente tensa (testa franzida)'], [3, 'Totalmente tensa (pálpebras fechadas)'], [4, 'Careta']] },
+        { label: 'Membros superiores', opts: [[1, 'Sem movimento'], [2, 'Parcialmente fletidos'], [3, 'Totalmente fletidos, dedos fletidos'], [4, 'Permanentemente retraídos']] },
+        { label: 'Adaptação ao ventilador', opts: [[1, 'Tolera a ventilação'], [2, 'Tosse, mas tolera a maior parte do tempo'], [3, 'Briga com o ventilador'], [4, 'Impossível ventilar']] }
+      ],
+      interp: function (s) {
+        return s <= 5 ? { score: s, txt: 'Sem dor significativa', level: 'ok' } : { score: s, txt: 'Dor presente (> 5): tratar e reavaliar', level: s >= 8 ? 'bad' : 'warn' };
+      } },
+
+    { id: 'poss', cat: 'dor', nome: 'POSS — sedação por opioide (Pasero)', desc: 'Sedação induzida por opioide antes e após doses',
+      fonte: 'Pasero C., J Perianesth Nurs 2009',
+      items: [{ label: 'Nível de sedação', opts: [[0, 'S — dormindo, desperta facilmente'], [1, '1 — acordado e alerta'], [2, '2 — levemente sonolento, desperta facilmente'], [3, '3 — sonolento com frequência, adormece durante a conversa'], [4, '4 — sonolento, resposta mínima ou ausente ao estímulo']] }],
+      interp: function (s) {
+        return s <= 2 ? { score: s, txt: 'Aceitável — manter analgesia', level: 'ok' }
+          : s === 3 ? { score: s, txt: 'Inaceitável — reduzir/adiar opioide, monitorar FR e SpO₂, comunicar', level: 'warn' }
+          : { score: s, txt: 'Inaceitável — suspender opioide, estimular, considerar naloxona, chamar médico', level: 'bad' };
+      } },
+
+    { id: 'flebite', cat: 'pele', nome: 'Escala de flebite (INS)', desc: 'Graduação de flebite em acesso venoso periférico',
+      fonte: 'Infusion Nurses Society — Infusion Therapy Standards of Practice',
+      items: [{ label: 'Sinais no local da inserção', opts: [[0, 'Sem sinais'], [1, 'Eritema, com ou sem dor'], [2, 'Dor com eritema e/ou edema'], [3, 'Dor, eritema, estria e cordão venoso palpável'], [4, 'Dor, eritema, estria, cordão > 2,5 cm e drenagem purulenta']] }],
+      interp: function (s) {
+        return s === 0 ? { score: s, txt: 'Sem flebite — manter avaliação a cada turno', level: 'ok' } : s <= 2 ? { score: s, txt: 'Flebite: retirar o cateter, compressa e notificar', level: 'warn' } : { score: s, txt: 'Flebite grave: retirar o cateter, comunicar e notificar', level: 'bad' };
+      } },
+
+    { id: 'infiltracao', cat: 'pele', nome: 'Escala de infiltração (INS)', desc: 'Infiltração e extravasamento em acesso periférico',
+      fonte: 'Infusion Nurses Society — Infusion Therapy Standards of Practice',
+      items: [{ label: 'Achado no local', opts: [[0, 'Sem sinais'], [1, 'Pele fria e pálida, edema < 2,5 cm, com ou sem dor'], [2, 'Pele fria e pálida, edema de 2,5 a 15 cm, com ou sem dor'], [3, 'Pele translúcida, edema > 15 cm, dor leve a moderada, possível dormência'], [4, 'Pele tensa, descolorida, edema > 15 cm com cacifo, comprometimento circulatório, dor intensa, ou qualquer volume de vesicante/hemoderivado']] }],
+      interp: function (s) {
+        return s === 0 ? { score: s, txt: 'Sem infiltração', level: 'ok' } : s <= 2 ? { score: s, txt: 'Interromper a infusão, retirar o cateter, elevar o membro e notificar', level: 'warn' } : { score: s, txt: 'Grave: interromper, avaliar antídoto/protocolo de extravasamento, comunicar e notificar', level: 'bad' };
+      } },
+
+    { id: 'cha2ds2vasc', cat: 'cardio', nome: 'CHA₂DS₂-VASc', desc: 'Risco de AVC na fibrilação atrial',
+      fonte: 'Lip et al., Chest 2010; diretrizes SBC/ESC',
+      items: [
+        { label: 'Insuficiência cardíaca / disfunção do VE', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Hipertensão arterial', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Idade', opts: [[0, '< 65 anos'], [1, '65 a 74 anos'], [2, '≥ 75 anos']] },
+        { label: 'Diabetes', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'AVC, AIT ou tromboembolismo prévio', opts: [[0, 'Não'], [2, 'Sim']] },
+        { label: 'Doença vascular (IAM prévio, doença arterial periférica, placa aórtica)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Sexo', opts: [[0, 'Masculino'], [1, 'Feminino']] }
+      ],
+      interp: function (s, v) {
+        var semSexo = s - (v[6] || 0);
+        return semSexo === 0 ? { score: s, txt: 'Baixo risco: em geral sem anticoagulação', level: 'ok' } : semSexo === 1 ? { score: s, txt: 'Risco intermediário: considerar anticoagulação', level: 'warn' } : { score: s, txt: 'Alto risco: anticoagulação recomendada (avaliar sangramento)', level: 'bad' };
+      } },
+
+    { id: 'hasbled', cat: 'cardio', nome: 'HAS-BLED', desc: 'Risco de sangramento em anticoagulação',
+      fonte: 'Pisters et al., Chest 2010',
+      items: [
+        { label: 'Hipertensão não controlada (PAS > 160 mmHg)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Função renal alterada (diálise, transplante, creatinina ≥ 2,26 mg/dL)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Função hepática alterada (cirrose ou bilirrubina > 2× e transaminases > 3×)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'AVC prévio', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Sangramento prévio ou predisposição', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'INR lábil', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Idade > 65 anos', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Uso de antiagregante ou AINE', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Álcool (≥ 8 doses/semana)', opts: [[0, 'Não'], [1, 'Sim']] }
+      ],
+      interp: function (s) {
+        return s >= 3 ? { score: s, txt: 'Alto risco de sangramento: corrigir fatores modificáveis e monitorar de perto', level: 'bad' } : { score: s, txt: 'Risco baixo a moderado', level: s === 2 ? 'warn' : 'ok' };
+      } },
+
+    { id: 'wells-tvp', cat: 'cardio', nome: 'Wells — TVP', desc: 'Probabilidade clínica de trombose venosa profunda',
+      fonte: 'Wells et al., NEJM 2003',
+      items: [
+        { label: 'Câncer ativo', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Paralisia, paresia ou imobilização gessada recente de membro inferior', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Acamado > 3 dias ou cirurgia maior nas últimas 12 semanas', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Dor à palpação no trajeto venoso profundo', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Edema de todo o membro', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Panturrilha > 3 cm maior que a outra', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Edema com cacifo só na perna sintomática', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Veias superficiais colaterais (não varicosas)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'TVP prévia documentada', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Diagnóstico alternativo tão ou mais provável', opts: [[0, 'Não'], [-2, 'Sim']] }
+      ],
+      interp: function (s) {
+        return s >= 2 ? { score: s, txt: 'TVP provável: ultrassom Doppler', level: 'bad' } : { score: s, txt: 'TVP improvável: considerar D-dímero', level: 'ok' };
+      } },
+
+    { id: 'padua', cat: 'cardio', nome: 'Escore de Pádua', desc: 'Risco de TEV em paciente clínico internado',
+      fonte: 'Barbar et al., J Thromb Haemost 2010',
+      items: [
+        { label: 'Câncer ativo', opts: [[0, 'Não'], [3, 'Sim']] },
+        { label: 'TEV prévio (exceto trombose superficial)', opts: [[0, 'Não'], [3, 'Sim']] },
+        { label: 'Mobilidade reduzida (≥ 3 dias)', opts: [[0, 'Não'], [3, 'Sim']] },
+        { label: 'Trombofilia conhecida', opts: [[0, 'Não'], [3, 'Sim']] },
+        { label: 'Trauma ou cirurgia recente (≤ 1 mês)', opts: [[0, 'Não'], [2, 'Sim']] },
+        { label: 'Idade ≥ 70 anos', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Insuficiência cardíaca e/ou respiratória', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'IAM ou AVC isquêmico agudo', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Infecção aguda e/ou doença reumatológica', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Obesidade (IMC ≥ 30)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Tratamento hormonal em curso', opts: [[0, 'Não'], [1, 'Sim']] }
+      ],
+      interp: function (s) {
+        return s >= 4 ? { score: s, txt: 'Alto risco de TEV: profilaxia indicada se não houver contraindicação', level: 'bad' } : { score: s, txt: 'Baixo risco de TEV', level: 'ok' };
+      } },
+
+    { id: 'barthel', cat: 'funcional', nome: 'Índice de Barthel', desc: 'Independência nas atividades básicas de vida diária',
+      fonte: 'Mahoney & Barthel, 1965; versão brasileira: Minosso et al., 2010',
+      items: [
+        { label: 'Alimentação', opts: [[0, 'Dependente'], [5, 'Precisa de ajuda (cortar, passar manteiga)'], [10, 'Independente']] },
+        { label: 'Banho', opts: [[0, 'Dependente'], [5, 'Independente']] },
+        { label: 'Higiene pessoal (rosto, cabelo, dentes, barba)', opts: [[0, 'Precisa de ajuda'], [5, 'Independente']] },
+        { label: 'Vestir-se', opts: [[0, 'Dependente'], [5, 'Precisa de ajuda, faz metade sozinho'], [10, 'Independente']] },
+        { label: 'Intestino', opts: [[0, 'Incontinente'], [5, 'Acidentes ocasionais'], [10, 'Continente']] },
+        { label: 'Bexiga', opts: [[0, 'Incontinente ou sondado'], [5, 'Acidentes ocasionais'], [10, 'Continente']] },
+        { label: 'Uso do vaso sanitário', opts: [[0, 'Dependente'], [5, 'Precisa de alguma ajuda'], [10, 'Independente']] },
+        { label: 'Transferência cama–cadeira', opts: [[0, 'Incapaz'], [5, 'Grande ajuda (1–2 pessoas), consegue sentar'], [10, 'Pequena ajuda'], [15, 'Independente']] },
+        { label: 'Mobilidade em superfície plana', opts: [[0, 'Imóvel ou < 50 m'], [5, 'Independente em cadeira de rodas'], [10, 'Anda com ajuda de uma pessoa'], [15, 'Independente (pode usar bengala)']] },
+        { label: 'Escadas', opts: [[0, 'Incapaz'], [5, 'Precisa de ajuda'], [10, 'Independente']] }
+      ],
+      interp: function (s) {
+        return s === 100 ? { score: s, txt: 'Independente', level: 'ok' } : s >= 91 ? { score: s, txt: 'Dependência leve', level: 'ok' } : s >= 61 ? { score: s, txt: 'Dependência moderada', level: 'warn' } : s >= 21 ? { score: s, txt: 'Dependência grave', level: 'bad' } : { score: s, txt: 'Dependência total', level: 'bad' };
+      } },
+
+    { id: 'fugulin', cat: 'funcional', nome: 'Classificação de Fugulin', desc: 'Grau de dependência da enfermagem (dimensionamento — COFEN)',
+      fonte: 'Fugulin, Gaidzinski & Kurcgant, 2005; Resolução COFEN 543/2017',
+      items: [
+        { label: 'Estado mental', opts: [[1, 'Orientado no tempo e espaço'], [2, 'Períodos de desorientação'], [3, 'Períodos de inconsciência'], [4, 'Inconsciente']] },
+        { label: 'Oxigenação', opts: [[1, 'Não depende de oxigênio'], [2, 'Uso intermitente de máscara ou cateter'], [3, 'Uso contínuo de máscara ou cateter'], [4, 'Ventilação mecânica']] },
+        { label: 'Sinais vitais', opts: [[1, 'Rotina (8/8 h)'], [2, 'A cada 6 h'], [3, 'A cada 4 h'], [4, 'Intervalos ≤ 2 h']] },
+        { label: 'Motilidade', opts: [[1, 'Movimenta todos os segmentos'], [2, 'Limitação de movimentos'], [3, 'Dificuldade; mudança de decúbito pela enfermagem'], [4, 'Incapaz de movimentar qualquer segmento']] },
+        { label: 'Deambulação', opts: [[1, 'Ambulante'], [2, 'Necessita de auxílio'], [3, 'Locomoção em cadeira de rodas'], [4, 'Restrito ao leito']] },
+        { label: 'Alimentação', opts: [[1, 'Autossuficiente'], [2, 'Por boca com auxílio'], [3, 'Por sonda'], [4, 'Por cateter central (nutrição parenteral)']] },
+        { label: 'Cuidado corporal', opts: [[1, 'Autossuficiente'], [2, 'Auxílio no banho de chuveiro e/ou higiene oral'], [3, 'Banho de chuveiro e higiene oral pela enfermagem'], [4, 'Banho no leito e higiene oral pela enfermagem']] },
+        { label: 'Eliminação', opts: [[1, 'Autossuficiente'], [2, 'Vaso sanitário com auxílio'], [3, 'Comadre ou eliminações no leito'], [4, 'Evacuação no leito e sonda vesical']] },
+        { label: 'Terapêutica', opts: [[1, 'IM ou VO'], [2, 'EV intermitente'], [3, 'EV contínua ou por sonda'], [4, 'Drogas vasoativas']] }
+      ],
+      interp: function (s) {
+        return s <= 14 ? { score: s, txt: 'Cuidados mínimos', level: 'ok' } : s <= 20 ? { score: s, txt: 'Cuidados intermediários', level: 'ok' } : s <= 26 ? { score: s, txt: 'Alta dependência', level: 'warn' } : s <= 31 ? { score: s, txt: 'Cuidados semi-intensivos', level: 'bad' } : { score: s, txt: 'Cuidados intensivos', level: 'bad' };
+      } },
+
+    { id: 'downton', cat: 'seguranca', nome: 'Escala de Downton', desc: 'Risco de queda (idosos e adultos internados)',
+      fonte: 'Downton, 1993',
+      items: [
+        { label: 'Quedas anteriores', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Usa tranquilizantes/sedativos', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Usa diuréticos', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Usa anti-hipertensivos (não diuréticos)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Usa antiparkinsonianos', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Usa antidepressivos', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Déficit visual', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Déficit auditivo', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Déficit em extremidades (paresia, amputação)', opts: [[0, 'Não'], [1, 'Sim']] },
+        { label: 'Estado mental', opts: [[0, 'Orientado'], [1, 'Confuso']] },
+        { label: 'Marcha', opts: [[0, 'Normal'], [1, 'Segura com ajuda'], [1, 'Insegura (com ou sem ajuda)'], [1, 'Impossível']] }
+      ],
+      interp: function (s) {
+        return s >= 3 ? { score: s, txt: 'Alto risco de queda: medidas de prevenção e sinalização', level: 'bad' } : { score: s, txt: 'Baixo risco de queda — manter medidas universais', level: 'ok' };
+      } },
+
+    { id: 'humpty-dumpty', cat: 'seguranca', nome: 'Humpty Dumpty', desc: 'Risco de queda em pediatria',
+      fonte: 'Hill-Rodriguez et al., J Spec Pediatr Nurs 2009',
+      items: [
+        { label: 'Idade', opts: [[4, '< 3 anos'], [3, '3 a < 7 anos'], [2, '7 a < 13 anos'], [1, '≥ 13 anos']] },
+        { label: 'Sexo', opts: [[2, 'Masculino'], [1, 'Feminino']] },
+        { label: 'Diagnóstico', opts: [[4, 'Neurológico'], [3, 'Alteração da oxigenação (respiratório, desidratação, anemia, anorexia, síncope)'], [2, 'Psiquiátrico ou comportamental'], [1, 'Outros']] },
+        { label: 'Prejuízo cognitivo', opts: [[3, 'Não tem consciência das limitações'], [2, 'Esquece as limitações'], [1, 'Orientado às próprias capacidades']] },
+        { label: 'Fatores ambientais', opts: [[4, 'Histórico de quedas ou lactente/criança pequena em cama'], [3, 'Usa dispositivos (berço, andador, móveis, iluminação)'], [2, 'No leito'], [1, 'Área ambulatorial']] },
+        { label: 'Cirurgia / sedação / anestesia', opts: [[3, 'Nas últimas 24 h'], [2, 'Nas últimas 48 h'], [1, 'Há mais de 48 h ou nenhuma']] },
+        { label: 'Medicamentos (sedativos, hipnóticos, barbitúricos, fenotiazinas, antidepressivos, laxantes/diuréticos, opioides)', opts: [[3, 'Uso de dois ou mais'], [2, 'Um deles'], [1, 'Outros ou nenhum']] }
+      ],
+      interp: function (s) {
+        return s >= 12 ? { score: s, txt: 'Alto risco de queda: protocolo de prevenção pediátrico', level: 'bad' } : { score: s, txt: 'Baixo risco de queda', level: 'ok' };
+      } },
+
+    { id: 'silverman', cat: 'neo', nome: 'Boletim de Silverman-Andersen', desc: 'Desconforto respiratório no recém-nascido',
+      fonte: 'Silverman & Andersen, Pediatrics 1956; Ministério da Saúde — Atenção ao RN',
+      items: [
+        { label: 'Movimentos de tórax e abdome', opts: [[0, 'Sincronizados'], [1, 'Declínio inspiratório'], [2, 'Balancim (gangorra)']] },
+        { label: 'Tiragem intercostal', opts: [[0, 'Ausente'], [1, 'Discreta'], [2, 'Acentuada']] },
+        { label: 'Retração xifoide', opts: [[0, 'Ausente'], [1, 'Discreta'], [2, 'Acentuada']] },
+        { label: 'Batimento de asa nasal', opts: [[0, 'Ausente'], [1, 'Discreto'], [2, 'Acentuado']] },
+        { label: 'Gemido expiratório', opts: [[0, 'Ausente'], [1, 'Audível com estetoscópio'], [2, 'Audível sem estetoscópio']] }
+      ],
+      interp: function (s) {
+        return s === 0 ? { score: s, txt: 'Sem desconforto respiratório', level: 'ok' } : s <= 3 ? { score: s, txt: 'Desconforto leve', level: 'warn' } : s <= 6 ? { score: s, txt: 'Desconforto moderado', level: 'bad' } : { score: s, txt: 'Desconforto grave', level: 'bad' };
+      } },
+
+    { id: 'child-pugh', cat: 'clinica', nome: 'Child-Pugh', desc: 'Gravidade da cirrose hepática',
+      fonte: 'Pugh et al., Br J Surg 1973',
+      items: [
+        { label: 'Bilirrubina total', opts: [[1, '< 2 mg/dL'], [2, '2 a 3 mg/dL'], [3, '> 3 mg/dL']] },
+        { label: 'Albumina', opts: [[1, '> 3,5 g/dL'], [2, '2,8 a 3,5 g/dL'], [3, '< 2,8 g/dL']] },
+        { label: 'INR', opts: [[1, '< 1,7'], [2, '1,7 a 2,3'], [3, '> 2,3']] },
+        { label: 'Ascite', opts: [[1, 'Ausente'], [2, 'Leve / controlada'], [3, 'Moderada a grave']] },
+        { label: 'Encefalopatia', opts: [[1, 'Ausente'], [2, 'Grau 1–2'], [3, 'Grau 3–4']] }
+      ],
+      interp: function (s) {
+        return s <= 6 ? { score: s, txt: 'Classe A — doença compensada', level: 'ok' } : s <= 9 ? { score: s, txt: 'Classe B — comprometimento significativo', level: 'warn' } : { score: s, txt: 'Classe C — doença descompensada', level: 'bad' };
+      } },
+
+    { id: 'sofa', cat: 'uti', nome: 'SOFA', desc: 'Disfunção orgânica (sepse-3, UTI)',
+      fonte: 'Vincent et al., Intensive Care Med 1996; Singer et al., JAMA 2016',
+      items: [
+        { label: 'Respiração — PaO₂/FiO₂', opts: [[0, '≥ 400'], [1, '< 400'], [2, '< 300'], [3, '< 200 com suporte ventilatório'], [4, '< 100 com suporte ventilatório']] },
+        { label: 'Coagulação — plaquetas (×10³/µL)', opts: [[0, '≥ 150'], [1, '< 150'], [2, '< 100'], [3, '< 50'], [4, '< 20']] },
+        { label: 'Fígado — bilirrubina (mg/dL)', opts: [[0, '< 1,2'], [1, '1,2 a 1,9'], [2, '2,0 a 5,9'], [3, '6,0 a 11,9'], [4, '≥ 12']] },
+        { label: 'Cardiovascular', opts: [[0, 'PAM ≥ 70 mmHg'], [1, 'PAM < 70 mmHg'], [2, 'Dopamina ≤ 5 ou dobutamina (qualquer dose)'], [3, 'Dopamina > 5 ou nora/adrenalina ≤ 0,1 mcg/kg/min'], [4, 'Dopamina > 15 ou nora/adrenalina > 0,1 mcg/kg/min']] },
+        { label: 'Neurológico — Glasgow', opts: [[0, '15'], [1, '13 a 14'], [2, '10 a 12'], [3, '6 a 9'], [4, '< 6']] },
+        { label: 'Renal — creatinina (mg/dL) ou diurese', opts: [[0, '< 1,2'], [1, '1,2 a 1,9'], [2, '2,0 a 3,4'], [3, '3,5 a 4,9 ou diurese < 500 mL/dia'], [4, '≥ 5,0 ou diurese < 200 mL/dia']] }
+      ],
+      interp: function (s) {
+        return s >= 2 ? { score: s, txt: 'Aumento ≥ 2 pontos em relação ao basal indica disfunção orgânica (sepse, se houver infecção)', level: s >= 10 ? 'bad' : 'warn' } : { score: s, txt: 'Disfunção orgânica ausente ou mínima', level: 'ok' };
+      } },
+
+    { id: 'hunt-hess', cat: 'neuro', nome: 'Hunt-Hess', desc: 'Gravidade clínica da hemorragia subaracnóidea',
+      fonte: 'Hunt & Hess, J Neurosurg 1968',
+      items: [{ label: 'Quadro clínico', opts: [[1, 'Assintomático ou cefaleia leve e rigidez de nuca leve'], [2, 'Cefaleia moderada a grave, rigidez de nuca, sem déficit além de paralisia de nervo craniano'], [3, 'Sonolência, confusão ou déficit focal leve'], [4, 'Torpor, hemiparesia moderada a grave'], [5, 'Coma profundo, descerebração']] }],
+      interp: function (s) {
+        return s <= 2 ? { score: s, txt: 'Grau ' + s + ' — melhor prognóstico', level: 'warn' } : { score: s, txt: 'Grau ' + s + ' — alta gravidade', level: 'bad' };
+      } },
+
+    { id: 'karnofsky', cat: 'funcional', nome: 'Karnofsky (KPS)', desc: 'Capacidade funcional em oncologia e cuidados paliativos',
+      fonte: 'Karnofsky & Burchenal, 1949',
+      items: [{ label: 'Situação atual', opts: [[100, 'Normal, sem queixas'], [90, 'Atividade normal, sinais ou sintomas mínimos'], [80, 'Atividade normal com esforço'], [70, 'Cuida de si, incapaz de atividade normal ou trabalho'], [60, 'Precisa de ajuda ocasional'], [50, 'Precisa de ajuda considerável e cuidados médicos frequentes'], [40, 'Incapacitado, precisa de cuidados especiais'], [30, 'Gravemente incapacitado, internação indicada'], [20, 'Muito doente, suporte ativo necessário'], [10, 'Moribundo'], [0, 'Óbito']] }],
+      interp: function (s) {
+        return s >= 80 ? { score: s, txt: 'Capaz de atividade normal', level: 'ok' } : s >= 50 ? { score: s, txt: 'Incapaz de trabalhar; cuida de si com ajuda variável', level: 'warn' } : { score: s, txt: 'Incapaz de cuidar de si', level: 'bad' };
       } }
   ];
 

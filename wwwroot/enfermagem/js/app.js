@@ -375,6 +375,46 @@
           notes: ['AG = Na − (Cl + HCO₃). Elevado sugere cetoacidose, acidose lática, insuficiência renal ou intoxicações. Referência varia entre laboratórios.'] };
       } },
 
+    { id: 'superficie-corporal', cat: 'clinico', icon: '📐', title: 'Superfície corporal', desc: 'Mosteller (m²) para quimioterapia e doses por m²',
+      fields: [{ id: 'peso', label: 'Peso', unit: 'kg', def: 70 }, { id: 'alt', label: 'Altura', unit: 'cm', def: 170 }],
+      compute: function (v) {
+        var r = C.superficieCorporal(v.peso, v.alt);
+        if (!r) return null;
+        return { results: [{ label: 'Superfície corporal', value: fmt(r, 2), unit: 'm²', main: true }], notes: ['Mosteller: √(peso × altura / 3600). Em oncologia, siga o protocolo da instituição quanto a arredondamento e teto de dose.'] };
+      } },
+
+    { id: 'calcio-corrigido', cat: 'clinico', icon: '🦴', title: 'Cálcio corrigido pela albumina', desc: 'Hipoalbuminemia altera o cálcio total',
+      fields: [{ id: 'ca', label: 'Cálcio total', unit: 'mg/dL', def: 7.8 }, { id: 'alb', label: 'Albumina', unit: 'g/dL', def: 2.5 }],
+      compute: function (v) {
+        var r = C.calcioCorrigido(v.ca, v.alb);
+        if (r == null) return null;
+        return { results: [{ label: 'Cálcio corrigido', value: fmt(r, 1), unit: 'mg/dL', main: true, sub: r < 8.5 ? 'Abaixo da referência usual (8,5–10,5)' : r > 10.5 ? 'Acima da referência usual (8,5–10,5)' : 'Dentro da referência usual (8,5–10,5)' }],
+          notes: ['Ca corrigido = Ca + 0,8 × (4 − albumina). Estimativa: em pacientes graves prefira o cálcio iônico. Fonte: Manual MSD — Hipocalcemia.'] };
+      } },
+
+    { id: 'agua-livre', cat: 'solucoes', icon: '💧', title: 'Déficit de água livre', desc: 'Hipernatremia: quanto de água falta',
+      fields: [{ id: 'peso', label: 'Peso', unit: 'kg', def: 70 }, { id: 'na', label: 'Sódio sérico', unit: 'mEq/L', def: 160 },
+        { id: 'fat', label: 'Paciente', type: 'select', def: '0.6', options: [['0.6', 'Homem adulto (0,6)'], ['0.5', 'Mulher adulta ou homem idoso (0,5)'], ['0.45', 'Mulher idosa (0,45)']] }],
+      compute: function (v) {
+        var r = C.deficitAguaLivre(v.peso, v.na, parseFloat(v.fat));
+        if (r == null) return null;
+        if (r <= 0) return { results: [{ label: 'Déficit de água livre', value: '0', unit: 'L', main: true, sub: 'Sódio ≤ 140: sem déficit pela fórmula' }] };
+        return { results: [{ label: 'Déficit de água livre', value: fmt(r, 1), unit: 'L', main: true }],
+          warns: ['Corrigir lentamente: em geral não reduzir o sódio mais que 10 mEq/L em 24 h na hipernatremia crônica (risco de edema cerebral).'],
+          notes: ['Déficit = fator × peso × (Na/140 − 1). Some as perdas contínuas. Use também a calculadora de Adrogué-Madias para estimar o efeito de cada solução. Fonte: Manual MSD — Hipernatremia.'] };
+      } },
+
+    { id: 'corticoides', cat: 'conversoes', icon: '💊', title: 'Equivalência de corticoides', desc: 'Converter dose entre corticoides (efeito anti-inflamatório)',
+      fields: [{ id: 'dose', label: 'Dose atual', unit: 'mg', def: 40 },
+        { id: 'de', label: 'De', type: 'select', def: 'prednisona', options: Object.keys(C.CORTICOIDES).map(function (k) { return [k, k.charAt(0).toUpperCase() + k.slice(1) + ' (' + String(C.CORTICOIDES[k]).replace('.', ',') + ' mg)']; }) },
+        { id: 'para', label: 'Para', type: 'select', def: 'dexametasona', options: Object.keys(C.CORTICOIDES).map(function (k) { return [k, k.charAt(0).toUpperCase() + k.slice(1) + ' (' + String(C.CORTICOIDES[k]).replace('.', ',') + ' mg)']; }) }],
+      compute: function (v) {
+        var r = C.equivCorticoide(v.dose, v.de, v.para);
+        if (r == null) return null;
+        return { results: [{ label: 'Dose equivalente', value: fmt(r, 2), unit: 'mg de ' + v.para, main: true }],
+          notes: ['Equivalência anti-inflamatória aproximada (hidrocortisona 20 = prednisona 5 = metilprednisolona 4 = dexametasona 0,75 mg). Não considera efeito mineralocorticoide nem duração de ação. Fonte: Manual MSD — Corticosteroides.'] };
+      } },
+
     { id: 'debito-urinario', cat: 'clinico', icon: '🚽', title: 'Débito urinário', desc: 'Diurese em mL/kg/h',
       fields: [{ id: 'vol', label: 'Diurese no período', unit: 'mL', def: 300, chips: [100, 200, 300, 500, 1000] }, { id: 'h', label: 'Período', unit: 'h', def: 6, chips: [1, 6, 12, 24] },
         { id: 'peso', label: 'Peso', unit: 'kg', def: 70 }, { id: 'tipo', label: 'Paciente', type: 'seg', options: [['a', 'Adulto'], ['c', 'Criança']], def: 'a' }],
@@ -845,7 +885,7 @@
       secT('Meu plantão', '<a class="sec-a" href="#/turno">Ver tudo ›</a>') + painelTurno() +
       secT('Consultar') +
       '<div class="tiles">' +
-        tileG('#/drogas', '💊', 'Bulário', nDrog + ' medicamentos', '#0f766e') +
+        tileG('#/drogas', '💊', 'Bulário', nDrog + ' medicamentos · ' + todasMarcas().length.toLocaleString('pt-BR') + ' nomes comerciais', '#0f766e') +
         tileG('#/calculadoras', '🧮', 'Cálculos', CALCS.length + 2 + ' calculadoras', '#2563eb') +
         tileG('#/protocolos', '📑', 'Protocolos', PR.PROTOCOLOS.length + ' condutas', '#7c3aed') +
         tileG('#/escalas', '📋', 'Escalas', D.SCALES.length + ' escalas clínicas', '#c2410c') +
@@ -3300,9 +3340,45 @@
   }
 
   // ---- Escalas ----
+  var GRUPOS_ESCALA = [['neuro', '🧠', 'Neurológicas e consciência'], ['uti', '🏥', 'Terapia intensiva e sepse'], ['clinica', '🩺', 'Avaliação clínica'], ['dor', '😣', 'Dor e sedação'],
+    ['pele', '🩹', 'Pele, feridas e acessos'], ['seguranca', '🛡️', 'Segurança do paciente (quedas)'], ['cardio', '🫀', 'Cardiovascular e tromboembolismo'], ['funcional', '🧍', 'Funcionalidade e dependência'], ['neo', '👶', 'Obstetrícia e neonatologia']];
+  var CAT_ESCALA_ANT = { glasgow: 'neuro', cincinnati: 'neuro', braden: 'pele', push: 'pele', morse: 'seguranca', rass: 'uti', ramsay: 'uti', qsofa: 'uti', apgar: 'neo', bishop: 'neo', news2: 'clinica', curb65: 'clinica', aldrete: 'clinica', bristol: 'clinica', flacc: 'dor', cpot: 'dor', dor: 'dor', 'wells-tep': 'cardio', katz: 'funcional', ecog: 'funcional' };
+  function catEscala(sc) { return sc.cat || CAT_ESCALA_ANT[sc.id] || 'clinica'; }
   function viewScales() {
     setHeader('Escalas', false);
-    $app.innerHTML = '<div class="list">' + D.SCALES.map(function (s) { return card('#/escala/' + s.id, '📋', s.nome, s.desc, 'escala:' + s.id); }).join('') + '</div>';
+    $app.innerHTML = '<div class="search"><input id="eq" type="search" placeholder="Buscar escala (ex.: dor, queda, AVC, sepse)…" autocomplete="off" aria-label="Buscar escala"></div>' +
+      '<p class="note">' + D.SCALES.length + ' escalas e índices clínicos · toque para aplicar; o resultado pode ser copiado para a evolução.</p><div id="el"></div>' +
+      (store.get('escHist', []).length ? '<div class="ref-btns"><a class="btn sm ghost" href="#/escala-historico">🗂️ Avaliações salvas (' + store.get('escHist', []).length + ')</a></div>' : '');
+    var eq = document.getElementById('eq'), el = document.getElementById('el');
+    function render() {
+      var t = norm(eq.value.trim()), ws = t ? t.split(/\s+/) : [];
+      var ok = D.SCALES.filter(function (sc) { var n = norm(sc.nome + ' ' + sc.desc + ' ' + (GRUPOS_ESCALA.filter(function (g) { return g[0] === catEscala(sc); })[0] || [, , ''])[2]); return ws.every(function (w) { return n.indexOf(w) >= 0; }); });
+      el.innerHTML = GRUPOS_ESCALA.map(function (g) {
+        var ss = ok.filter(function (sc) { return catEscala(sc) === g[0]; });
+        return ss.length ? '<h3 class="sub-h">' + g[1] + ' ' + esc(g[2]) + '</h3><div class="list">' + ss.map(function (sc) { return card('#/escala/' + sc.id, g[1], sc.nome, sc.desc, 'escala:' + sc.id); }).join('') + '</div>' : '';
+      }).join('') || '<p class="empty-msg">Nenhuma escala encontrada.</p>';
+    }
+    addVoz(eq); eq.addEventListener('input', render); render();
+  }
+  var ESCALA_PROT = { nihss: ['avc'], cincinnati: ['avc'], 'hunt-hess': ['avc'], rankin: ['avc'], qsofa: ['sepse'], sofa: ['sepse'], news2: ['sepse'], 'cam-icu': ['delirium'], 'wells-tep': ['tep'],
+    'wells-tvp': ['tev-profilaxia'], padua: ['tev-profilaxia'], morse: ['quedas'], downton: ['quedas'], 'humpty-dumpty': ['quedas'], braden: ['lesao-pressao'], push: ['lesao-pressao'], glasgow: ['tce'], 'glasgow-ped': ['tce'],
+    silverman: ['reanimacao-neonatal'], apgar: ['reanimacao-neonatal'], poss: ['dor'], dor: ['dor'], bps: ['dor'], cpot: ['dor'], flacc: ['dor'], flebite: ['extravasamento'], infiltracao: ['extravasamento'], cha2ds2vasc: ['fa'], hasbled: ['fa'], curb65: ['pneumonia'], 'child-pugh': ['hda'], bishop: ['tpp'] };
+  function protEscala(id) {
+    return (ESCALA_PROT[id] || []).map(function (pid) { var p = PR.PROTOCOLOS.filter(function (x) { return x.id === pid; })[0]; return p ? '<a class="btn sm ghost" href="#/protocolo/' + pid + '">' + p.icon + ' Protocolo: ' + esc(p.nome) + '</a>' : ''; }).join('');
+  }
+  function viewEscalaHistorico() {
+    setHeader('Avaliações salvas', true);
+    var h = store.get('escHist', []);
+    $app.innerHTML = '<p class="lead">Resultados de escalas salvos neste aparelho (não saem do celular).</p>' +
+      (h.length ? '<div class="list">' + h.map(function (r, i) {
+        return '<div class="card"><span class="card-ic">📋</span><span class="card-t"><b>' + esc(r.nome) + ' = ' + esc(String(r.score)) + '</b><small>' + esc(r.txt) + '<br>' + esc(r.quando) + (r.ref ? ' · ' + esc(r.ref) : '') + '</small></span><button type="button" class="btn sm ghost" data-del="' + i + '" aria-label="Apagar">🗑️</button></div>';
+      }).join('') + '</div><div class="ref-btns"><button class="btn sm" id="eh-copy" type="button">📋 Copiar todas</button><button class="btn sm ghost" id="eh-clear" type="button">Apagar todas</button></div>'
+        : '<p class="empty-msg">Nenhuma avaliação salva ainda.</p>');
+    $app.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { h.splice(+b.getAttribute('data-del'), 1); store.set('escHist', h); viewEscalaHistorico(); }; });
+    var c = document.getElementById('eh-copy');
+    if (c) c.onclick = function () { copiarTexto(h.map(function (r) { return r.quando + (r.ref ? ' — ' + r.ref : '') + ' — ' + r.nome + ': ' + r.score + ' (' + r.txt + ')'; }).join('\n')); };
+    var cl = document.getElementById('eh-clear');
+    if (cl) cl.onclick = function () { ask({ titulo: 'Apagar avaliações', msg: 'Apagar todas as avaliações salvas?', ok: 'Apagar', perigo: true }).then(function (sim) { if (sim) { store.set('escHist', []); viewEscalaHistorico(); } }); };
   }
 
   function viewScale(id) {
@@ -3316,7 +3392,10 @@
         }).join('') + '</fieldset>';
       }).join('') + '</form>' +
       '<div class="score-bar" id="sbar"></div>' +
-      '<button class="btn ghost" id="sreset" type="button">Reiniciar</button>';
+      '<div class="esc-acoes" id="sacoes" hidden><input id="sref" type="text" placeholder="Leito / paciente (opcional)" aria-label="Identificação"><button class="btn sm" id="scopy" type="button">📋 Copiar</button><button class="btn sm ghost" id="ssave" type="button">💾 Salvar</button></div>' +
+      '<button class="btn ghost" id="sreset" type="button">Reiniciar</button>' +
+      (protEscala(s.id) ? '<div class="ref-btns">' + protEscala(s.id) + '</div>' : '');
+    var ultimo = null;
     var form = document.getElementById('sform'), bar = document.getElementById('sbar');
     function run() {
       var vals = [], missing = 0, sum = 0;
@@ -3324,13 +3403,27 @@
         var r = form.querySelector('input[name=s' + i + ']:checked');
         if (r) { vals[i] = +r.value; sum += +r.value; } else if (!it.optional) missing++;
       });
-      if (missing) { bar.className = 'score-bar'; bar.innerHTML = '<span>Faltam ' + missing + ' ' + (missing > 1 ? 'itens' : 'item') + '</span><b>' + (vals.length ? sum : '—') + '</b>'; return; }
+      document.getElementById('sacoes').hidden = !!missing;
+      if (missing) { ultimo = null; bar.className = 'score-bar'; bar.innerHTML = '<span>Faltam ' + missing + ' ' + (missing > 1 ? 'itens' : 'item') + '</span><b>' + (vals.length ? sum : '—') + '</b>'; return; }
       var r = s.interp(sum, vals);
+      ultimo = r;
       bar.className = 'score-bar ' + r.level;
       bar.innerHTML = '<span>' + esc(r.txt) + (r.label ? '<small>' + esc(r.label) + '</small>' : '') + '</span><b>' + (r.score > 0 && s.id === 'rass' ? '+' : '') + r.score + '</b>';
     }
     form.addEventListener('change', run);
     document.getElementById('sreset').onclick = function () { form.reset(); run(); window.scrollTo(0, 0); };
+    function textoRes() {
+      var itens = s.items.map(function (it, i) { var r = form.querySelector('input[name=s' + i + ']:checked'); return r ? it.label.replace(/^\d+[a-z]?\.\s*/, '') + ': ' + r.parentNode.querySelector('.opt-t').textContent : ''; }).filter(Boolean);
+      var ref = document.getElementById('sref').value.trim();
+      return new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) + (ref ? ' — ' + ref : '') + '\n' + s.nome + ' = ' + ultimo.score + ' — ' + ultimo.txt + (s.items.length > 1 ? '\n(' + itens.join('; ') + ')' : '');
+    }
+    document.getElementById('scopy').onclick = function () { if (ultimo) copiarTexto(textoRes()); };
+    document.getElementById('ssave').onclick = function () {
+      if (!ultimo) return;
+      var h = store.get('escHist', []);
+      h.unshift({ id: s.id, nome: s.nome, score: ultimo.score, txt: ultimo.txt, ref: document.getElementById('sref').value.trim(), quando: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) });
+      store.set('escHist', h.slice(0, 200)); toast('Avaliação salva');
+    };
     run();
   }
 
@@ -3392,6 +3485,7 @@
       case 'droga': viewDrug(parts[1], parts[2] ? decodeURIComponent(parts[2]) : ''); break;
       case 'escalas': viewScales(); break;
       case 'escala': viewScale(parts[1]); break;
+      case 'escala-historico': viewEscalaHistorico(); break;
       case 'sobre': viewAbout(); break;
       case 'revisao': viewRevisao(parts[1]); break;
       case 'pcr': viewPCR(); break;
@@ -3452,6 +3546,14 @@
   route();
 
   if (!EMBED && 'serviceWorker' in navigator && location.protocol !== 'file:') {
+    var tinhaSW = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!tinhaSW || document.getElementById('upd-bar')) return;
+      var b = document.createElement('div'); b.id = 'upd-bar'; b.className = 'upd-bar';
+      b.innerHTML = '✨ Nova versão do EnfCalc instalada. <button type="button" class="btn sm">Atualizar agora</button>';
+      b.querySelector('button').onclick = function () { location.reload(); };
+      document.body.appendChild(b);
+    });
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () { /* offline indisponível */ }); });
   }
 
